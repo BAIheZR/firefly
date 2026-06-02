@@ -7,8 +7,10 @@ let mainWindow;
 
 function createWindow() {
     mainWindow = new BrowserWindow({
-        width: 1200,
+        width: 1520,
         height: 800,
+        minWidth: 1520,
+        minHeight: 600,
         autoHideMenuBar: true,
         title: '萤光纪游',
         icon: path.join(__dirname, 'favicon.ico'),

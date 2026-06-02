@@ -136,16 +136,6 @@
                 </div>
                 <div class="setting-item">
                     <div>
-                        <div class="setting-label">主题模式</div>
-                        <div class="setting-description">选择白天或黑夜主题</div>
-                    </div>
-                    <select class="setting-select" id="themeSelect" onchange="changeTheme()">
-                        <option value="light">白天模式</option>
-                        <option value="dark">黑夜模式</option>
-                    </select>
-                </div>
-                <div class="setting-item">
-                    <div>
                         <div class="setting-label">AI聊天API</div>
                         <div class="setting-description">设置AI聊天的API密钥</div>
                     </div>
@@ -1491,19 +1481,52 @@
             canvas.width = 200;
             canvas.height = 200;
             
-            // 计算裁剪区域相对于图片的位置和大小
+            // 获取容器和图片的尺寸
+            const containerRect = cropImage.parentElement.getBoundingClientRect();
             const imageRect = cropImage.getBoundingClientRect();
+            
+            // 计算图片在容器中的实际显示区域（考虑 object-fit: contain）
+            const containerWidth = containerRect.width;
+            const containerHeight = containerRect.height;
+            const naturalWidth = cropImage.naturalWidth;
+            const naturalHeight = cropImage.naturalHeight;
+            
+            // 计算图片在容器中的实际显示尺寸（保持比例）
+            const containerRatio = containerWidth / containerHeight;
+            const imageRatio = naturalWidth / naturalHeight;
+            
+            let displayWidth, displayHeight, offsetX, offsetY;
+            
+            if (imageRatio > containerRatio) {
+                // 图片是横版的，按宽度缩放
+                displayWidth = containerWidth;
+                displayHeight = containerWidth / imageRatio;
+                offsetX = 0;
+                offsetY = (containerHeight - displayHeight) / 2;
+            } else {
+                // 图片是竖版的，按高度缩放
+                displayHeight = containerHeight;
+                displayWidth = containerHeight * imageRatio;
+                offsetX = (containerWidth - displayWidth) / 2;
+                offsetY = 0;
+            }
+            
+            // 获取裁剪框位置
             const cropRect = cropArea.getBoundingClientRect();
             
-            // 计算裁剪参数
-            const scaleX = (cropImage.naturalWidth * scale) / imageRect.width;
-            const scaleY = (cropImage.naturalHeight * scale) / imageRect.height;
+            // 计算裁剪框相对于图片实际显示区域的位置（考虑图片拖动和缩放）
+            const relativeX = (cropRect.left - containerRect.left - offsetX - translateX) / scale;
+            const relativeY = (cropRect.top - containerRect.top - offsetY - translateY) / scale;
+            const relativeWidth = cropRect.width / scale;
+            const relativeHeight = cropRect.height / scale;
             
-            // 考虑图片平移
-            const x = (cropRect.left - imageRect.left - translateX) * scaleX;
-            const y = (cropRect.top - imageRect.top - translateY) * scaleY;
-            const width = cropRect.width * scaleX;
-            const height = cropRect.height * scaleY;
+            // 将相对坐标转换为原始图片坐标
+            const scaleFactor = naturalWidth / displayWidth;
+            
+            const x = relativeX * scaleFactor;
+            const y = relativeY * scaleFactor;
+            const width = relativeWidth * scaleFactor;
+            const height = relativeHeight * scaleFactor;
             
             // 绘制圆形裁剪区域
             ctx.beginPath();
@@ -1541,26 +1564,83 @@
             }
         }
 
+        // 存储更新信息
+        let updateInfo = null;
+
+        // 检查更新
+        async function checkForUpdates() {
+            const checkBtn = document.getElementById('checkUpdateBtn');
+            const openBtn = document.getElementById('openUpdatePageBtn');
+            const statusSpan = document.getElementById('updateStatus');
+            
+            checkBtn.disabled = true;
+            checkBtn.textContent = '检查中...';
+            statusSpan.textContent = '正在检查更新...';
+            statusSpan.style.color = '#888';
+            
+            try {
+                if (!window.electronAPI || !window.electronAPI.checkForUpdates) {
+                    statusSpan.textContent = '此功能仅在桌面应用中可用';
+                    statusSpan.style.color = '#f44336';
+                    checkBtn.disabled = false;
+                    checkBtn.textContent = '检查更新';
+                    return;
+                }
+                
+                const result = await window.electronAPI.checkForUpdates();
+                
+                if (result.error) {
+                    statusSpan.textContent = result.message || '检查更新失败';
+                    statusSpan.style.color = '#f44336';
+                } else if (result.updateAvailable) {
+                    updateInfo = result;
+                    statusSpan.innerHTML = `<span style="color:#4CAF50;">发现新版本 ${result.latestVersion}！</span><br><span style="color:#888;font-size:12px;">当前版本: ${result.currentVersion}</span>`;
+                    openBtn.style.display = 'inline-block';
+                    
+                    if (result.notes) {
+                        console.log('更新说明:', result.notes);
+                    }
+                } else {
+                    statusSpan.innerHTML = `<span style="color:#4CAF50;">已是最新版本 ${result.currentVersion}</span>`;
+                    openBtn.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('检查更新出错:', error);
+                statusSpan.textContent = '检查更新时发生错误';
+                statusSpan.style.color = '#f44336';
+            }
+            
+            checkBtn.disabled = false;
+            checkBtn.textContent = '检查更新';
+        }
+
+        // 打开更新页面
+        async function openUpdatePage() {
+            if (!updateInfo || !updateInfo.releaseUrl) {
+                showCustomAlert('没有可用的更新链接', 'error');
+                return;
+            }
+            
+            try {
+                if (window.electronAPI && window.electronAPI.openExternalUrl) {
+                    await window.electronAPI.openExternalUrl(updateInfo.releaseUrl);
+                } else {
+                    window.open(updateInfo.releaseUrl, '_blank');
+                }
+            } catch (error) {
+                console.error('打开更新页面失败:', error);
+                showCustomAlert('无法打开更新页面', 'error');
+            }
+        }
+
         // 返回上一页
         function goBack() {
             window.location.href = 'inMaxNineUI.html';
         }
 
-        // 主题切换函数
-        function changeTheme() {
-            const theme = document.getElementById('themeSelect').value;
-            setTheme(theme);
-        }
-        
         // 页面加载时加载设置
         window.onload = function() {
             loadSettings();
-            // 初始化主题选择器
-            const savedTheme = localStorage.getItem('currentTheme') || 'light';
-            const themeSelect = document.getElementById('themeSelect');
-            if (themeSelect) {
-                themeSelect.value = savedTheme;
-            }
         };
 
         // 打开公告模态框

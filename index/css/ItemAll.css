@@ -7,20 +7,32 @@
 
 .sectionHeader{
 	display: flex;
-	justify-content: flex-end;
+	justify-content: center;
 	margin-bottom: 10px;
- }
+}
 
 .viewAll{
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	width: 100%;
 	cursor: pointer;
 	color: #4AB8A0;
-	font-size: 14px;
+	font-size: 18px;
+	font-weight: 500;
 	transition: all 0.3s ease;
+	padding: 10px 0;
+	border-radius: 8px;
+}
+
+.viewAll i{
+	font-size: 20px;
 }
 
 .viewAll:hover{
 	color: #2b7c64;
-	
+	background: rgba(74, 184, 160, 0.1);
 }
 .chat{
 	width: 70%;
