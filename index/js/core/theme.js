@@ -180,6 +180,26 @@ function applyTheme(theme) {
     const shopBtns = document.querySelectorAll('.shop-btn');
     const warehouseBtns = document.querySelectorAll('.warehouse-btn');
 
+    // 聊天页面元素
+    const chatSidebar = document.querySelector('.chat-sidebar');
+    const chatMain = document.querySelector('.chat-main');
+    const chatProfile = document.querySelector('.chat-profile');
+    const sessionItems = document.querySelectorAll('.session-item');
+    const chatMessages = document.querySelector('.chat-messages');
+    const chatMessage = document.querySelectorAll('.chat-message');
+    const messageContent = document.querySelectorAll('.message-content');
+    const assistantMessages = document.querySelectorAll('.assistant-message .message-content');
+    const userMessages = document.querySelectorAll('.user-message .message-content');
+    const chatInputArea = document.querySelector('.chat-input-area');
+    const messageInput = document.getElementById('messageInput');
+    const profileCard = document.querySelector('.profile-card');
+    const profileTips = document.querySelector('.profile-tips');
+    const profileDisclaimer = document.querySelector('.profile-disclaimer');
+    const profileUpdates = document.querySelector('.profile-updates');
+    const profileVersion = document.querySelector('.profile-version');
+    const settingsModal = document.querySelector('.settings-modal');
+    const settingsOverlay = document.querySelector('.settings-overlay');
+
     if (theme === 'dark') {
         // 黑夜模式
         if (!hasCustomBackground) {
@@ -459,7 +479,145 @@ function applyTheme(theme) {
             btn.style.background = 'rgba(50, 50, 70, 0.8)';
             btn.style.color = '#e0e0e0';
         });
-        
+
+        // 聊天页面 - 黑夜模式
+        if (chatSidebar) {
+            chatSidebar.style.background = 'rgba(30, 30, 50, 0.95)';
+            chatSidebar.style.borderRightColor = 'rgba(100, 100, 120, 0.5)';
+        }
+        if (chatMain) {
+            chatMain.style.background = 'rgba(20, 20, 40, 0.85)';
+        }
+        if (chatProfile) {
+            chatProfile.style.background = 'rgba(30, 30, 50, 0.95)';
+            chatProfile.style.borderLeftColor = 'rgba(100, 100, 120, 0.5)';
+        }
+        sessionItems.forEach(item => {
+            if (!item.classList.contains('active')) {
+                item.style.background = 'rgba(50, 50, 70, 0.6)';
+            }
+            const title = item.querySelector('.session-title');
+            if (title) title.style.color = '#e0e0e0';
+            const preview = item.querySelector('.session-preview');
+            if (preview) preview.style.color = '#a0a0a0';
+            const time = item.querySelector('.session-time');
+            if (time) time.style.color = '#888';
+        });
+        document.querySelectorAll('.session-item.active').forEach(item => {
+            item.style.background = 'rgba(210, 180, 140, 0.3)';
+            item.style.borderLeftColor = '#D2B48C';
+            const title = item.querySelector('.session-title');
+            if (title) title.style.color = '#e0e0e0';
+            const preview = item.querySelector('.session-preview');
+            if (preview) preview.style.color = '#a0a0a0';
+        });
+        document.querySelectorAll('.sidebar-btn').forEach(btn => {
+            btn.style.background = 'rgba(50, 50, 70, 0.8)';
+            btn.style.color = '#e0e0e0';
+        });
+        if (chatMessages) {
+            chatMessages.style.background = 'transparent';
+        }
+        assistantMessages.forEach(msg => {
+            msg.style.background = 'rgba(40, 40, 60, 0.9)';
+            msg.style.borderColor = 'rgba(100, 100, 120, 0.5)';
+            msg.style.color = '#e0e0e0';
+        });
+        if (chatInputArea) {
+            chatInputArea.style.background = 'rgba(30, 30, 50, 0.9)';
+            chatInputArea.style.borderTopColor = 'rgba(100, 100, 120, 0.5)';
+        }
+        if (messageInput) {
+            messageInput.style.background = 'rgba(50, 50, 70, 0.9)';
+            messageInput.style.borderColor = 'rgba(100, 100, 120, 0.5)';
+            messageInput.style.color = '#e0e0e0';
+        }
+        if (profileCard) {
+            profileCard.style.background = 'rgba(40, 40, 60, 0.9)';
+            const h3 = profileCard.querySelector('h3');
+            if (h3) h3.style.color = '#e0e0e0';
+            const subtitle = profileCard.querySelector('.profile-subtitle');
+            if (subtitle) subtitle.style.color = '#a0a0a0';
+            const quote = profileCard.querySelector('.profile-quote p');
+            if (quote) quote.style.color = '#a0a0a0';
+            const infoItems = profileCard.querySelectorAll('.info-item');
+            infoItems.forEach(item => item.style.color = '#c0c0c0');
+        }
+        if (profileTips) {
+            profileTips.style.background = 'rgba(50, 50, 70, 0.6)';
+            const h4 = profileTips.querySelector('h4');
+            if (h4) h4.style.color = '#e0e0e0';
+            const li = profileTips.querySelectorAll('li');
+            li.forEach(item => item.style.color = '#a0a0a0');
+        }
+        if (profileDisclaimer) {
+            profileDisclaimer.style.background = 'rgba(255, 193, 7, 0.15)';
+            profileDisclaimer.style.borderLeftColor = '#ffc107';
+            const h4 = profileDisclaimer.querySelector('h4');
+            if (h4) h4.style.color = '#ffb300';
+            const p = profileDisclaimer.querySelectorAll('p');
+            p.forEach(para => para.style.color = '#c0c0c0');
+        }
+        if (profileUpdates) {
+            profileUpdates.style.background = 'rgba(33, 150, 243, 0.15)';
+            profileUpdates.style.borderLeftColor = '#42a5f5';
+            const h4 = profileUpdates.querySelector('h4');
+            if (h4) h4.style.color = '#42a5f5';
+            const items = profileUpdates.querySelectorAll('.update-item');
+            items.forEach(item => item.style.color = '#c0c0c0');
+        }
+        if (profileVersion) {
+            profileVersion.style.borderTopColor = 'rgba(100, 100, 120, 0.5)';
+            const p = profileVersion.querySelector('p');
+            if (p) p.style.color = '#888';
+        }
+        if (settingsModal) {
+            settingsModal.style.background = 'rgba(40, 40, 60, 0.95)';
+            const header = settingsModal.querySelector('.settings-header h2');
+            if (header) header.style.color = '#e0e0e0';
+            const labels = settingsModal.querySelectorAll('.setting-group label');
+            labels.forEach(label => label.style.color = '#e0e0e0');
+            const inputs = settingsModal.querySelectorAll('.setting-group input');
+            inputs.forEach(input => {
+                input.style.background = 'rgba(50, 50, 70, 0.9)';
+                input.style.borderColor = 'rgba(100, 100, 120, 0.5)';
+                input.style.color = '#e0e0e0';
+            });
+            const selects = settingsModal.querySelectorAll('.setting-group select');
+            selects.forEach(select => {
+                select.style.background = 'rgba(50, 50, 70, 0.9)';
+                select.style.borderColor = 'rgba(100, 100, 120, 0.5)';
+                select.style.color = '#e0e0e0';
+            });
+            const textareas = settingsModal.querySelectorAll('.setting-group textarea');
+            textareas.forEach(textarea => {
+                textarea.style.background = 'rgba(50, 50, 70, 0.9)';
+                textarea.style.borderColor = 'rgba(100, 100, 120, 0.5)';
+                textarea.style.color = '#e0e0e0';
+            });
+            const smalls = settingsModal.querySelectorAll('.setting-group small');
+            smalls.forEach(small => small.style.color = '#a0a0a0');
+            const debugLog = settingsModal.querySelector('#debugLog');
+            if (debugLog) {
+                debugLog.style.background = 'rgba(30, 30, 50, 0.9)';
+                debugLog.style.borderColor = 'rgba(100, 100, 120, 0.5)';
+                debugLog.style.color = '#e0e0e0';
+            }
+        }
+        document.querySelectorAll('.chat-header').forEach(header => {
+            header.style.borderBottomColor = 'rgba(100, 100, 120, 0.5)';
+            const title = header.querySelector('.chat-title h2');
+            if (title) title.style.color = '#e0e0e0';
+        });
+        document.querySelectorAll('.sidebar-header').forEach(header => {
+            header.style.borderBottomColor = 'rgba(100, 100, 120, 0.5)';
+            const h3 = header.querySelector('h3');
+            if (h3) h3.style.color = '#e0e0e0';
+        });
+        document.querySelectorAll('.sidebar-footer').forEach(footer => {
+            footer.style.borderTopColor = 'rgba(100, 100, 120, 0.5)';
+        });
+
         // 按钮样式
         buttons.forEach(btn => {
             const bg = btn.style.background;
@@ -706,7 +864,145 @@ function applyTheme(theme) {
             btn.style.background = 'rgba(255, 255, 255, 0.9)';
             btn.style.color = '#555';
         });
-        
+
+        // 聊天页面 - 白天模式
+        if (chatSidebar) {
+            chatSidebar.style.background = 'rgba(255, 255, 255, 0.95)';
+            chatSidebar.style.borderRightColor = 'rgba(210, 180, 140, 0.3)';
+        }
+        if (chatMain) {
+            chatMain.style.background = 'rgba(255, 255, 255, 0.85)';
+        }
+        if (chatProfile) {
+            chatProfile.style.background = 'rgba(255, 255, 255, 0.95)';
+            chatProfile.style.borderLeftColor = 'rgba(210, 180, 140, 0.3)';
+        }
+        sessionItems.forEach(item => {
+            if (!item.classList.contains('active')) {
+                item.style.background = 'rgba(255, 255, 255, 0.6)';
+            }
+            const title = item.querySelector('.session-title');
+            if (title) title.style.color = '#333';
+            const preview = item.querySelector('.session-preview');
+            if (preview) preview.style.color = '#666';
+            const time = item.querySelector('.session-time');
+            if (time) time.style.color = '#999';
+        });
+        document.querySelectorAll('.session-item.active').forEach(item => {
+            item.style.background = 'rgba(210, 180, 140, 0.3)';
+            item.style.borderLeftColor = '#D2B48C';
+            const title = item.querySelector('.session-title');
+            if (title) title.style.color = '#333';
+            const preview = item.querySelector('.session-preview');
+            if (preview) preview.style.color = '#666';
+        });
+        document.querySelectorAll('.sidebar-btn').forEach(btn => {
+            btn.style.background = 'rgba(210, 180, 140, 0.2)';
+            btn.style.color = '#333';
+        });
+        if (chatMessages) {
+            chatMessages.style.background = 'transparent';
+        }
+        assistantMessages.forEach(msg => {
+            msg.style.background = 'white';
+            msg.style.borderColor = 'rgba(210, 180, 140, 0.3)';
+            msg.style.color = '#333';
+        });
+        if (chatInputArea) {
+            chatInputArea.style.background = 'rgba(255, 255, 255, 0.95)';
+            chatInputArea.style.borderTopColor = 'rgba(210, 180, 140, 0.3)';
+        }
+        if (messageInput) {
+            messageInput.style.background = 'white';
+            messageInput.style.borderColor = 'rgba(210, 180, 140, 0.3)';
+            messageInput.style.color = '#333';
+        }
+        if (profileCard) {
+            profileCard.style.background = 'white';
+            const h3 = profileCard.querySelector('h3');
+            if (h3) h3.style.color = '#333';
+            const subtitle = profileCard.querySelector('.profile-subtitle');
+            if (subtitle) subtitle.style.color = '#999';
+            const quote = profileCard.querySelector('.profile-quote p');
+            if (quote) quote.style.color = '#666';
+            const infoItems = profileCard.querySelectorAll('.info-item');
+            infoItems.forEach(item => item.style.color = '#666');
+        }
+        if (profileTips) {
+            profileTips.style.background = 'rgba(210, 180, 140, 0.1)';
+            const h4 = profileTips.querySelector('h4');
+            if (h4) h4.style.color = '#333';
+            const li = profileTips.querySelectorAll('li');
+            li.forEach(item => item.style.color = '#666');
+        }
+        if (profileDisclaimer) {
+            profileDisclaimer.style.background = 'rgba(255, 193, 7, 0.1)';
+            profileDisclaimer.style.borderLeftColor = '#ffc107';
+            const h4 = profileDisclaimer.querySelector('h4');
+            if (h4) h4.style.color = '#f57c00';
+            const p = profileDisclaimer.querySelectorAll('p');
+            p.forEach(para => para.style.color = '#666');
+        }
+        if (profileUpdates) {
+            profileUpdates.style.background = 'rgba(33, 150, 243, 0.05)';
+            profileUpdates.style.borderLeftColor = '#2196F3';
+            const h4 = profileUpdates.querySelector('h4');
+            if (h4) h4.style.color = '#1976d2';
+            const items = profileUpdates.querySelectorAll('.update-item');
+            items.forEach(item => item.style.color = '#666');
+        }
+        if (profileVersion) {
+            profileVersion.style.borderTopColor = 'rgba(210, 180, 140, 0.3)';
+            const p = profileVersion.querySelector('p');
+            if (p) p.style.color = '#999';
+        }
+        if (settingsModal) {
+            settingsModal.style.background = 'white';
+            const header = settingsModal.querySelector('.settings-header h2');
+            if (header) header.style.color = '#333';
+            const labels = settingsModal.querySelectorAll('.setting-group label');
+            labels.forEach(label => label.style.color = '#333');
+            const inputs = settingsModal.querySelectorAll('.setting-group input');
+            inputs.forEach(input => {
+                input.style.background = 'white';
+                input.style.borderColor = '#e0e0e0';
+                input.style.color = '#333';
+            });
+            const selects = settingsModal.querySelectorAll('.setting-group select');
+            selects.forEach(select => {
+                select.style.background = 'white';
+                select.style.borderColor = '#e0e0e0';
+                select.style.color = '#333';
+            });
+            const textareas = settingsModal.querySelectorAll('.setting-group textarea');
+            textareas.forEach(textarea => {
+                textarea.style.background = 'white';
+                textarea.style.borderColor = '#e0e0e0';
+                textarea.style.color = '#333';
+            });
+            const smalls = settingsModal.querySelectorAll('.setting-group small');
+            smalls.forEach(small => small.style.color = '#888');
+            const debugLog = settingsModal.querySelector('#debugLog');
+            if (debugLog) {
+                debugLog.style.background = '#f5f5f5';
+                debugLog.style.borderColor = '#ddd';
+                debugLog.style.color = '#333';
+            }
+        }
+        document.querySelectorAll('.chat-header').forEach(header => {
+            header.style.borderBottomColor = 'rgba(210, 180, 140, 0.3)';
+            const title = header.querySelector('.chat-title h2');
+            if (title) title.style.color = '#333';
+        });
+        document.querySelectorAll('.sidebar-header').forEach(header => {
+            header.style.borderBottomColor = 'rgba(210, 180, 140, 0.3)';
+            const h3 = header.querySelector('h3');
+            if (h3) h3.style.color = '#333';
+        });
+        document.querySelectorAll('.sidebar-footer').forEach(footer => {
+            footer.style.borderTopColor = 'rgba(210, 180, 140, 0.3)';
+        });
+
         // 按钮样式恢复
         buttons.forEach(btn => {
             const bg = btn.style.background;

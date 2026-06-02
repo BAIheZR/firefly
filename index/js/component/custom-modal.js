@@ -120,24 +120,31 @@ class CustomModal {
             const config = this.getTypeConfig(type);
             const overlay = document.createElement('div');
             overlay.className = 'custom-modal-overlay';
-            
+
             overlay.innerHTML = `
                 <div class="custom-modal-content">
                     <div class="custom-modal-icon">${config.icon}</div>
                     <div class="custom-modal-message">${message}</div>
-                    <button class="custom-modal-button" onclick="this.parentElement.parentElement.remove(); resolve();">
+                    <button class="custom-modal-button ok-btn">
                         确定
                     </button>
                 </div>
             `;
-            
+
+            // 使用事件监听器代替内联onclick
+            const okBtn = overlay.querySelector('.ok-btn');
+            okBtn.onclick = () => {
+                overlay.remove();
+                resolve();
+            };
+
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
                     overlay.remove();
                     resolve();
                 }
             });
-            
+
             document.body.appendChild(overlay);
         });
     }
@@ -148,29 +155,43 @@ class CustomModal {
             const config = this.getTypeConfig('confirm');
             const overlay = document.createElement('div');
             overlay.className = 'custom-modal-overlay';
-            
+
             overlay.innerHTML = `
                 <div class="custom-modal-content">
                     <div class="custom-modal-icon">${config.icon}</div>
                     <div class="custom-modal-message">${message}</div>
                     <div class="custom-modal-buttons">
-                        <button class="custom-modal-button" onclick="this.parentElement.parentElement.parentElement.remove(); resolve(true);">
+                        <button class="custom-modal-button confirm-btn">
                             确定
                         </button>
-                        <button class="custom-modal-button cancel" onclick="this.parentElement.parentElement.parentElement.remove(); resolve(false);">
+                        <button class="custom-modal-button cancel cancel-btn">
                             取消
                         </button>
                     </div>
                 </div>
             `;
-            
+
+            // 使用事件监听器代替内联onclick
+            const confirmBtn = overlay.querySelector('.confirm-btn');
+            const cancelBtn = overlay.querySelector('.cancel-btn');
+
+            confirmBtn.onclick = () => {
+                overlay.remove();
+                resolve(true);
+            };
+
+            cancelBtn.onclick = () => {
+                overlay.remove();
+                resolve(false);
+            };
+
             overlay.addEventListener('click', (e) => {
                 if (e.target === overlay) {
                     overlay.remove();
                     resolve(false);
                 }
             });
-            
+
             document.body.appendChild(overlay);
         });
     }

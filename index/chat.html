@@ -3,47 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>聊天功能</title>
+    <title>与流萤聊天</title>
     <link rel="stylesheet" href="../resource/font-awesome.css">
     <link rel="stylesheet" href="css/ItemAll.css">
     <link rel="stylesheet" href="css/chat.css">
+
+    <!-- 引入核心脚本 -->
+    <script src="js/core/theme.js" type="text/javascript"></script>
+    <script src="js/component/custom-modal.js" type="text/javascript"></script>
+    <script src="js/core/chat-storage.js" type="text/javascript"></script>
+    <script src="js/core/chat-api.js" type="text/javascript"></script>
+    <script src="js/core/chat-memory.js" type="text/javascript"></script>
+    <script src="js/chat-app.js" type="text/javascript"></script>
 </head>
 <body>
+    <!-- 背景视频 -->
     <video class="video-bg" autoplay muted loop playsinline>
         <source src="../video/chat_bg.mp4" type="video/mp4">
     </video>
-    <div class="container">
-        <div class="icon">
-            <i class="fas fa-comments"></i>
+
+    <!-- 主容器 -->
+    <div class="chat-container">
+        <!-- 左侧：会话列表 -->
+        <div class="chat-sidebar">
+            <div class="sidebar-header">
+                <h3><i class="fas fa-comments"></i> 对话列表</h3>
+                <button class="btn-new-session" onclick="chatApp.createNewSession()" title="新建对话">
+                    <i class="fas fa-plus"></i>
+                </button>
+            </div>
+            <div class="session-list" id="sessionList">
+                <!-- 会话列表动态加载 -->
+            </div>
+            <div class="sidebar-footer">
+                <button class="sidebar-btn" onclick="chatApp.openSettings()">
+                    <i class="fas fa-cog"></i> 设置
+                </button>
+                <button class="sidebar-btn" onclick="window.location.href='inMaxNineUI.html'">
+                    <i class="fas fa-home"></i> 返回
+                </button>
+            </div>
         </div>
-        <div class="content">
-            <h1>聊天功能建设中...</h1>
-            <p>我们正在为您开发有趣的聊天功能</p>
-            
-            <div class="info-box">
-                <p><i class="fas fa-calendar-alt" style="color: #D2B48C; margin-right: 8px;"></i>预计上线时间</p>
-                <p style="font-size: 18px; font-weight: bold; color: #333;">2026年9月前</p>
+
+        <!-- 中央：对话区 -->
+        <div class="chat-main">
+            <div class="chat-header">
+                <div class="chat-title">
+                    <img src="../favicon.ico" alt="流萤" class="header-avatar">
+                    <div>
+                        <h2>流萤</h2>
+                        <p class="status-text">在线</p>
+                    </div>
+                </div>
+                <div class="chat-actions">
+                    <button class="action-btn" onclick="chatApp.exportCurrentSession()" title="导出对话">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="action-btn" onclick="chatApp.importSession()" title="导入对话">
+                        <i class="fas fa-upload"></i>
+                    </button>
+                    <button class="action-btn" onclick="chatApp.clearCurrentSession()" title="清空对话">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
 
-            <button class="btn" onclick="window.location.href='inMaxNineUI.html'">
-                <i class="fas fa-arrow-left"></i>返回主界面
-            </button>
+            <div class="chat-messages" id="chatMessages">
+                <!-- 消息列表动态加载 -->
+            </div>
+
+            <div class="chat-input-area">
+                <textarea
+                    id="messageInput"
+                    placeholder="输入消息...（Enter发送，Shift+Enter换行）"
+                    rows="1"
+                ></textarea>
+                <button class="btn-send" id="sendBtn" title="发送">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                <button class="btn-stop" id="stopBtn" style="display: none;" title="停止生成">
+                    <i class="fas fa-stop"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 右侧：流萤信息 -->
+        <div class="chat-profile">
+            <div class="profile-card">
+                <div class="profile-avatar">
+                    <img src="../favicon.ico" alt="流萤">
+                </div>
+                <h3>流萤</h3>
+                <p class="profile-subtitle">星穹铁道</p>
+
+                <div class="profile-divider"></div>
+
+                <div class="profile-info">
+                    <div class="info-item">
+                        <i class="fas fa-heart" style="color: #D2B48C;"></i>
+                        <span>温柔体贴的少女</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-star" style="color: #D2B48C;"></i>
+                        <span>充满希望与勇气</span>
+                    </div>
+                    <div class="info-item">
+                        <i class="fas fa-smile" style="color: #D2B48C;"></i>
+                        <span>总是为你着想</span>
+                    </div>
+                </div>
+
+                <div class="profile-divider"></div>
+
+                <div class="profile-quote">
+                    <i class="fas fa-quote-left"></i>
+                    <p>「不管前方有多少困难，我都会一直陪在你身边。」</p>
+                    <i class="fas fa-quote-right"></i>
+                </div>
+            </div>
+
+            <div class="profile-tips">
+                <h4><i class="fas fa-lightbulb"></i> 小提示</h4>
+                <ul>
+                    <li>流萤会记住你们最近的对话</li>
+                    <li>可以在设置中配置自定义API</li>
+                    <li>支持Markdown格式文本</li>
+                    <li>Enter发送，Shift+Enter换行</li>
+                </ul>
+            </div>
+
+            <div class="profile-disclaimer">
+                <h4><i class="fas fa-exclamation-circle"></i> 免责声明</h4>
+                <p>本AI聊天功能为同人作品，角色人设来源于《崩坏：星穹铁道》。本功能仅供娱乐和学习交流使用，不代表官方立场。</p>
+                <p>使用自定义API时，请遵守相关服务条款。对话内容由AI生成，请理性对待。</p>
+            </div>
+
+            <div class="profile-updates">
+                <h4><i class="fas fa-rocket"></i> 更新计划</h4>
+                <div class="update-item">
+                    <span class="update-status planned">计划中</span>
+                    <span>长期记忆（L2向量数据库）</span>
+                </div>
+                <div class="update-item">
+                    <span class="update-status planned">计划中</span>
+                    <span>消息编辑与重新生成</span>
+                </div>
+                <div class="update-item">
+                    <span class="update-status planned">计划中</span>
+                    <span>会话搜索与标签</span>
+                </div>
+                <div class="update-item">
+                    <span class="update-status planned">计划中</span>
+                    <span>代码高亮显示</span>
+                </div>
+                <div class="update-item">
+                    <span class="update-status future">未来</span>
+                    <span>图片与语音支持</span>
+                </div>
+            </div>
+
+            <div class="profile-version">
+                <p>版本 v0.0.1</p>
+            </div>
         </div>
     </div>
-    <script>
-        function applyPageBackground(pageName) {
-            const pageBackgrounds = JSON.parse(localStorage.getItem('pageBackgrounds')) || {};
-            if (pageBackgrounds[pageName]) {
-                const video = document.querySelector('.video-bg');
-                if (video) {
-                    video.style.display = 'none';
-                    document.body.style.background = `url(${pageBackgrounds[pageName]}) center/cover no-repeat fixed`;
-                }
-            }
-        }
-        window.addEventListener('DOMContentLoaded', function() {
-            applyPageBackground('chat');
-        });
-    </script>
 </body>
 </html>
