@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>商店</title>
+    <link rel="icon" href="../img/handHap.png" type="image/png">
+    <link rel="stylesheet" href="../resource/font-awesome.css">
+    <link rel="stylesheet" href="css/ItemAll.css" type="text/css">
+    <script src="js/core/theme.js" type="text/javascript"></script>
+</head>
+<body>
+    <div class="shop-container">
+        <!-- 导航栏 -->
+        <div class="shop-navBar">
+            <div class="navLeft">
+                <a href="inMaxNineUI.html" class="back-button">
+                    <i class="fas fa-arrow-left" style="color: #D2B48C;"></i> 返回
+                </a>
+                <h1><i class="fas fa-shopping-bag" style="color: #D2B48C;"></i> 商店</h1>
+            </div>
+            <div class="navRight" id="currencyDisplay">
+                <div class="warehouse-btn" onclick="goToWarehouse()">
+                    <i class="fas fa-warehouse"></i>
+                    <span>仓库</span>
+                </div>
+                <div class="currency-item">
+                    <span style="color: #666; margin-right: 8px;">货币:</span>
+                    <i class="fas fa-coins"></i>
+                    <span id="goldAmount">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分类标签 -->
+        <div class="shop-categories">
+            <button class="shop-category-btn active" onclick="filterItems('all')">全部</button>
+            <button class="shop-category-btn" onclick="filterItems('food')">食物</button>
+            <button class="shop-category-btn" onclick="filterItems('item')">道具</button>
+            <button class="shop-category-btn" onclick="filterItems('vehicle')">载具</button>
+            <button class="shop-category-btn" onclick="filterItems('ammo')">弹药</button>
+        </div>
+
+        <!-- 商品列表 -->
+        <div class="shop-grid" id="shopGrid">
+            <!-- 商品将通过JavaScript动态加载 -->
+        </div>
+    </div>
+
+    <!-- 购买成功弹窗 -->
+    <div class="shop-modal" id="purchaseModal">
+        <div class="shop-modal-content">
+            <i class="fas fa-check-circle"></i>
+            <h2>购买成功!</h2>
+            <p>您已成功购买该商品</p>
+            <button onclick="closeModal()">确定</button>
+        </div>
+    </div>
+
+    <!-- 金币不足弹窗 -->
+    <div class="shop-modal" id="notEnoughModal">
+        <div class="shop-modal-content">
+            <i class="fas fa-exclamation-circle" style="color: #f44336 !important;"></i>
+            <h2>金币不足</h2>
+            <p>您的金币不足以购买该商品</p>
+            <button onclick="closeModal()">确定</button>
+        </div>
+    </div>
+
+    <!-- 数量选择弹窗 -->
+    <div class="shop-modal" id="quantityModal">
+        <div class="shop-modal-content">
+            <h2 id="quantityModalTitle">选择数量</h2>
+            <div style="margin: 20px 0;">
+                <label style="display: block; margin-bottom: 10px; color: #666;">购买数量（最多200发）:</label>
+                <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <button onclick="changeQuantity(-10)" style="padding: 8px 12px; font-size: 16px; cursor: pointer;">-10</button>
+                    <button onclick="changeQuantity(-1)" style="padding: 8px 12px; font-size: 16px; cursor: pointer;">-1</button>
+                    <input type="number" id="buyQuantity" value="1" min="1" max="200" step="1" style="width: 80px; text-align: center; font-size: 18px; padding: 5px;">
+                    <button onclick="changeQuantity(1)" style="padding: 8px 12px; font-size: 16px; cursor: pointer;">+1</button>
+                    <button onclick="changeQuantity(10)" style="padding: 8px 12px; font-size: 16px; cursor: pointer;">+10</button>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <button onclick="setQuantity(50)" style="padding: 5px 10px; margin: 2px; cursor: pointer;">50</button>
+                    <button onclick="setQuantity(100)" style="padding: 5px 10px; margin: 2px; cursor: pointer;">100</button>
+                    <button onclick="setQuantity(200)" style="padding: 5px 10px; margin: 2px; cursor: pointer;">200</button>
+                </div>
+            </div>
+            <p id="quantityTotalPrice" style="font-size: 14px; color: #666;">总价: 0 金币</p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="closeQuantityModal()" style="padding: 10px 20px; cursor: pointer;">取消</button>
+                <button onclick="confirmPurchase()" style="padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer;">确认购买</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 商品数据
+        const shopItems = [
+            // 难度保持卡
+            { id: 'item_5', name: '难度保持卡(1分钟)', description: '1分钟内难度不增加', price: 10, category: 'item', icon: 'clock' },
+            { id: 'item_6', name: '难度保持卡(3分钟)', description: '3分钟内难度不增加', price: 30, category: 'item', icon: 'clock' },
+            { id: 'item_7', name: '难度保持卡(5分钟)', description: '5分钟内难度不增加', price: 50, category: 'item', icon: 'clock' },
+            { id: 'item_8', name: '难度保持卡(10分钟)', description: '10分钟内难度不增加', price: 100, category: 'item', icon: 'clock' },
+            // 经验加成卡
+            { id: 'item_9', name: '经验加成卡(10%)', description: '获得额外10%经验', price: 20, category: 'item', icon: 'flask' },
+            { id: 'item_10', name: '经验加成卡(20%)', description: '获得额外20%经验', price: 50, category: 'item', icon: 'flask' },
+            { id: 'item_11', name: '经验加成卡(50%)', description: '获得额外50%经验', price: 100, category: 'item', icon: 'flask' },
+            { id: 'item_12', name: '经验加成卡(100%)', description: '获得额外100%经验', price: 200, category: 'item', icon: 'flask' },
+            // 原有道具
+            { id: 'item_2', name: '双倍金币卡', description: '一局游戏金币翻倍', price: 300, category: 'item', icon: 'coins' },
+            { id: 'item_3', name: '经验药水', description: '获得额外50%经验', price: 200, category: 'item', icon: 'flask' },
+            { id: 'item_4', name: '四倍货币卡', description: '一局游戏金币翻四倍', price: 400, category: 'item', icon: 'coins' },
+            // 食物
+            { id: 'food_4', name: '橡木蛋糕卷', description: '美味的蛋糕卷', price: 10000, category: 'food', icon: 'birthday-cake' },
+            // 保留的载具
+            { id: 'vehicle_8', name: 'PzH2000', description: '德制自行火炮', price: 80000, category: 'vehicle', icon: 'bomb', image: '../img/card_img/tank/pzh2000.png' },
+            { id: 'vehicle_19', name: 'A-10C', description: '美制攻击机', price: 85000, category: 'vehicle', icon: 'plane', image: '../img/card_img/plant/a10c.png' },
+            // 相关弹药
+            { id: 'ammo_5', name: '火炮高爆弹', description: '自行火炮专用（PzH2000）', price: 45, category: 'ammo', icon: 'bomb' },
+            { id: 'ammo_7', name: 'GBU-39', description: 'A-10C专用精确制导炸弹', price: 40, category: 'ammo', icon: 'bomb' },
+            { id: 'ammo_8', name: '小牛导弹', description: 'A-10C专用空对地导弹', price: 50, category: 'ammo', icon: 'rocket' }
+        ];
+
+        // 获取玩家货币
+        function getCurrency() {
+            const goldStr = localStorage.getItem('gold') || '0';
+            return {
+                gold: BigInt(goldStr)
+            };
+        }
+
+        // 跳转到仓库
+        function goToWarehouse() {
+            window.location.href = 'warehouse.html';
+        }
+
+        // 保存货币
+        function saveCurrency(currency) {
+            localStorage.setItem('gold', currency.gold.toString());
+        }
+
+        // 更新货币显示
+        function updateCurrencyDisplay() {
+            const currency = getCurrency();
+            document.getElementById('goldAmount').textContent = currency.gold;
+        }
+
+        // 渲染商品列表
+        function renderItems(category = 'all') {
+            const grid = document.getElementById('shopGrid');
+            grid.innerHTML = '';
+
+            const filteredItems = category === 'all' 
+                ? shopItems 
+                : shopItems.filter(item => item.category === category);
+
+            filteredItems.forEach(item => {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'shop-item';
+                const buyHandler = item.category === 'ammo' 
+                    ? `openQuantityModal('${item.id}')` 
+                    : `buyItem('${item.id}')`;
+                // 判断是否有图片路径（坦克和火炮）
+                const iconHtml = item.image ? `
+                    <div class="shop-item-icon"><img src="${item.image}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"></div>
+                ` : `
+                    <div class="shop-item-icon"><i class="fas fa-${item.icon}"></i></div>
+                `;
+                itemElement.innerHTML = `
+                    ${iconHtml}
+                    <div class="shop-item-name">${item.name}</div>
+                    <div class="shop-item-desc">${item.description}</div>
+                    <div class="shop-item-price">
+                        <i class="fas fa-coins"></i>
+                        <span>${item.price}</span>
+                    </div>
+                    <button class="shop-buy-btn" onclick="${buyHandler}">购买</button>
+                `;
+                grid.appendChild(itemElement);
+            });
+        }
+
+        // 过滤商品
+        function filterItems(category) {
+            document.querySelectorAll('.shop-category-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            renderItems(category);
+            // 重新应用主题样式
+            const savedTheme = localStorage.getItem('currentTheme') || 'light';
+            applyTheme(savedTheme);
+        }
+
+        // 购买商品
+        function buyItem(itemId) {
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item) return;
+
+            const currentGold = localStorage.getItem('gold') || '0';
+            const goldBigInt = BigInt(currentGold);
+            
+            if (goldBigInt >= BigInt(item.price)) {
+                const newGold = (goldBigInt - BigInt(item.price)).toString();
+                localStorage.setItem('gold', newGold);
+                updateCurrencyDisplay();
+                
+                const owned = JSON.parse(localStorage.getItem('ownedItems')) || {};
+                owned[itemId] = (owned[itemId] || 0) + 1;
+                localStorage.setItem('ownedItems', JSON.stringify(owned));
+                
+                showModal('purchaseModal');
+            } else {
+                showModal('notEnoughModal');
+            }
+        }
+
+        // 显示弹窗
+        function showModal(modalId) {
+            document.getElementById(modalId).style.display = 'flex';
+        }
+
+        let currentPurchaseItem = null;
+
+        function openQuantityModal(itemId) {
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item) return;
+            currentPurchaseItem = item;
+            document.getElementById('quantityModalTitle').textContent = `购买 ${item.name}`;
+            document.getElementById('buyQuantity').value = 1;
+            document.getElementById('buyQuantity').max = 200;
+            updateTotalPrice();
+            showModal('quantityModal');
+        }
+
+        function changeQuantity(delta) {
+            const input = document.getElementById('buyQuantity');
+            let value = parseInt(input.value) || 1;
+            value += delta;
+            if (value < 1) value = 1;
+            if (value > 200) value = 200;
+            input.value = value;
+            updateTotalPrice();
+        }
+
+        function setQuantity(quantity) {
+            const input = document.getElementById('buyQuantity');
+            input.value = quantity > 200 ? 200 : quantity;
+            updateTotalPrice();
+        }
+
+        function updateTotalPrice() {
+            if (!currentPurchaseItem) return;
+            const quantity = parseInt(document.getElementById('buyQuantity').value) || 1;
+            const totalPrice = currentPurchaseItem.price * quantity;
+            document.getElementById('quantityTotalPrice').textContent = `总价: ${totalPrice} 金币`;
+        }
+
+        function closeQuantityModal() {
+            currentPurchaseItem = null;
+            closeModal();
+        }
+
+        function confirmPurchase() {
+            if (!currentPurchaseItem) return;
+            const quantity = parseInt(document.getElementById('buyQuantity').value) || 1;
+            const totalPrice = currentPurchaseItem.price * quantity;
+            
+            const currentGold = localStorage.getItem('gold') || '0';
+            const goldBigInt = BigInt(currentGold);
+            
+            if (goldBigInt >= BigInt(totalPrice)) {
+                const newGold = (goldBigInt - BigInt(totalPrice)).toString();
+                localStorage.setItem('gold', newGold);
+                updateCurrencyDisplay();
+                
+                const owned = JSON.parse(localStorage.getItem('ownedItems')) || {};
+                owned[currentPurchaseItem.id] = (owned[currentPurchaseItem.id] || 0) + quantity;
+                localStorage.setItem('ownedItems', JSON.stringify(owned));
+                
+                closeQuantityModal();
+                showModal('purchaseModal');
+            } else {
+                closeQuantityModal();
+                showModal('notEnoughModal');
+            }
+        }
+
+        // 关闭弹窗
+        function closeModal() {
+            document.querySelectorAll('.shop-modal').forEach(modal => {
+                modal.style.display = 'none';
+            });
+        }
+
+        // 点击弹窗外部关闭
+        window.onclick = function(event) {
+            document.querySelectorAll('.shop-modal').forEach(modal => {
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        };
+
+        // 页面加载时初始化
+        window.onload = function() {
+            updateCurrencyDisplay();
+            renderItems();
+            // 应用保存的主题
+            const savedTheme = localStorage.getItem('currentTheme') || 'light';
+            applyTheme(savedTheme);
+        };
+    </script>
+    <style>
+        .warehouse-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 16px;
+            background: rgba(76, 175, 80, 0.2);
+            border: 1px solid #4CAF50;
+            border-radius: 20px;
+            cursor: pointer;
+            color: #4CAF50;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+        }
+        .warehouse-btn:hover {
+            background: rgba(76, 175, 80, 0.3);
+            transform: scale(1.05);
+        }
+        .warehouse-btn i { margin-right: 4px; }
+    </style>
+    <script>
+        function applyPageBackground(pageName) {
+            const pageBackgrounds = JSON.parse(localStorage.getItem('pageBackgrounds')) || {};
+            if (pageBackgrounds[pageName]) {
+                document.body.style.background = `url(${pageBackgrounds[pageName]}) center/cover no-repeat fixed`;
+            } else {
+                document.body.style.background = 'linear-gradient(180deg, #4AB8A0 0%, #000000 100%)';
+            }
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+            applyPageBackground('shop');
+        });
+    </script>
+</body>
+</html>

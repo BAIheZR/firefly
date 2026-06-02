@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>成就系统</title>
+    <link rel="icon" href="../img/handHap.png" type="image/png">
+    <link rel="stylesheet" href="../resource/font-awesome.css">
+    <script src="js/component/GameCard/xz_wall.js" type="text/javascript"></script>
+    <script src="js/core/theme.js" type="text/javascript"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #4AB8A0 0%, #000000 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .stats-section {
+            margin-bottom: 40px;
+        }
+
+        .stats-title {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats-container {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+        }
+
+        .progress-section {
+            margin-bottom: 30px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4AB8A0, #2a8a78);
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .achievements-section {
+            margin-bottom: 40px;
+        }
+
+        .achievements-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 160px);
+            gap: 20px;
+            justify-content: center;
+        }
+
+        .achievement-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .achievement-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .achievement-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .achievement-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .achievement-desc {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .achievement-status {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2b7c64;
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #61c4ae;
+            color: white;
+            border: 2px solid gold;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: #53bea7;
+            color: rgb(0, 0, 0);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .achievements-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .achievements-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="inMaxNineUI.html" class="back-button">
+        <i class="fas fa-arrow-left" style="color: #D2B48C;"></i> 返回
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-trophy" style="color: #D2B48C;"></i> 成就系统</h1>
+            <p>查看您的游戏成就和进度</p>
+        </div>
+
+        <div class="stats-section">
+            <h2 class="stats-title"><i class="fas fa-chart-bar" style="color: #D2B48C;"></i> 成就进度</h2>
+            <div class="stats-container">
+                <div class="progress-section">
+                    <div class="progress-info">
+                        <span>总成就: <span id="totalAchievements">0</span></span>
+                        <span>已解锁: <span id="unlockedAchievements">0</span></span>
+                        <span>完成度: <span id="completionPercentage">0</span>%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill" style="width: 0%;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="achievements-section">
+            <h2 class="stats-title"><i class="fas fa-award" style="color: #D2B48C;"></i> 已解锁成就</h2>
+            <div class="achievements-grid" id="achievementsGrid">
+            </div>
+        </div>
+    </div>
+
+    <!-- 成就解锁弹窗 -->
+    <div class="modal" id="achievementModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); align-items: center; justify-content: center; z-index: 1000;">
+        <div class="modal-content" style="background: url('../img/card_img/chieve.jpg') center/cover no-repeat; border-radius: 15px; padding: 30px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255,255,255,0.2); color: #ffffff;">
+            <div style="font-size: 72px; margin-bottom: 20px;">🏆</div>
+            <h2 style="color: #fff; margin-bottom: 10px;">成就解锁!</h2>
+            <h3 style="color: #fff; margin-bottom: 15px;" id="modalAchievementName"></h3>
+            <p style="color: #f0f0f0; margin-bottom: 20px;" id="modalAchievementDesc"></p>
+            <button onclick="closeModal()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; transition: all 0.3s ease;">
+                确定
+            </button>
+        </div>
+    </div>
+
+    <!-- 成就详情弹窗 -->
+    <div class="modal" id="achievementDetailModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); align-items: center; justify-content: center; z-index: 1001;">
+        <div class="modal-content" style="background: url('../img/card_img/chieve.jpg') center/cover no-repeat; border-radius: 15px; padding: 30px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3); position: relative; border: 1px solid rgba(255,255,255,0.2); color: #ffffff;">
+            <button onclick="closeDetailModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: #ffffff;">&times;</button>
+            <div style="width: 100px; height: 100px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; background: rgba(31,33,37,0.85); border: 2px solid #c4a35a; border-radius: 5px;" id="detailAchievementIcon">
+            <img src="" alt="成就图标" id="detailAchievementImg" style="width: 80px; height: 80px; object-fit: contain;">
+        </div>
+            <h2 style="color: #fff; margin-bottom: 5px;" id="detailAchievementName"></h2>
+            <p style="color: #eee; margin-bottom: 15px; font-size: 14px;" id="detailAchievementEnglish"></p>
+            <div style="height: 2px; background: linear-gradient(90deg, transparent, #4AB8A0, transparent); margin: 20px 0;"></div>
+            <p style="color: #f0f0f0; margin-bottom: 15px; line-height: 1.6;" id="detailAchievementDesc"></p>
+            <p style="color: #f0f0f0; margin-bottom: 20px; line-height: 1.6;" id="detailAchievementDesc2"></p>
+            <div style="display: inline-block; padding: 8px 20px; background: linear-gradient(135deg, #4AB8A0, #2a8a78); color: white; border-radius: 20px; font-weight: bold;" id="detailAchievementStatus">已解锁</div>
+        </div>
+    </div>
+
+    <!-- 引入成就数据 -->
+    <script src="js/core/configStart.js" type="text/javascript"></script>
+
+    <script>
+        // 获取已显示过的成就ID列表
+        function getShownAchievements() {
+            return JSON.parse(localStorage.getItem('shownAchievements')) || [];
+        }
+
+        // 保存已显示过的成就ID列表
+        function saveShownAchievements(achievements) {
+            localStorage.setItem('shownAchievements', JSON.stringify(achievements));
+        }
+
+        // 从localStorage获取已解锁的成就
+        function getUnlockedAchievements() {
+            let achievements = JSON.parse(localStorage.getItem('unlockedAchievements')) || [];
+            if (achievements.length === 0) {
+                achievements = JSON.parse(localStorage.getItem('userAchievements')) || [];
+            }
+            return achievements;
+        }
+
+        // 保存已解锁的成就到localStorage
+        function saveUnlockedAchievements(achievements) {
+            localStorage.setItem('unlockedAchievements', JSON.stringify(achievements));
+        }
+
+        // 获取所有成就数据
+        function getAllAchievementsData() {
+            const allAchievements = [];
+            Object.values(achievementData.achievementGroups).forEach(group => {
+                allAchievements.push(...group.achievements);
+            });
+            return allAchievements;
+        }
+
+        // 待显示的新成就队列
+        let pendingAchievements = [];
+
+        // 显示成就解锁弹窗
+        function showAchievementModal(achievement) {
+            const modal = document.getElementById('achievementModal');
+            document.getElementById('modalAchievementName').textContent = achievement.name;
+            document.getElementById('modalAchievementDesc').textContent = achievement.description;
+            modal.style.display = 'flex';
+            
+            const shownAchievements = getShownAchievements();
+            if (!shownAchievements.includes(achievement.id)) {
+                shownAchievements.push(achievement.id);
+                saveShownAchievements(shownAchievements);
+            }
+        }
+
+        // 处理下一个待显示的成就
+        function processNextAchievement() {
+            if (pendingAchievements.length > 0) {
+                const achievement = pendingAchievements.shift();
+                const allAchievements = getAllAchievementsData();
+                const achievementData = allAchievements.find(a => a.id === achievement);
+                if (achievementData) {
+                    showAchievementModal(achievementData);
+                }
+            }
+        }
+
+        // 关闭弹窗并处理下一个
+        function closeModal() {
+            document.getElementById('achievementModal').style.display = 'none';
+            setTimeout(processNextAchievement, 300);
+        }
+
+        // 显示成就详情弹窗
+        function showAchievementDetail(achievement) {
+            document.getElementById('detailAchievementName').textContent = achievement.name;
+            document.getElementById('detailAchievementEnglish').textContent = achievement.english_name || '';
+            document.getElementById('detailAchievementDesc').textContent = achievement.description || '';
+            document.getElementById('detailAchievementDesc2').textContent = achievement.description2 || '';
+            document.getElementById('detailAchievementStatus').textContent = '已解锁';
+            document.getElementById('detailAchievementStatus').style.background = 'linear-gradient(135deg, #4AB8A0, #2a8a78)';
+            
+            // 设置成就图片
+            const detailImg = document.getElementById('detailAchievementImg');
+            if (achievement.icon) {
+                detailImg.src = `../img/key/${achievement.icon}.png`;
+                detailImg.style.filter = 'none';
+                detailImg.onerror = function() {
+                    this.src = '';
+                };
+            } else {
+                detailImg.src = '';
+            }
+            
+            document.getElementById('achievementDetailModal').style.display = 'flex';
+        }
+
+        // 关闭成就详情弹窗
+        function closeDetailModal() {
+            document.getElementById('achievementDetailModal').style.display = 'none';
+        }
+
+        // 显示未解锁成就详情弹窗
+        function showLockedAchievementDetail(achievement) {
+            document.getElementById('detailAchievementName').textContent = achievement.name;
+            document.getElementById('detailAchievementEnglish').textContent = achievement.english_name || '';
+            document.getElementById('detailAchievementDesc').textContent = achievement.description || '未解锁';
+            document.getElementById('detailAchievementDesc2').textContent = '';
+            document.getElementById('detailAchievementStatus').textContent = '未解锁';
+            document.getElementById('detailAchievementStatus').style.background = 'linear-gradient(135deg, #666, #444)';
+            
+            // 设置成就图片
+            const detailImg = document.getElementById('detailAchievementImg');
+            if (achievement.icon) {
+                detailImg.src = `../img/key/${achievement.icon}.png`;
+                detailImg.style.filter = 'none';
+                detailImg.onerror = function() {
+                    this.src = '';
+                };
+            } else {
+                detailImg.src = '';
+            }
+            
+            document.getElementById('achievementDetailModal').style.display = 'flex';
+        }
+
+        // 渲染成就页面
+        function renderAchievements() {
+            console.log('开始渲染成就页面');
+            const unlocked = getUnlockedAchievements();
+            console.log('已解锁成就:', unlocked);
+            const allAchievements = [];
+            
+            // 收集所有成就
+            Object.values(achievementData.achievementGroups).forEach(group => {
+                allAchievements.push(...group.achievements);
+            });
+            console.log('所有成就:', allAchievements);
+
+            // 更新统计信息
+            document.getElementById('totalAchievements').textContent = allAchievements.length;
+            document.getElementById('unlockedAchievements').textContent = unlocked.length;
+            
+            const completionPercentage = allAchievements.length > 0 ? Math.round((unlocked.length / allAchievements.length) * 100) : 0;
+            document.getElementById('completionPercentage').textContent = completionPercentage;
+            document.getElementById('progressFill').style.width = `${completionPercentage}%`;
+            console.log('完成度:', completionPercentage);
+
+            // 渲染所有成就
+            const achievementsGrid = document.getElementById('achievementsGrid');
+            achievementsGrid.innerHTML = '';
+
+            if (allAchievements.length === 0) {
+                console.log('没有成就数据');
+                achievementsGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: rgba(255, 255, 255, 0.8); border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);">
+                        <h2 style="color: #333; font-size: 24px; margin-bottom: 10px;">暂未添加成就</h2>
+                        <p style="color: #666; font-size: 16px;">敬请期待更多成就！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 显示所有成就
+            allAchievements.forEach(achievement => {
+                console.log('渲染成就:', achievement.name);
+                const isUnlocked = unlocked.includes(achievement.id);
+                const xzWallElement = document.createElement('xz-wall');
+                xzWallElement.setAttribute('achievement-id', achievement.id);
+                xzWallElement.style.cursor = 'pointer';
+                
+                if (isUnlocked) {
+                    xzWallElement.onclick = () => showAchievementDetail(achievement);
+                } else {
+                    // 未解锁的成就添加灰度和半透明效果
+                    xzWallElement.style.opacity = '0.5';
+                    xzWallElement.style.filter = 'grayscale(100%)';
+                    xzWallElement.onclick = () => showLockedAchievementDetail(achievement);
+                }
+                
+                achievementsGrid.appendChild(xzWallElement);
+            });
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            const shownAchievements = getShownAchievements();
+            const unlockedAchievements = getUnlockedAchievements();
+            const allAchievements = getAllAchievementsData();
+            
+            pendingAchievements = [];
+            
+            unlockedAchievements.forEach(achievementId => {
+                if (!shownAchievements.includes(achievementId)) {
+                    const achievementData = allAchievements.find(a => a.id === achievementId);
+                    if (achievementData) {
+                        pendingAchievements.push(achievementId);
+                    }
+                }
+            });
+            
+            renderAchievements();
+            
+            if (pendingAchievements.length > 0) {
+                setTimeout(processNextAchievement, 500);
+            }
+        };
+
+        // 点击弹窗外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('achievementModal');
+            const detailModal = document.getElementById('achievementDetailModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+            if (event.target === detailModal) {
+                detailModal.style.display = 'none';
+            }
+        };
+
+        function applyPageBackground(pageName) {
+            const pageBackgrounds = JSON.parse(localStorage.getItem('pageBackgrounds')) || {};
+            if (pageBackgrounds[pageName]) {
+                document.body.style.background = `url(${pageBackgrounds[pageName]}) center/cover no-repeat fixed`;
+            } else {
+                document.body.style.background = 'linear-gradient(180deg, #4AB8A0 0%, #000000 100%)';
+            }
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+            applyPageBackground('chieve_system');
+        });
+    </script>
+</body>
+</html>

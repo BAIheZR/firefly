@@ -1,0 +1,4649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>流萤·共生协议 | 精准时计·进化射击</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+
+        body {
+            background: radial-gradient(circle at 20% 30%, #010101, #03050b);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Segoe UI', 'Courier New', monospace;
+            padding: 20px;
+            overflow: hidden;
+            transition: background 0.5s ease;
+        }
+
+        body.light-theme {
+            background: linear-gradient(180deg, #4AB8A0 0%, #000000 100%);
+        }
+
+        body.dark-theme {
+            background: radial-gradient(circle at 20% 30%, #010101, #03050b);
+        }
+
+        .game-wrapper {
+            background: rgba(0, 5, 10, 0.7);
+            backdrop-filter: blur(12px);
+            border-radius: 2rem;
+            padding: 1rem;
+            box-shadow: 0 30px 45px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(80, 210, 160, 0.7);
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+            border-radius: 1.2rem;
+            box-shadow: 0 0 0 2px #2c6e5a, 0 12px 28px black;
+            cursor: crosshair;
+        }
+
+        .info-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 20px;
+            background: rgba(0, 15, 22, 0.9);
+            backdrop-filter: blur(8px);
+            padding: 16px 40px;
+            border-radius: 60px;
+            flex-wrap: wrap;
+            border: 1px solid #3dab8a;
+        }
+
+        .stat {
+            background: #021018dd;
+            padding: 12px 28px;
+            border-radius: 40px;
+            color: #c6ffe6;
+            font-weight: bold;
+            text-shadow: 0 0 4px #00ffaa;
+            letter-spacing: 1px;
+            font-size: 1.1rem;
+            white-space: nowrap;
+        }
+
+        .stat span {
+            color: #ffdd77;
+            font-size: 1.8rem;
+            margin-left: 10px;
+            text-shadow: 0 0 6px #ffaa33;
+            font-weight: 800;
+            font-family: monospace;
+        }
+
+        .upgrade-buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: linear-gradient(145deg, #1f4a55, #0e2e38);
+            border: none;
+            font-family: monospace;
+            font-weight: bold;
+            padding: 6px 18px;
+            border-radius: 40px;
+            color: #f3fffc;
+            cursor: pointer;
+            transition: all 0.08s linear;
+            font-size: 0.8rem;
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.5);
+            letter-spacing: 1px;
+        }
+
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 0 8px #6affc0;
+        }
+
+        .reset-btn {
+            background: linear-gradient(145deg, #bc5a2c, #7b3218);
+            box-shadow: 0 0 10px #ff7744;
+        }
+
+        .vehicle-control-btn {
+            background: linear-gradient(145deg, #ff6b6b, #cc4444);
+            box-shadow: 0 0 10px #ff8888;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 8px;
+        }
+
+        .vehicle-control-btn:hover {
+            background: linear-gradient(145deg, #ff8888, #dd5555);
+            box-shadow: 0 0 15px #ffaaaa;
+        }
+
+        .back-btn {
+            background: linear-gradient(145deg, #4a6a7a, #2e4a5a);
+            box-shadow: 0 0 8px #66aacc;
+        }
+
+        .back-btn:hover {
+            box-shadow: 0 0 12px #88ccee;
+        }
+
+        .back-btn-exit {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(145deg, #7a4a4a, #5a2e2e);
+            border: none;
+            font-family: monospace;
+            font-weight: bold;
+            padding: 12px 24px;
+            border-radius: 40px;
+            color: #ffeeee;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 15px rgba(255, 100, 100, 0.5);
+            z-index: 1000;
+        }
+
+        .back-btn-exit:hover {
+            background: linear-gradient(145deg, #8a5a5a, #6a3e3e);
+            box-shadow: 0 0 20px rgba(255, 100, 100, 0.7);
+            transform: translateY(-2px);
+        }
+
+        .controls-tip {
+            font-size: 0.7rem;
+            color: #a8e6cf;
+            text-align: center;
+            margin-top: 12px;
+            text-shadow: 0 0 2px black;
+        }
+
+        @keyframes glowPulse {
+            0% { text-shadow: 0 0 0px gold; opacity: 0.8; }
+            100% { text-shadow: 0 0 8px #ffcc55; opacity: 1; }
+        }
+        .stat span {
+            animation: glowPulse 1.5s infinite alternate;
+        }
+
+        .start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 5, 15, 0.85);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            border-radius: 1.2rem;
+        }
+
+        .start-overlay.hidden {
+            display: none;
+        }
+
+        .start-title {
+            font-size: 2.5rem;
+            color: #50d2a0;
+            text-shadow: 0 0 20px #50d2a0, 0 0 40px #50d2a0;
+            margin-bottom: 30px;
+            letter-spacing: 4px;
+        }
+
+        .start-btn {
+            padding: 18px 60px;
+            font-size: 1.4rem;
+            background: linear-gradient(145deg, #2a8a6a, #1a5a4a);
+            border: 2px solid #50d2a0;
+            border-radius: 50px;
+            color: #e0fff0;
+            cursor: pointer;
+            font-weight: bold;
+            letter-spacing: 3px;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px rgba(80, 210, 160, 0.4);
+        }
+
+        .start-btn:hover {
+            background: linear-gradient(145deg, #3aaa8a, #2a7a6a);
+            box-shadow: 0 0 30px rgba(80, 210, 160, 0.6);
+            transform: scale(1.05);
+        }
+
+        .canvas-container {
+            position: relative;
+        }
+        
+        #minimapCanvas {
+            position: fixed;
+            top: 10px;
+            left: calc(100% - 220px);
+            border: 2px solid #50d2a0;
+            border-radius: 8px;
+            background: rgba(0, 10, 18, 0.8);
+            box-shadow: 0 0 15px rgba(80, 210, 160, 0.3);
+            z-index: 1000;
+            cursor: move;
+            user-select: none;
+        }
+
+        .game-status-panel {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0, 10, 18, 0.85);
+            backdrop-filter: blur(8px);
+            padding: 10px 20px;
+            border-radius: 12px;
+            margin-top: 12px;
+            border: 1px solid rgba(80, 210, 160, 0.4);
+            font-size: 13px;
+            font-family: monospace;
+        }
+
+        .status-left, .status-right {
+            display: flex;
+            gap: 18px;
+            color: #88ccaa;
+        }
+
+        .status-left span, .status-right span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .status-center {
+            color: #ffdd77;
+            font-weight: bold;
+            text-shadow: 0 0 8px rgba(255, 220, 120, 0.5);
+        }
+
+        .status-center.cooldown {
+            color: #8888aa;
+            text-shadow: none;
+        }
+
+        .user-info-panel {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            padding: 25px 20px;
+            background: rgba(0, 10, 18, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(80, 210, 160, 0.5);
+            z-index: 50;
+        }
+
+        .user-avatar-container {
+            position: relative;
+            width: 80px;
+            height: 80px;
+        }
+
+        .user-avatar-img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #50d2a0;
+            box-shadow: 0 0 15px rgba(80, 210, 160, 0.5);
+            transition: transform 0.15s ease-out;
+        }
+        
+        .avatar-zoom {
+            position: fixed !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) scale(2.5) !important;
+            z-index: 1000 !important;
+            border-color: #ffcc88 !important;
+            box-shadow: 0 0 40px rgba(255, 200, 100, 0.9) !important;
+            transition: all 0.3s ease-out !important;
+        }
+        
+        .skill-effect-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 0;
+            height: 0;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+        }
+        
+        .skill-effect-overlay.active {
+            display: flex;
+            animation: skillEffectAnim 0.3s ease-out forwards;
+        }
+        
+        .skill-effect-overlay img {
+            max-width: 50vmin;
+            max-height: 50vmin;
+            object-fit: contain;
+        }
+        
+        .skill-target-img {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            width: 500px;
+            height: 500px;
+            object-fit: contain;
+            transition: transform 0.3s ease-out;
+            z-index: 100;
+            pointer-events: none;
+        }
+        
+        .skill-target-img.active {
+            display: block;
+            animation: targetShake 0.15s ease-in-out infinite;
+        }
+        
+        @keyframes targetShake {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(1) rotate(0deg);
+            }
+            25% {
+                transform: translate(-50%, -50%) scale(1) rotate(-1.5deg);
+            }
+            75% {
+                transform: translate(-50%, -50%) scale(1) rotate(1.5deg);
+            }
+        }
+        
+        @keyframes skillEffectAnim {
+            0% {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+            30% {
+                width: 100vmin;
+                height: 100vmin;
+                opacity: 0.9;
+            }
+            100% {
+                width: 0;
+                height: 0;
+                opacity: 0;
+            }
+        }
+
+        .avatar-name {
+            color: #e0fff0;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 0 6px rgba(80, 210, 160, 0.5);
+            margin-top: 5px;
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #gameUserName {
+            font-size: 14px;
+            max-width: 80px;
+        }
+
+        .user-info-panel.disabled .stat-value {
+            opacity: 0.4;
+        }
+
+        .vehicle-panel {
+            position: fixed;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 20px 15px;
+            background: rgba(0, 10, 18, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(80, 210, 160, 0.5);
+            z-index: 50;
+            min-width: 100px;
+        }
+
+        .vehicle-panel-title {
+            color: #50d2a0;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(80, 210, 160, 0.5);
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .vehicle-slot {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 8px;
+            border-radius: 12px;
+            background: rgba(0, 20, 30, 0.6);
+            border: 1px solid rgba(80, 210, 160, 0.25);
+            transition: all 0.3s ease;
+            min-width: 80px;
+        }
+
+        .vehicle-slot.filled {
+            border-color: rgba(80, 210, 160, 0.5);
+            background: rgba(80, 210, 160, 0.08);
+        }
+
+        .vehicle-slot.filled:hover {
+            border-color: #50d2a0;
+            box-shadow: 0 0 12px rgba(80, 210, 160, 0.3);
+        }
+
+        .vehicle-slot-img {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            object-fit: contain;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+        
+        .vehicle-cooldown-canvas {
+            position: absolute;
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .vehicle-slot-name {
+            color: #c6ffe6;
+            font-size: 10px;
+            text-align: center;
+            max-width: 90px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            text-shadow: 0 0 4px rgba(80, 210, 160, 0.3);
+        }
+
+        .vehicle-slot.empty .vehicle-slot-name {
+            color: #3a5a4a;
+        }
+
+        .ammo-dialog {
+            position: fixed;
+            right: -400px;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 20px 15px;
+            background: rgba(0, 10, 18, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 2px solid rgba(80, 210, 160, 0.6);
+            box-shadow: 0 0 30px rgba(80, 210, 160, 0.3);
+            z-index: 100;
+            min-width: 280px;
+            transition: right 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        .ammo-dialog.visible {
+            right: 130px;
+        }
+
+        .ammo-dialog-title {
+            color: #50d2a0;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(80, 210, 160, 0.5);
+            letter-spacing: 2px;
+            margin-bottom: 8px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(80, 210, 160, 0.3);
+        }
+
+        .ammo-slot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-radius: 10px;
+            background: rgba(0, 20, 30, 0.6);
+            border: 1px solid rgba(80, 210, 160, 0.25);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ammo-slot:hover {
+            border-color: #50d2a0;
+            background: rgba(80, 210, 160, 0.1);
+            box-shadow: 0 0 12px rgba(80, 210, 160, 0.2);
+        }
+
+        .ammo-slot.selected {
+            border-color: #ffdd77;
+            background: rgba(255, 220, 120, 0.15);
+            box-shadow: 0 0 15px rgba(255, 220, 120, 0.3);
+        }
+
+        .ammo-slot.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .ammo-name {
+            color: #c6ffe6;
+            font-size: 13px;
+            font-weight: bold;
+            text-shadow: 0 0 4px rgba(80, 210, 160, 0.3);
+        }
+
+        .ammo-count {
+            color: #ffdd77;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 0 0 6px rgba(255, 220, 120, 0.5);
+        }
+
+        .reload-bar-container {
+            margin-top: 8px;
+            padding: 10px;
+            background: rgba(0, 10, 18, 0.8);
+            border-radius: 8px;
+            border: 1px solid rgba(80, 210, 160, 0.2);
+        }
+
+        .reload-bar-label {
+            color: #88ccaa;
+            font-size: 11px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .reload-bar {
+            height: 8px;
+            background: rgba(80, 210, 160, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .reload-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #50d2a0, #88ffcc);
+            border-radius: 4px;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 8px rgba(80, 210, 160, 0.5);
+        }
+
+        .plane-cooldown-display {
+            margin-top: 8px;
+            padding: 10px;
+            background: rgba(0, 10, 18, 0.8);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 136, 102, 0.3);
+        }
+
+        .cooldown-bar-label {
+            color: #ff8866;
+            font-size: 11px;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .cooldown-bar {
+            height: 8px;
+            background: rgba(255, 136, 102, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .cooldown-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff8866, #ffaa88);
+            border-radius: 4px;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 8px rgba(255, 136, 102, 0.5);
+        }
+
+        .cooldown-remaining {
+            color: #ffaa88;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 5px;
+            text-shadow: 0 0 6px rgba(255, 136, 102, 0.5);
+        }
+
+        .close-ammo-dialog {
+            position: absolute;
+            top: 8px;
+            right: 12px;
+            background: none;
+            border: none;
+            color: #ff8866;
+            font-size: 18px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+        }
+
+        .close-ammo-dialog:hover {
+            background: rgba(255, 136, 102, 0.2);
+            box-shadow: 0 0 8px rgba(255, 136, 102, 0.5);
+        }
+
+        .ammo-empty-notification {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            padding: 20px 30px;
+            background: rgba(180, 40, 0, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            border: 2px solid #ff4444;
+            box-shadow: 0 0 30px rgba(255, 68, 68, 0.5);
+            z-index: 200;
+            transform: translateX(400px);
+            transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+            max-width: 350px;
+        }
+
+        .ammo-empty-notification.visible {
+            transform: translateX(0);
+        }
+
+        .ammo-empty-notification-title {
+            color: #ffaa88;
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            text-shadow: 0 0 6px rgba(255, 170, 136, 0.5);
+        }
+
+        .ammo-empty-notification-text {
+            color: #ffddcc;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .ammo-check-dialog {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.9);
+            padding: 30px;
+            background: rgba(0, 10, 18, 0.98);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 2px solid #ff8866;
+            box-shadow: 0 0 40px rgba(255, 136, 102, 0.4);
+            z-index: 300;
+            max-width: 500px;
+            width: 90%;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .ammo-check-dialog.visible {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .ammo-check-dialog-title {
+            color: #ff8866;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(255, 136, 102, 0.5);
+        }
+
+        .ammo-check-dialog-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 20px;
+        }
+
+        .ammo-check-item {
+            padding: 12px;
+            background: rgba(255, 136, 102, 0.1);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border-left: 3px solid #ff8866;
+        }
+
+        .ammo-check-item-vehicle {
+            color: #ffdd77;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .ammo-check-item-ammo {
+            color: #ffaa88;
+            font-size: 14px;
+        }
+
+        .item-panel {
+            position: fixed;
+            left: 20px;
+            bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            padding: 15px 12px;
+            background: rgba(0, 10, 18, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid rgba(80, 210, 160, 0.5);
+            z-index: 50;
+            min-width: 140px;
+        }
+
+        .item-panel-title {
+            color: #50d2a0;
+            font-size: 12px;
+            font-weight: bold;
+            text-align: center;
+            text-shadow: 0 0 8px rgba(80, 210, 160, 0.5);
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid rgba(80, 210, 160, 0.3);
+        }
+
+        .item-slot {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            background: rgba(0, 20, 30, 0.6);
+            border: 1px solid rgba(80, 210, 160, 0.25);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .item-slot:hover:not(.disabled):not(.active) {
+            border-color: #50d2a0;
+            background: rgba(80, 210, 160, 0.1);
+            box-shadow: 0 0 12px rgba(80, 210, 160, 0.2);
+        }
+
+        .item-slot.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .item-slot.active {
+            border-color: #ffdd77;
+            background: rgba(255, 220, 120, 0.15);
+            box-shadow: 0 0 15px rgba(255, 220, 120, 0.3);
+        }
+
+        .item-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+
+        .item-info {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .item-name {
+            color: #c6ffe6;
+            font-size: 12px;
+            font-weight: bold;
+            text-shadow: 0 0 4px rgba(80, 210, 160, 0.3);
+        }
+
+        .item-count {
+            color: #ffdd77;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .item-duration {
+            color: #88ccaa;
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        .item-description {
+            position: absolute;
+            left: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            margin-left: 15px;
+            padding: 12px 15px;
+            background: rgba(0, 20, 30, 0.95);
+            border-radius: 10px;
+            border: 1px solid rgba(80, 210, 160, 0.4);
+            color: #c6ffe6;
+            font-size: 12px;
+            line-height: 1.4;
+            white-space: nowrap;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            max-width: 200px;
+        }
+
+        .item-slot:hover .item-description {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .no-items-message {
+            color: #5a7a6a;
+            font-size: 11px;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .ammo-check-dialog-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .ammo-check-btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .ammo-check-btn-cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffaa88;
+            border: 1px solid rgba(255, 136, 102, 0.3);
+        }
+
+        .ammo-check-btn-cancel:hover {
+            background: rgba(255, 136, 102, 0.2);
+        }
+
+        .ammo-check-btn-continue {
+            background: linear-gradient(145deg, #ff8866, #cc5533);
+            color: white;
+        }
+
+        .ammo-check-btn-continue:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 136, 102, 0.4);
+        }
+    </style>
+</head>
+<body>
+<div class="user-info-panel disabled" id="userInfoPanel">
+    <div class="user-avatar-container">
+        <img src="" alt="用户头像" id="gameUserAvatar" class="user-avatar-img">
+        <div class="avatar-name" id="gameUserName">游客</div>
+    </div>
+    <div class="user-avatar-container">
+        <img src="../../img/game_img/walk.png" alt="流萤" class="user-avatar-img" id="liuyingAvatarImg">
+        <div class="avatar-name">流萤</div>
+    </div>
+</div>
+
+<div class="vehicle-panel" id="vehiclePanel">
+    <div class="vehicle-panel-title">🚙 载具队列</div>
+    <div class="vehicle-slot empty" data-slot="0">
+        <canvas class="vehicle-cooldown-canvas" width="50" height="50"></canvas>
+        <div class="vehicle-slot-img">⬜</div>
+        <div class="vehicle-slot-name">空</div>
+    </div>
+    <div class="vehicle-slot empty" data-slot="1">
+        <canvas class="vehicle-cooldown-canvas" width="50" height="50"></canvas>
+        <div class="vehicle-slot-img">⬜</div>
+        <div class="vehicle-slot-name">空</div>
+    </div>
+</div>
+
+<div class="ammo-dialog" id="ammoDialog">
+    <button class="close-ammo-dialog" id="closeAmmoDialog">✕</button>
+    <div class="ammo-dialog-title" id="ammoDialogTitle">弹药选择</div>
+    <div id="ammoSlotsContainer"></div>
+    <div class="reload-bar-container" id="reloadBarContainer" style="display: none;">
+        <div class="reload-bar-label">装填中...</div>
+        <div class="reload-bar">
+            <div class="reload-bar-fill" id="reloadBarFill" style="width: 0%;"></div>
+        </div>
+    </div>
+    <div class="plane-cooldown-display" id="planeCooldownDisplay" style="display: none;">
+        <div class="cooldown-bar-label">出击冷却中...</div>
+        <div class="cooldown-bar">
+            <div class="cooldown-bar-fill" id="cooldownBarFill" style="width: 0%;"></div>
+        </div>
+        <div class="cooldown-remaining" id="cooldownRemaining"></div>
+    </div>
+</div>
+
+<div class="ammo-empty-notification" id="ammoEmptyNotification">
+    <div class="ammo-empty-notification-title">⚠️ 弹药耗尽</div>
+    <div class="ammo-empty-notification-text" id="ammoEmptyText"></div>
+</div>
+
+<div class="ammo-check-dialog" id="ammoCheckDialog">
+    <div class="ammo-check-dialog-title">⚠️ 弹药不足</div>
+    <div class="ammo-check-dialog-list" id="ammoCheckList"></div>
+    <div class="ammo-check-dialog-buttons">
+        <button class="ammo-check-btn ammo-check-btn-cancel" id="cancelGameStart">返回</button>
+        <button class="ammo-check-btn ammo-check-btn-continue" id="continueGameStart">继续游戏</button>
+    </div>
+</div>
+
+<!-- 道具面板 -->
+<div class="item-panel" id="itemPanel">
+    <div class="item-panel-title">🎒 道具</div>
+    <div id="itemSlotsContainer">
+        <div class="no-items-message">暂无道具</div>
+    </div>
+</div>
+
+<div>
+    <canvas id="minimapCanvas" width="200" height="250"></canvas>
+    <div class="game-wrapper">
+        <div class="info-panel">
+            <div class="stat">存活 <span id="survivalTime">00m 00s</span></div>
+            <div class="stat">货币 <span id="currency">0</span></div>
+            <div class="stat">经验 <span id="gameExp">0</span></div>
+            <div class="stat">击杀 <span id="killCount">0</span></div>
+            <div class="stat">侵蚀等级 <span id="entropyLv">0</span></div>
+            <div class="upgrade-buttons" id="upgradePanel">
+                <button id="upgradeFireRate">射速 +0.2/s (30)</button>
+                <button id="upgradeDamage">伤害 +2 (15)</button>
+            </div>
+            <button id="stopVehicleAttackBtn" class="vehicle-control-btn">停止载具攻击</button>
+            <button id="resetBtn" class="reset-btn">重启协议</button>
+        </div>
+        
+        <!-- 退出按钮 -->
+        <button id="backBtn" class="back-btn-exit" onclick="exitGame()">退出游戏</button>
+        
+        <div class="canvas-container">
+            <canvas id="gameCanvas" width="1200" height="750"></canvas>
+            <div class="start-overlay" id="startOverlay">
+                <div class="start-title">流萤·共生协议</div>
+                <button class="start-btn" id="startBtn">开始游戏</button>
+            </div>
+        </div>
+        
+        <!-- 游戏状态信息面板 -->
+        <div class="game-status-panel">
+            <div class="status-left">
+                <span>伤害: <span id="statusDamage">2</span></span>
+                <span>射速: <span id="statusFireRate">3.2</span>/s</span>
+                <span>缩放: <span id="statusZoom">1.0</span>x</span>
+            </div>
+            <div class="status-right">
+                <span>物种: <span id="statusSpecies">1</span>/5</span>
+                <span>远程: <span id="statusRanged">0</span>/5</span>
+                <span>流萤: <span id="statusLiuyingDmg">50</span></span>
+            </div>
+        </div>
+        <div id="skillEffectOverlay" class="skill-effect-overlay"></div>
+        <img id="gameOverGif" src="../../img/game_img/game_over.gif" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0); max-width: 100%; max-height: 100%; object-fit: contain; transition: transform 0.5s ease-out;" />
+        <img id="targetOneImg" src="../../img/game_img/target_one.png" class="skill-target-img" />
+        <img id="targetTwoImg" src="../../img/game_img/target_two.png" class="skill-target-img" />
+    </div>
+</div>
+
+<script>
+    (function(){
+        // 应用主题设置
+        const savedTheme = localStorage.getItem('currentTheme') || 'light';
+        document.body.classList.add(savedTheme + '-theme');
+        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        // ---------- 读取同协快捷键设置 ----------
+        function loadCoopKeySettings() {
+            const settings = JSON.parse(localStorage.getItem('userSettings')) || {};
+            return {
+                vehicleKey1: (settings.vehicleKey1 || '1').toUpperCase(),
+                vehicleKey2: (settings.vehicleKey2 || '2').toUpperCase(),
+                vehicleKey3: (settings.vehicleKey3 || '3').toUpperCase(),
+                vehicleKey4: (settings.vehicleKey4 || '4').toUpperCase(),
+                vehicleKey5: (settings.vehicleKey5 || '5').toUpperCase(),
+                ammoKey1: (settings.ammoKey1 || 'F1').toUpperCase(),
+                ammoKey2: (settings.ammoKey2 || 'F2').toUpperCase(),
+                ammoKey3: (settings.ammoKey3 || 'F3').toUpperCase(),
+                attackKey: settings.coopAttackKey || 'Mouse1',
+                fireRateKey: (settings.coopFireRateKey || 'Z').toUpperCase(),
+                damageKey: (settings.coopDamageKey || 'C').toUpperCase(),
+                fireKey: (settings.coopFireKey || ' ').toUpperCase(),
+                stopAttackKey: (settings.coopStopAttackKey || 'X').toUpperCase()
+            };
+        }
+        
+        let coopKeys = loadCoopKeySettings();
+        
+        // ---------- 大地图系统 ----------
+        const MAP_SCALE = 10; // 10px = 1米
+        const MAP_WIDTH = 2000 * MAP_SCALE; // 2km = 2000m
+        const MAP_HEIGHT = 2500 * MAP_SCALE; // 2.5km = 2500m
+        
+        // 缩放系统
+        // 视口跟随
+        let viewport = { x: 0, y: 0 };
+        
+        function updateViewport() {
+            // 视口中心跟随玩家，保持在地图边界内
+            const effectiveWidth = canvas.width;
+            const effectiveHeight = canvas.height;
+            viewport.x = player.x - effectiveWidth / 2;
+            viewport.y = player.y - effectiveHeight / 2;
+            
+            // 边界限制
+            viewport.x = Math.max(0, Math.min(viewport.x, MAP_WIDTH - effectiveWidth));
+            viewport.y = Math.max(0, Math.min(viewport.y, MAP_HEIGHT - effectiveHeight));
+        }
+        
+        function drawMap() {
+            // 绘制地图背景
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGradient.addColorStop(0, '#0a1628');
+            bgGradient.addColorStop(0.5, '#0d1f35');
+            bgGradient.addColorStop(1, '#061018');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制网格线 (每10米一条线)
+            ctx.strokeStyle = 'rgba(80, 210, 160, 0.15)';
+            ctx.lineWidth = 1;
+            
+            // 计算起始网格坐标（考虑缩放后的有效视口）
+            const gridInterval = 10 * MAP_SCALE; // 10米 = 100px
+            const effectiveWidth = canvas.width;
+            const effectiveHeight = canvas.height;
+            const startGridX = Math.floor(viewport.x / gridInterval) * gridInterval;
+            const startGridY = Math.floor(viewport.y / gridInterval) * gridInterval;
+            
+            // 绘制垂直线
+            for (let x = startGridX; x < viewport.x + effectiveWidth + gridInterval; x += gridInterval) {
+                ctx.beginPath();
+                ctx.moveTo(x - viewport.x, 0);
+                ctx.lineTo(x - viewport.x, canvas.height);
+                ctx.stroke();
+            }
+            
+            // 绘制水平线
+            for (let y = startGridY; y < viewport.y + effectiveHeight + gridInterval; y += gridInterval) {
+                ctx.beginPath();
+                ctx.moveTo(0, y - viewport.y);
+                ctx.lineTo(canvas.width, y - viewport.y);
+                ctx.stroke();
+            }
+        }
+        
+        // ---------- 游戏核心 ----------
+        let gameStarted = false;
+        let gamePaused = false;
+        let gameActive = true;
+        let liuyingClearing = false;
+        let liuyingUltimate1Active = false;
+        let liuyingUltimate1Timer = 0;
+        let liuyingUltimate2Active = false;
+        let liuyingUltimate2Timer = 0;
+        let survivalSeconds = 0;
+        let entropyLevel = 0;
+        let currency = 0;
+        let killCount = 0;
+        let gameExp = 0;
+        let vehicleKillCount = 0;
+        let nuclearLaunched = false; // 是否已触发核弹
+        
+        // 小地图
+        const minimapCanvas = document.getElementById('minimapCanvas');
+        const minimapCtx = minimapCanvas.getContext('2d');
+        const MINIMAP_SCALE_X = minimapCanvas.width / MAP_WIDTH;
+        const MINIMAP_SCALE_Y = minimapCanvas.height / MAP_HEIGHT;
+        
+        function drawMinimap() {
+            const mctx = minimapCtx;
+            
+            // 清空画布
+            mctx.fillStyle = '#0a1628';
+            mctx.fillRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+            
+            // 绘制网格线
+            mctx.strokeStyle = 'rgba(80, 210, 160, 0.2)';
+            mctx.lineWidth = 0.5;
+            
+            const gridIntervalX = 100 * MINIMAP_SCALE_X;
+            const gridIntervalY = 100 * MINIMAP_SCALE_Y;
+            
+            for (let x = 0; x < minimapCanvas.width; x += gridIntervalX) {
+                mctx.beginPath();
+                mctx.moveTo(x, 0);
+                mctx.lineTo(x, minimapCanvas.height);
+                mctx.stroke();
+            }
+            
+            for (let y = 0; y < minimapCanvas.height; y += gridIntervalY) {
+                mctx.beginPath();
+                mctx.moveTo(0, y);
+                mctx.lineTo(minimapCanvas.width, y);
+                mctx.stroke();
+            }
+            
+            // 绘制视口范围
+            const viewX = viewport.x * MINIMAP_SCALE_X;
+            const viewY = viewport.y * MINIMAP_SCALE_Y;
+            const viewW = canvas.width * MINIMAP_SCALE_X;
+            const viewH = canvas.height * MINIMAP_SCALE_Y;
+            
+            mctx.strokeStyle = 'rgba(80, 210, 160, 0.6)';
+            mctx.lineWidth = 1;
+            mctx.strokeRect(viewX, viewY, viewW, viewH);
+            
+            // 绘制流萤位置（紫色点）
+            const liuyingX = liuying.x * MINIMAP_SCALE_X;
+            const liuyingY = liuying.y * MINIMAP_SCALE_Y;
+            mctx.fillStyle = '#ffb7c5';
+            mctx.beginPath();
+            mctx.arc(liuyingX, liuyingY, 4, 0, Math.PI * 2);
+            mctx.fill();
+            
+            // 绘制怪物位置（根据类型显示不同颜色）
+            for (let m of monsters) {
+                const monsterX = m.x * MINIMAP_SCALE_X;
+                const monsterY = m.y * MINIMAP_SCALE_Y;
+                mctx.fillStyle = m.minimapColor || '#ff8c00';
+                mctx.beginPath();
+                mctx.arc(monsterX, monsterY, 3, 0, Math.PI * 2);
+                mctx.fill();
+                
+                // 检查这个怪物是否被载具瞄准
+                const isTargeted = Object.values(vehicleTargets).includes(m);
+                if (isTargeted) {
+                    // 绘制瞄准框（金色光环）
+                    mctx.strokeStyle = '#ffd700';
+                    mctx.lineWidth = 2;
+                    mctx.beginPath();
+                    mctx.arc(monsterX, monsterY, 6, 0, Math.PI * 2);
+                    mctx.stroke();
+                    // 绘制十字准星
+                    mctx.strokeStyle = '#ffd700';
+                    mctx.lineWidth = 1;
+                    mctx.beginPath();
+                    mctx.moveTo(monsterX - 5, monsterY);
+                    mctx.lineTo(monsterX + 5, monsterY);
+                    mctx.moveTo(monsterX, monsterY - 5);
+                    mctx.lineTo(monsterX, monsterY + 5);
+                    mctx.stroke();
+                    
+                    // 绘制范围圈（如果有范围伤害弹药）
+                    for (const [vehicleId, target] of Object.entries(vehicleTargets)) {
+                        if (target === m) {
+                            const vehicle = vehicleData.find(v => v.id === vehicleId);
+                            if (vehicle && vehicle.ammo) {
+                                const state = vehicleAmmoState[vehicleId];
+                                const ammoIdx = state ? state.selectedAmmoIndex : 0;
+                                const ammoConfig = vehicle.ammo[ammoIdx];
+                                if (ammoConfig && ammoConfig.splashRadius) {
+                                    const splashRadiusX = ammoConfig.splashRadius * MINIMAP_SCALE_X;
+                                    const splashRadiusY = ammoConfig.splashRadius * MINIMAP_SCALE_Y;
+                                    // 绘制椭圆范围圈
+                                    mctx.strokeStyle = 'rgba(255, 100, 0, 0.6)';
+                                    mctx.lineWidth = 1;
+                                    mctx.setLineDash([3, 3]);
+                                    mctx.beginPath();
+                                    mctx.ellipse(monsterX, monsterY, splashRadiusX, splashRadiusY, 0, 0, Math.PI * 2);
+                                    mctx.stroke();
+                                    mctx.setLineDash([]);
+                                }
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // 绘制远程怪物子弹（黄色射线）
+            for (let p of projectiles) {
+                const projX = p.x * MINIMAP_SCALE_X;
+                const projY = p.y * MINIMAP_SCALE_Y;
+                const fromX = (p.x - p.vx * 10) * MINIMAP_SCALE_X;
+                const fromY = (p.y - p.vy * 10) * MINIMAP_SCALE_Y;
+                mctx.strokeStyle = '#ffff00';
+                mctx.lineWidth = 2;
+                mctx.beginPath();
+                mctx.moveTo(fromX, fromY);
+                mctx.lineTo(projX, projY);
+                mctx.stroke();
+                mctx.fillStyle = '#ffff00';
+                mctx.beginPath();
+                mctx.arc(projX, projY, 3, 0, Math.PI * 2);
+                mctx.fill();
+            }
+            
+            // 绘制玩家位置（蓝色点）
+            const playerX = player.x * MINIMAP_SCALE_X;
+            const playerY = player.y * MINIMAP_SCALE_Y;
+            mctx.fillStyle = '#6dd5ff';
+            mctx.beginPath();
+            mctx.arc(playerX, playerY, 5, 0, Math.PI * 2);
+            mctx.fill();
+            
+            // 绘制玩家方向指示
+            mctx.strokeStyle = '#6dd5ff';
+            mctx.lineWidth = 2;
+            mctx.beginPath();
+            mctx.moveTo(playerX, playerY);
+            mctx.lineTo(playerX, playerY - 10);
+            mctx.stroke();
+        }
+        
+        // 玩家
+        let player = { x: MAP_WIDTH/2, y: MAP_HEIGHT/2, radius: 14, speed: 5.0 };
+        
+        // 载具相关变量
+        let currentSelectedVehicle = null;
+        let currentSelectedAmmoIndex = 0;
+        let vehicleAmmoState = {};
+        let reloadStartTime = 0;
+        let reloadDuration = 0;
+        let isReloading = false;
+        let missileShotCount = 0;
+        let missileReloadStart = 0;
+        let missileReloadDuration = 10;
+        let planeCooldownStart = 0;
+        let planeCooldownDuration = 0;
+        let isPlaneOnCooldown = false;
+        let vehicleTargets = {};
+        let playerTarget = null;
+        let activePlaneStrikes = [];
+        
+        // 玩家头像图片
+        let playerAvatarImg = new Image();
+        let playerAvatarLoaded = false;
+        
+        // 流萤图片
+        let liuyingImg = new Image();
+        let liuyingImgLoaded = false;
+        let liuyingState = 'idle'; // idle, attack, kill, victory
+        
+        // 流萤状态图片映射
+        const liuyingImages = {
+            idle: '../../img/game_img/walk.png',
+            attack: '../../img/game_img/attack.png',
+            attack_over: '../../img/game_img/attack_over.png',
+            target_one: '../../img/game_img/target_one.png',
+            target_two: '../../img/game_img/target_two.png',
+            victory: '../../img/game_img/walk.png'
+        };
+        
+        // 怪物图片
+        let monsterImg = new Image();
+        let monsterImgLoaded = false;
+        
+        // 流萤动画状态
+        let liuyingAnimState = 'normal';
+        let liuyingZoomProgress = 0;
+        let liuyingAttackOverTimer = 0;
+        
+        // 游戏结束图片
+        let gameOverVisible = false;
+        
+        // 更新流萤状态和图片
+        function updateLiuyingState(newState) {
+            if (liuyingState !== newState || liuyingImg.src !== liuyingImages[newState]) {
+                liuyingState = newState;
+                if (liuyingImages[newState]) {
+                    liuyingImg.src = '';
+                    liuyingImg.src = liuyingImages[newState];
+                    liuyingImgLoaded = false;
+                    liuyingImg.onload = () => { liuyingImgLoaded = true; };
+                }
+            }
+        }
+        
+        // 子弹系统
+        let bullets = [];
+        let bulletDamage = 2;
+        let bulletSpeed = 8.5;
+        let vehicleBulletSpeed = 50; // 载具子弹速度（更快，以便攻击全地图目标）
+        let fireRate = 3.2;
+        let lastShootTime = 0;
+        
+        // 怪物 & 投射物
+        let monsters = [];
+        let projectiles = [];        // 怪物子弹
+        
+        let mouseDown = false;
+        
+        // 特效
+        let particles = [];
+        let screenShake = 0;
+        let globalFlash = 0;
+        window.floatingTexts = [];
+        const MAX_PARTICLE_COUNT = 420;
+        let screenClearActive = false;
+        
+        // 清屏技能冷却 (秒)
+        let screenClearCooldown = 0;
+        let spawnCooldown = 0;
+        let bossSpawnedAtMaxLevel = false;
+        let nextBossSpawnTime = 0;
+        // 波次生成相关变量
+        let waveInProgress = false; // 当前是否有波次进行中
+        let waveCooldown = 0; // 波次间隔冷却时间
+        let bossIdleTime = 0; // Boss前的空闲期
+        function getCurrentClearCooldown() {
+            return 15.0;
+        }
+        
+        // ---------- 流萤 ----------
+        let liuying = {
+            x: canvas.width/2 + 70,
+            y: canvas.height/2 - 40,
+            radius: 16,
+            speed: 10,
+            attackRate: 1.25,
+            lastAttackTime: 0,
+            attackTimer: 0,
+            glowIntensity: 0,
+            wingAngle: 0,
+            trailPos: [],
+            wanderTargetX: null,
+            wanderTargetY: null,
+            wanderCooldown: 0
+        };
+        
+        const BASE_MELEE_DAMAGE = 50;
+        const MELEE_RADIUS = 80;
+        const MAX_ENTROPY_LEVEL = 5;
+        let liuyingDamageBonus = 0;
+        let liuyingDamageRefreshTimer = 0;
+        
+        // 怪物种类上限5，数量上限40
+        const MAX_MONSTER_TYPES = 99;
+        const MAX_MONSTER_COUNT = 100;
+        const MAX_RANGED_MONSTERS = 10;      // 最多10名远程射击怪物
+        const MAX_PROJECTILES_PER_VOLLEY = 5; // 每次齐射最多5颗子弹
+        
+        const monsterTypes = [
+            { name: "裂变蠕虫", baseHp: 28, baseAtk: 12, speedMul: 1.0, color1: "#c24a2a", color2: "#5e1c08", icon: "🐛", unlockLevel: 0, minimapColor: "#e67e22" },
+            { name: "畸变射手", baseHp: 22, baseAtk: 16, speedMul: 0.85, color1: "#bd8a4a", color2: "#5e1c08", icon: "🏹", isRanged: true, rangedBaseCd: 2.6, unlockLevel: 1, minimapColor: "#f1c40f" },
+            { name: "甲壳巨兽", baseHp: 65, baseAtk: 22, speedMul: 0.65, color1: "#8a5a3a", color2: "#3a1a0a", icon: "🪲", unlockLevel: 2, minimapColor: "#a0522d" },
+            { name: "熵变暴君", baseHp: 150, baseAtk: 30, speedMul: 0.55, color1: "#aa4a2a", color2: "#4a1a0a", icon: "👑", unlockLevel: 3, minimapColor: "#c0392b" },
+            { name: "暗影突袭者", baseHp: 35, baseAtk: 18, speedMul: 2.5, color1: "#3a3a5a", color2: "#1a1a2a", icon: "👻", unlockLevel: 4, minimapColor: "#34495e" },
+            { name: "能量护盾者", baseHp: 55, baseAtk: 14, speedMul: 0.8, color1: "#4a8aaa", color2: "#1a3a5a", icon: "🛡️", isRanged: true, rangedBaseCd: 3.0, unlockLevel: 5, hasShield: true, minimapColor: "#3498db" },
+            { name: "虚空领主", baseHp: 500, baseAtk: 50, speedMul: 0.45, color1: "#6a2aaa", color2: "#2a1a4a", icon: "👾", unlockLevel: 5, minimapColor: "#8e44ad", isBoss: true }
+        ];
+        
+        // 当前可解锁种类数量（根据侵蚀等级）
+        function getUnlockedTypesCount() {
+            let count = 0;
+            for (let i=0; i<monsterTypes.length; i++) {
+                if (monsterTypes[i].unlockLevel <= entropyLevel) count++;
+                else break;
+            }
+            return Math.min(count, MAX_MONSTER_TYPES);
+        }
+        
+        let currentRangedMonsterCount = 0;   // 实时统计远程怪物数量
+        
+        // 辅助函数
+        function updateUI() {
+            // 存活时间格式 mm:ss
+            let mins = Math.floor(survivalSeconds / 60);
+            let secs = survivalSeconds % 60;
+            let timeStr = `${mins.toString().padStart(2, '0')}m ${secs.toString().padStart(2, '0')}s`;
+            document.getElementById('survivalTime').innerText = timeStr;
+            document.getElementById('entropyLv').innerText = entropyLevel;
+            document.getElementById('currency').innerText = Math.floor(currency);
+            document.getElementById('gameExp').innerText = Math.floor(gameExp);
+            document.getElementById('killCount').innerText = killCount;
+            
+            // 更新外部状态面板
+            document.getElementById('statusDamage').innerText = bulletDamage;
+            document.getElementById('statusFireRate').innerText = fireRate.toFixed(1);
+            // 缩放功能已移除
+            document.getElementById('statusSpecies').innerText = getUnlockedTypesCount();
+            document.getElementById('statusRanged').innerText = currentRangedMonsterCount;
+            document.getElementById('statusLiuyingDmg').innerText = BASE_MELEE_DAMAGE + liuyingDamageBonus;
+        }
+        
+        function addParticle(x, y, vx, vy, life, color, size = 3, glow = false) {
+            if (particles.length >= MAX_PARTICLE_COUNT) return;
+            particles.push({ x, y, vx, vy, life, maxLife: life, color, size, glow });
+        }
+        
+        function createExplosion(px, py, color = "#ffaa66", count = 8, force = 2) {
+            for (let i=0; i<count; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let speed = Math.random() * force + 1.5;
+                let vx = Math.cos(angle) * speed;
+                let vy = Math.sin(angle) * speed;
+                addParticle(px, py, vx, vy, 0.65, color, Math.random() * 4 + 2, true);
+            }
+        }
+        
+        function screenShakeEffect(intensity = 5, duration = 0.2) {
+            screenShake = intensity;
+            setTimeout(() => { if(screenShake === intensity) screenShake = 0; }, duration * 1000);
+        }
+        
+        function globalWhiteFlash() {
+            globalFlash = 0.5;
+            setTimeout(() => { globalFlash = 0; }, 200);
+        }
+        
+        function createFloatingText(msg, x, y, color, size = 18, shadow = true) {
+            window.floatingTexts.push({ msg, x, y, color, life: 1.0, size, shadow });
+            if (window.floatingTexts.length > 40) {
+                window.floatingTexts.splice(0, window.floatingTexts.length - 40);
+            }
+        }
+        
+        // 生成Boss
+        function spawnBoss() {
+            if (monsters.length >= MAX_MONSTER_COUNT) return;
+            // 检查是否已有boss存在
+            for (let m of monsters) {
+                if (m.isBoss) return;
+            }
+            
+            let template = monsterTypes.find(t => t.isBoss);
+            if (!template) return;
+            
+            // 在玩家周围生成boss
+            const minDistance = 300 * MAP_SCALE;
+            const maxDistance = 600 * MAP_SCALE;
+            const angle = Math.random() * Math.PI * 2;
+            const distance = minDistance + Math.random() * (maxDistance - minDistance);
+            let x = player.x + Math.cos(angle) * distance;
+            let y = player.y + Math.sin(angle) * distance;
+            
+            x = Math.max(50, Math.min(x, MAP_WIDTH - 50));
+            y = Math.max(50, Math.min(y, MAP_HEIGHT - 50));
+            
+            let monster = {
+                x, y,
+                hp: template.baseHp,
+                maxHp: template.baseHp,
+                radius: 25,
+                speed: template.speedMul * 1.4,
+                isRanged: false,
+                isBoss: true,
+                type: template.name,
+                icon: template.icon,
+                color1: template.color1,
+                color2: template.color2,
+                minimapColor: template.minimapColor
+            };
+            monsters.push(monster);
+            createFloatingText(`👾 BOSS 虚空领主出现！`, canvas.width/2, 120, "#ff4488", 30);
+            screenShakeEffect(10, 0.3);
+        }
+        
+        // 生成怪物 (根据侵蚀等级解锁种类，远程怪物侵蚀等级>=1才出现)
+        function spawnMonster() {
+            if (spawnCooldown > 0) return;
+            if (monsters.length >= MAX_MONSTER_COUNT) return;
+            // 远程怪物数量已达上限则不再生成远程
+            let forceMelee = (currentRangedMonsterCount >= MAX_RANGED_MONSTERS);
+            let availableTypes = [];
+            let unlockedCount = getUnlockedTypesCount();
+            for (let i=0; i<unlockedCount; i++) {
+                let t = monsterTypes[i];
+                if (t.isBoss) continue; // 排除boss，boss由专门逻辑生成
+                if (forceMelee && t.isRanged) continue;
+                // 远程怪物只有在侵蚀等级 >= 1 时才能生成 (unlockLevel >=1)
+                if (t.isRanged && entropyLevel < 1) continue;
+                availableTypes.push(i);
+            }
+            if (availableTypes.length === 0) availableTypes = [0];
+            let typeIdx = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+            let template = monsterTypes[typeIdx];
+            let isRanged = template.isRanged || false;
+            
+            // 在玩家周围100-500米范围内生成怪物
+            const minDistance = 100 * MAP_SCALE; // 100米
+            const maxDistance = 500 * MAP_SCALE; // 500米
+            const angle = Math.random() * Math.PI * 2;
+            const distance = minDistance + Math.random() * (maxDistance - minDistance);
+            let x = player.x + Math.cos(angle) * distance;
+            let y = player.y + Math.sin(angle) * distance;
+            
+            // 确保怪物在地图边界内
+            x = Math.max(50, Math.min(x, MAP_WIDTH - 50));
+            y = Math.max(50, Math.min(y, MAP_HEIGHT - 50));
+            
+            let levelBonus = 1 + entropyLevel * 0.18;
+            let baseHp = template.baseHp * levelBonus;
+            let baseSpeed = 1.4 * template.speedMul + entropyLevel * 0.12;
+            let size = 14 + Math.min(10, Math.floor(entropyLevel / 6));
+            if (isRanged) { baseHp *= 0.8; baseSpeed *= 0.85; }
+            
+            let monster = {
+                x, y,
+                hp: baseHp,
+                maxHp: baseHp,
+                radius: size,
+                speed: Math.min(5.8, baseSpeed),
+                isRanged: isRanged,
+                rangedCooldown: isRanged ? (Math.random() * 1.5) : 0,
+                type: template.name,
+                icon: template.icon,
+                color1: template.color1,
+                color2: template.color2,
+                minimapColor: template.minimapColor || '#ff8c00',
+                rangedCdBase: template.rangedBaseCd || 2.5,
+                hasShield: template.hasShield || false,
+                shieldHp: template.hasShield ? Math.floor(baseHp * 0.5) : 0
+            };
+            monsters.push(monster);
+            if (isRanged) currentRangedMonsterCount++;
+        }
+        
+        function adjustMonsterCount() {
+            // 如果正在清屏，不生成怪物
+            if (liuyingClearing) return;
+            
+            // 检查是否需要生成Boss（每2分钟一次）
+            if (entropyLevel >= MAX_ENTROPY_LEVEL && bossSpawnedAtMaxLevel) {
+                if (survivalSeconds >= nextBossSpawnTime) {
+                    // Boss前5秒空闲期
+                    if (bossIdleTime <= 0) {
+                        bossIdleTime = 5; // 设置5秒空闲期
+                        createFloatingText(`⚠️ Boss即将出现！`, canvas.width/2, 140, "#ff8800", 24);
+                    } else if (monsters.length === 0) {
+                        // 空闲期结束且没有其他怪物时生成Boss
+                        spawnBoss();
+                        nextBossSpawnTime = survivalSeconds + 120;
+                        bossIdleTime = 0;
+                    }
+                    return;
+                }
+            }
+            
+            // 如果当前有波次进行中，不生成新波次
+            if (waveInProgress) {
+                // 检查波次是否完成
+                if (monsters.length === 0) {
+                    waveInProgress = false;
+                    waveCooldown = 0.5; // 波次间隔0.5秒
+                }
+                return;
+            }
+            
+            // 如果在波次间隔冷却中
+            if (waveCooldown > 0) {
+                return;
+            }
+            
+            // 生成新波次
+            if (monsters.length === 0) {
+                let maxCount = Math.min(15 + entropyLevel * 5, MAX_MONSTER_COUNT);
+                let minCount = Math.min(10, maxCount);
+                let waveCount = Math.floor(Math.random() * (maxCount - minCount + 1)) + minCount;
+                
+                for (let i = 0; i < waveCount && monsters.length < MAX_MONSTER_COUNT; i++) {
+                    spawnMonster();
+                }
+                waveInProgress = true;
+            }
+        }
+        
+        function killMonster(idx, fromLiuying = false) {
+            let drop = Math.floor(10 + entropyLevel * 1.5);
+            // 应用货币倍数道具效果
+            const currencyMultiplier = getItemMultiplier('currency');
+            if (!fromLiuying) currency += Math.floor(drop * currencyMultiplier);
+            else currency += Math.floor(drop * 0.5 * currencyMultiplier);
+            
+            // 应用经验倍数道具效果
+            const expMultiplier = getItemMultiplier('exp');
+            let expGain = Math.floor(10 * expMultiplier);
+            gameExp += expGain;
+            
+            let m = monsters[idx];
+            if (m.isRanged) currentRangedMonsterCount--;
+            killCount++;
+            
+            // 检查是否达到650击杀，触发核弹
+            checkNuclearLaunch();
+            
+            if (fromLiuying) {
+                let attackImg = Math.random() < 0.5 ? 'attack' : 'attack_over';
+                updateLiuyingState(attackImg);
+                
+                let liuyingAvatar = document.getElementById('liuyingAvatarImg');
+                if (liuyingAvatar) {
+                    liuyingAvatar.src = liuyingImages[attackImg];
+                }
+                
+                setTimeout(() => {
+                    updateLiuyingState('idle');
+                    if (liuyingAvatar) {
+                        liuyingAvatar.src = liuyingImages['idle'];
+                    }
+                }, 200);
+            }
+            
+            createExplosion(m.x, m.y, "#ffaa66", 10, 2);
+            createFloatingText(`+${Math.floor(drop)}`, m.x, m.y-12, "#ffee88", 14);
+            monsters.splice(idx,1);
+            updateUI();
+        }
+        
+        // 更新远程怪物射击 (侵蚀等级>=1才会射击)
+        function updateRangedMonsters(nowSec) {
+            if (entropyLevel < 1) return; // 侵蚀等级1以下远程怪物不会射击
+            for (let m of monsters) {
+                if (!m.isRanged) continue;
+                if (m.rangedCooldown > 0) {
+                    m.rangedCooldown -= 0.05;
+                    continue;
+                }
+                let distToPlayer = Math.hypot(player.x - m.x, player.y - m.y);
+                if (distToPlayer < 400 && distToPlayer > 60) {
+                    let bulletCount = 1 + Math.min(MAX_PROJECTILES_PER_VOLLEY - 1, Math.floor(entropyLevel / 5));
+                    let baseSpeed = 3.2;
+                    let extraSpeed = Math.min(4.0, entropyLevel * 0.25);
+                    let projSpeed = Math.min(7.2, baseSpeed + extraSpeed);
+                    
+                    for (let b=0; b<bulletCount; b++) {
+                        let spread = (b - (bulletCount-1)/2) * 0.12;
+                        let dx = player.x - m.x;
+                        let dy = player.y - m.y;
+                        let len = Math.hypot(dx, dy);
+                        if (len < 0.01) continue;
+                        let dirX = dx / len;
+                        let dirY = dy / len;
+                        let angle = Math.atan2(dirY, dirX) + spread;
+                        let finalVx = Math.cos(angle) * projSpeed;
+                        let finalVy = Math.sin(angle) * projSpeed;
+                        projectiles.push({
+                            x: m.x, y: m.y, vx: finalVx, vy: finalVy, radius: 7,
+                            damage: 22 + entropyLevel * 2.2,
+                            life: 5.0
+                        });
+                    }
+                    let cdReduction = Math.min(0.8, entropyLevel * 0.03);
+                    m.rangedCooldown = Math.max(1.2, m.rangedCdBase - cdReduction);
+                }
+            }
+        }
+        
+        function updateProjectiles() {
+            for (let i=0; i<projectiles.length; i++) {
+                let p = projectiles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.life = (p.life || 5) - 0.05;
+                if (p.x<-100 || p.x>MAP_WIDTH+100 || p.y<-100 || p.y>MAP_HEIGHT+100 || p.life <= 0) {
+                    projectiles.splice(i,1);
+                    i--;
+                    continue;
+                }
+                let distToPlayer = Math.hypot(player.x - p.x, player.y - p.y);
+                if (distToPlayer < player.radius + p.radius) {
+                    gameActive = false;
+                    liuyingClearing = true;
+                    clearAllMonstersByLiuying();
+                    projectiles.splice(i,1);
+                    return;
+                }
+            }
+        }
+        
+        // 流萤 AI
+        function updateLiuying(nowSec) {
+            if (!gameActive || liuyingClearing) return;
+            liuying.trailPos.unshift({x: liuying.x, y: liuying.y, life: 0.25});
+            if (liuying.trailPos.length > 6) liuying.trailPos.pop();
+            for (let t of liuying.trailPos) t.life -= 0.025;
+            liuying.trailPos = liuying.trailPos.filter(t => t.life > 0);
+            liuying.wingAngle = Math.sin(nowSec * 9) * 0.4;
+            liuying.glowIntensity = 0.7 + Math.sin(nowSec * 7) * 0.25;
+            
+            // 流萤跟随范围限制在屏幕内（玩家周围）
+            const liuyingRange = 150;
+            
+            // 检查屏幕内是否有怪物
+            let bestTarget = null;
+            let bestPriority = -Infinity;
+            let hasMonsterOnScreen = false;
+            
+            for (let m of monsters) {
+                // 检查怪物是否在屏幕内
+                if (m.x >= viewport.x && m.x <= viewport.x + canvas.width &&
+                    m.y >= viewport.y && m.y <= viewport.y + canvas.height) {
+                    hasMonsterOnScreen = true;
+                    let distToPlayer = Math.hypot(m.x - player.x, m.y - player.y);
+                    let priority = 1000 / (distToPlayer + 15);
+                    if (m.isRanged) priority *= 1.3;
+                    if (priority > bestPriority) {
+                        bestPriority = priority;
+                        bestTarget = m;
+                    }
+                }
+            }
+            
+            let desireX = liuying.x, desireY = liuying.y;
+            
+            if (hasMonsterOnScreen && bestTarget) {
+                // 屏幕内有怪物，追击最近的怪物
+                let dx = bestTarget.x - liuying.x;
+                let dy = bestTarget.y - liuying.y;
+                let len = Math.hypot(dx, dy);
+                if (len > 0.01) {
+                    let move = Math.min(liuying.speed * 1.5, len);
+                    desireX = liuying.x + (dx / len) * move;
+                    desireY = liuying.y + (dy / len) * move;
+                }
+            } else {
+                // 屏幕内没有怪物，直接跟随在玩家身旁
+                let dx = player.x - liuying.x;
+                let dy = player.y - liuying.y;
+                let distToPlayer = Math.hypot(dx, dy);
+                
+                // 保持在玩家身旁50-80像素的位置
+                const followDist = 60;
+                if (distToPlayer > followDist + 10) {
+                    desireX = liuying.x + (dx / distToPlayer) * (distToPlayer - followDist) * 0.2;
+                    desireY = liuying.y + (dy / distToPlayer) * (distToPlayer - followDist) * 0.2;
+                } else if (distToPlayer < followDist - 10) {
+                    desireX = liuying.x - (dx / distToPlayer) * (followDist - distToPlayer) * 0.2;
+                    desireY = liuying.y - (dy / distToPlayer) * (followDist - distToPlayer) * 0.2;
+                } else {
+                    // 距离合适，保持不动或轻微跟随玩家移动
+                    desireX = liuying.x + dx * 0.05;
+                    desireY = liuying.y + dy * 0.05;
+                }
+            }
+            
+            // 限制在屏幕范围内
+            const screenMinX = viewport.x + 25;
+            const screenMaxX = viewport.x + canvas.width - 25;
+            const screenMinY = viewport.y + 25;
+            const screenMaxY = viewport.y + canvas.height - 25;
+            
+            desireX = Math.min(Math.max(desireX, screenMinX), screenMaxX);
+            desireY = Math.min(Math.max(desireY, screenMinY), screenMaxY);
+            let lerp = 0.38;
+            liuying.x = liuying.x + (desireX - liuying.x) * lerp;
+            liuying.y = liuying.y + (desireY - liuying.y) * lerp;
+            liuying.x = Math.min(Math.max(liuying.x, screenMinX), screenMaxX);
+            liuying.y = Math.min(Math.max(liuying.y, screenMinY), screenMaxY);
+            
+            if (nowSec - liuying.lastAttackTime >= 1/liuying.attackRate && bestTarget) {
+                liuying.lastAttackTime = nowSec;
+                let hitCount = 0;
+                let extraAttackCount = 0;
+                for (let i=0; i<monsters.length; i++) {
+                    let m = monsters[i];
+                    let distToM = Math.hypot(liuying.x - m.x, liuying.y - m.y);
+                    if (distToM < MELEE_RADIUS) {
+                        let dmgMulti = 1.0 + (1 - Math.min(1, distToM / MELEE_RADIUS)) * 1.5;
+                        let baseDamage = BASE_MELEE_DAMAGE + liuyingDamageBonus;
+                        let dmg = Math.floor((baseDamage + entropyLevel * 1.5) * dmgMulti);
+                        if (m.hasShield && m.shieldHp > 0) {
+                            m.shieldHp -= dmg;
+                            createFloatingText(`🛡️${Math.floor(m.shieldHp)}`, m.x, m.y-20, "#88ddff", 14);
+                            if (m.shieldHp <= 0) {
+                                m.hasShield = false;
+                                m.shieldHp = 0;
+                                createFloatingText("🛡️护盾破碎", m.x, m.y-20, "#88ddff", 16);
+                                hitCount--;
+                                extraAttackCount++;
+                            }
+                        } else {
+                            m.hp -= dmg;
+                            if (m.hp <= 0) { killMonster(i, true); i--; }
+                        }
+                        hitCount++;
+                        if (m.hasShield) extraAttackCount++;
+                    }
+                }
+                if (hitCount > 0) {
+                    liuying.attackTimer = 0.4;
+                    screenShakeEffect(3, 0.1);
+                    let attackText = `🌊 共振斩 · ${hitCount}`;
+                    if (extraAttackCount > 0) attackText += ` (+${extraAttackCount}破盾)`;
+                    createFloatingText(attackText, liuying.x, liuying.y-28, "#ffbb88", 20);
+                    for (let i=0;i<22;i++) {
+                        let ang = Math.random() * Math.PI * 2;
+                        let rad = MELEE_RADIUS * 0.7;
+                        let px = liuying.x + Math.cos(ang) * rad;
+                        let py = liuying.y + Math.sin(ang) * rad;
+                        addParticle(px, py, (Math.random()-0.5)*2.2, (Math.random()-0.5)*2.2, 0.4, "#ffaa77", 4, true);
+                    }
+                }
+            }
+            
+            for (let i=0; i<monsters.length; i++) {
+                let m = monsters[i];
+                if (Math.hypot(liuying.x - m.x, liuying.y - m.y) < liuying.radius + m.radius) {
+                    let blastDmg = 55 + entropyLevel * 2.2;
+                    for (let j=0; j<monsters.length; j++) {
+                        let m2 = monsters[j];
+                        if (Math.hypot(liuying.x - m2.x, liuying.y - m2.y) < 100) {
+                            m2.hp -= blastDmg;
+                            if (m2.hp <= 0) { killMonster(j, true); j--; }
+                        }
+                    }
+                    liuying.attackTimer = 0.5;
+                    screenShakeEffect(6, 0.15);
+                    createFloatingText("⚡ 脉冲过载", liuying.x, liuying.y-22, "#ffffff", 22);
+                    for (let s=0;s<30;s++) {
+                        let ang = Math.random() * Math.PI*2;
+                        let rad = 50;
+                        let px = liuying.x + Math.cos(ang)*rad;
+                        let py = liuying.y + Math.sin(ang)*rad;
+                        addParticle(px, py, (Math.random()-0.5)*3, (Math.random()-0.5)*3, 0.5, "#aaffff", 5, true);
+                    }
+                    break;
+                }
+            }
+            if (liuying.attackTimer > 0) liuying.attackTimer -= 0.05;
+        }
+        
+        function clearAllMonstersByLiuying() {
+            if (!liuyingClearing) return;
+            screenClearActive = true;
+            gameActive = false;
+            for (let i=0; i<monsters.length; i++) monsters[i].hp = 0;
+            monsters = [];
+            projectiles = [];
+            currentRangedMonsterCount = 0;
+            createFloatingText("✨ 流萤·终焉协议 ✨", canvas.width/2, canvas.height/2-50, "#ffccaa", 38);
+            screenShakeEffect(14, 0.6);
+            globalWhiteFlash();
+            for (let i=0;i<48;i++) {
+                let ang = Math.random()*Math.PI*2;
+                let rad = Math.random()*canvas.width*0.6;
+                let x = canvas.width/2 + Math.cos(ang)*rad;
+                let y = canvas.height/2 + Math.sin(ang)*rad;
+                addParticle(x, y, (Math.random()-0.5)*5, (Math.random()-0.5)*5, 0.8, "#ff88bb", 6, true);
+            }
+            setTimeout(() => { liuyingClearing = false; }, 950);
+        }
+        
+        // 大招1：范围终焉（30秒冷却，触发条件：怪物在玩家100m内）
+        function updateLiuyingUltimate1(nowSec) {
+            if (!gameActive || liuyingClearing || liuyingUltimate1Active) return;
+            
+            // 检查是否在冷却中
+            if (liuyingUltimate1Timer > 0) {
+                liuyingUltimate1Timer -= 1/60;
+                return;
+            }
+            
+            // 检查玩家周围100m内是否有怪物
+            let hasMonsterNearby = false;
+            for (let m of monsters) {
+                let distToPlayer = Math.hypot(m.x - player.x, m.y - player.y);
+                if (distToPlayer <= 100) {
+                    hasMonsterNearby = true;
+                    break;
+                }
+            }
+            
+            if (!hasMonsterNearby) return;
+            
+            // 流萤强制跳到玩家身旁
+            liuying.x = player.x + 30;
+            liuying.y = player.y - 20;
+            liuying.trailPos = []; // 清空轨迹
+            
+            // 触发大招：清除半径100m范围内的所有怪物
+            liuyingUltimate1Active = true;
+            let killCountInRange = 0;
+            for (let i = monsters.length - 1; i >= 0; i--) {
+                let dist = Math.hypot(monsters[i].x - player.x, monsters[i].y - player.y);
+                if (dist <= 100) {
+                    // 直接从数组中移除并计数
+                    monsters.splice(i, 1);
+                    killCountInRange++;
+                    killCount++;
+                }
+            }
+            
+            // 更新远程怪物计数
+            currentRangedMonsterCount = monsters.filter(m => m.isRanged).length;
+            
+            // 显示图片特效（带晃动效果）
+            let targetOneImg = document.getElementById('targetOneImg');
+            if (targetOneImg) {
+                targetOneImg.classList.add('active');
+                requestAnimationFrame(() => {
+                    targetOneImg.style.transform = 'translate(-50%, -50%) scale(1) rotate(0deg)';
+                });
+                setTimeout(() => {
+                    targetOneImg.style.transform = 'translate(-50%, -50%) scale(0) rotate(0deg)';
+                    setTimeout(() => {
+                        targetOneImg.classList.remove('active');
+                        liuyingUltimate1Active = false;
+                        liuyingUltimate1Timer = 30;
+                    }, 300);
+                }, 800);
+            }
+            
+            // 视觉特效
+            createFloatingText("💥 流萤·范围终焉 💥", canvas.width/2, canvas.height/2-80, "#ffccaa", 32);
+            screenShakeEffect(10, 0.5);
+            globalWhiteFlash();
+            for (let i = 0; i < 36; i++) {
+                let ang = (i / 36) * Math.PI * 2;
+                let rad = 25 + Math.random() * 10;
+                let x = player.x + Math.cos(ang) * rad;
+                let y = player.y + Math.sin(ang) * rad;
+                addParticle(x, y, Math.cos(ang) * 3, Math.sin(ang) * 3, 1, "#ffccaa", 8, true);
+            }
+        }
+        
+        // 大招2：精准打击（5分钟后首次触发，之后60秒冷却）
+        function updateLiuyingUltimate2(nowSec) {
+            if (!gameActive || liuyingClearing || liuyingUltimate2Active) return;
+            
+            // 检查是否在冷却中
+            if (liuyingUltimate2Timer > 0) {
+                liuyingUltimate2Timer -= 1/60;
+                return;
+            }
+            
+            // 检查是否已达到5分钟（300秒）
+            if (survivalSeconds < 300) return;
+            
+            // 触发大招：随机秒杀4-15只怪物
+            liuyingUltimate2Active = true;
+            let targetCount = Math.floor(Math.random() * 12) + 4; // 4到15
+            let killedCount = 0;
+            
+            // 随机打乱怪物数组并选择目标
+            let indices = [];
+            for (let i = 0; i < monsters.length; i++) indices.push(i);
+            for (let i = indices.length - 1; i > 0; i--) {
+                let j = Math.floor(Math.random() * (i + 1));
+                [indices[i], indices[j]] = [indices[j], indices[i]];
+            }
+            
+            // 直接移除怪物而不是设置hp为0
+            for (let k = 0; k < Math.min(targetCount, monsters.length); k++) {
+                let idx = indices[k];
+                // 直接从数组中移除并计数
+                monsters.splice(idx, 1);
+                killedCount++;
+                killCount++;
+            }
+            
+            // 更新远程怪物计数
+            currentRangedMonsterCount = monsters.filter(m => m.isRanged).length;
+            
+            // 显示图片特效（带晃动效果）
+            let targetTwoImg = document.getElementById('targetTwoImg');
+            if (targetTwoImg) {
+                targetTwoImg.classList.add('active');
+                requestAnimationFrame(() => {
+                    targetTwoImg.style.transform = 'translate(-50%, -50%) scale(1) rotate(0deg)';
+                });
+                setTimeout(() => {
+                    targetTwoImg.style.transform = 'translate(-50%, -50%) scale(0) rotate(0deg)';
+                    setTimeout(() => {
+                        targetTwoImg.classList.remove('active');
+                        liuyingUltimate2Active = false;
+                        liuyingUltimate2Timer = 60;
+                    }, 300);
+                }, 800);
+            }
+            
+            // 视觉特效
+            createFloatingText(`⚔️ 流萤·精准打击 ⚔️ (${killedCount})`, canvas.width/2, canvas.height/2-80, "#ffccaa", 32);
+            screenShakeEffect(8, 0.4);
+            globalWhiteFlash();
+            for (let i = 0; i < 24; i++) {
+                let ang = Math.random() * Math.PI * 2;
+                let rad = Math.random() * canvas.width * 0.4;
+                let x = canvas.width/2 + Math.cos(ang) * rad;
+                let y = canvas.height/2 + Math.sin(ang) * rad;
+                addParticle(x, y, (Math.random()-0.5)*4, (Math.random()-0.5)*4, 1, "#ffccaa", 6, true);
+            }
+        }
+        
+        function handlePlayerCollision() {
+            for (let i=0; i<monsters.length; i++) {
+                let m = monsters[i];
+                if (Math.hypot(player.x - m.x, player.y - m.y) < player.radius + m.radius) {
+                    gameActive = false;
+                    liuyingClearing = true;
+                    clearAllMonstersByLiuying();
+                    return true;
+                }
+            }
+            return false;
+        }
+        
+        // 玩家移动射击
+        const keys = { w:false,s:false,a:false,d:false };
+        function handlePlayerMove() {
+            if (!gameActive || liuyingClearing) return;
+            let dx=0,dy=0;
+            if(keys.w) dy-=1; if(keys.s) dy+=1; if(keys.a) dx-=1; if(keys.d) dx+=1;
+            if(dx!==0 || dy!==0) { let len=Math.hypot(dx,dy); dx/=len; dy/=len; }
+            let newX = player.x + dx*player.speed;
+            let newY = player.y + dy*player.speed;
+            // 限制玩家在地图范围内移动
+            player.x = Math.min(Math.max(newX, player.radius+5), MAP_WIDTH - player.radius-5);
+            player.y = Math.min(Math.max(newY, player.radius+5), MAP_HEIGHT - player.radius-5);
+            // 更新视口
+            updateViewport();
+        }
+        
+        function shootAuto(nowSec) {
+            if (!gameActive || liuyingClearing) return;
+            if (!mouseDown || monsters.length===0) return;
+            if (nowSec - lastShootTime < 1/fireRate) return;
+            lastShootTime = nowSec;
+            
+            let target = null;
+            // 玩家使用自己独立的瞄准系统，与载具自动攻击互不干扰
+            target = getPlayerTarget();
+            
+            // 如果玩家没有目标，选择最近的敌人（玩家自己的逻辑）
+            if (!target) {
+                let closest=null, minD=Infinity;
+                // 优先瞄准屏幕内的怪物
+                for(let m of monsters){
+                    if(m.x < viewport.x || m.x > viewport.x + canvas.width ||
+                       m.y < viewport.y || m.y > viewport.y + canvas.height) continue;
+                    let d=Math.hypot(m.x-player.x, m.y-player.y);
+                    if(d<minD){ minD=d; closest=m; }
+                }
+                // 如果屏幕内没有怪物，选择最近的怪物
+                if(!closest){
+                    for(let m of monsters){
+                        let d=Math.hypot(m.x-player.x, m.y-player.y);
+                        if(d<minD){ minD=d; closest=m; }
+                    }
+                }
+                target = closest;
+                // 设置玩家目标以便下次攻击继续锁定
+                setPlayerTarget(target);
+            }
+            
+            if(!target) return;
+            let dx=target.x-player.x, dy=target.y-player.y;
+            let len=Math.hypot(dx, dy);
+            dx/=len; dy/=len;
+
+            // 获取当前选中的弹药效果
+            let bulletEffect = null;
+            if (currentSelectedVehicle && vehicleAmmoState[currentSelectedVehicle.id]) {
+                const state = vehicleAmmoState[currentSelectedVehicle.id];
+                const ammoIndex = state.selectedAmmoIndex;
+                if (currentSelectedVehicle.ammo[ammoIndex] && currentSelectedVehicle.ammo[ammoIndex].effect) {
+                    bulletEffect = currentSelectedVehicle.ammo[ammoIndex].effect;
+                }
+            }
+
+            bullets.push({
+                x:player.x, y:player.y, vx:dx*bulletSpeed, vy:dy*bulletSpeed,
+                radius:5.5, damage:bulletDamage, hitList:[], effect: bulletEffect, target: target
+            });
+        }
+        
+        function updateBullets() {
+            for(let i=0;i<bullets.length;i++){
+                let b=bullets[i];
+                b.x+=b.vx; b.y+=b.vy;
+                if(b.x+b.radius<0 || b.x-b.radius>MAP_WIDTH || b.y+b.radius<0 || b.y-b.radius>MAP_HEIGHT){
+                    bullets.splice(i,1); i--; continue;
+                }
+                let hit=false;
+                let hitCount = 0;
+                const maxHits = b.penetration > 0 ? b.penetration : 1;
+                
+                for(let j=0;j<monsters.length;j++){
+                    if (hitCount >= maxHits) break;
+                    
+                    let m=monsters[j];
+                    // 载具子弹可以打击全地图范围的怪物
+                    // 注意：这里移除了屏幕内限制，允许载具攻击地图上任何位置的敌人
+                    if(Math.hypot(b.x-m.x, b.y-m.y) < b.radius+m.radius){
+                        if(b.hitList.includes(m)) continue;
+                        
+                        // 计算伤害
+                        let damage = b.damage;
+                        
+                        // 破甲弹对重甲目标造成额外伤害
+                        if (b.effect === 'armorPenetration' && m.isHeavyArmor) {
+                            damage = 175; // 对重甲目标175血
+                        }
+                        
+                        // 秒杀逻辑：检查是否是秒杀弹药且不是boss
+                        if (b.isInstantKill && !m.isBoss) {
+                            m.hp = 0; // 直接秒杀
+                            createFloatingText('💥秒杀!', m.x, m.y - 20, '#ff4444', 16);
+                            // 秒杀时记录目标最大血量作为伤害
+                            trackDamage(m.maxHp || damage);
+                        } else {
+                            m.hp -= damage;
+                            trackDamage(damage);
+                        }
+                        
+                        // 应用眩晕效果
+                        if (b.effect === 'stun' && !m.isBoss) {
+                            m.stunnedUntil = performance.now() / 1000 + 5; // 眩晕5秒
+                        }
+                        b.hitList.push(m);
+                        if(m.hp<=0){ 
+                            // 如果是载具击杀，显示特殊提示
+                            if (b.isVehicleKill) {
+                                vehicleKillCount = (vehicleKillCount || 0) + 1;
+                                createFloatingText('🎯' + (b.vehicleName || '载具') + '击杀!', m.x, m.y - 25, '#50d2a0', 14);
+                                createFloatingText('+'+ Math.floor(10 + entropyLevel * 1.5) + ' 积分', m.x, m.y - 10, '#ffee88', 12);
+                            }
+                            killMonster(j,false); 
+                            j--; 
+                        }
+                        hit=true;
+                        hitCount++;
+                    }
+                }
+                if(hit){ bullets.splice(i,1); i--; createExplosion(b.x, b.y, "#ffaa55", 5, 1.5); }
+            }
+        }
+        
+        function updateMonsters() {
+            if (!gameActive || liuyingClearing) return;
+            var nowSec = performance.now() / 1000;
+            for(let m of monsters){
+                // 检查是否被眩晕
+                if (m.stunnedUntil && nowSec < m.stunnedUntil) {
+                    continue; // 眩晕中，不移动
+                }
+                let dx=player.x-m.x, dy=player.y-m.y;
+                let len=Math.hypot(dx,dy);
+                if(len>0.01){
+                    let move = Math.min(m.speed, len - (player.radius+m.radius));
+                    if(move>0){ m.x += (dx/len)*move; m.y += (dy/len)*move; }
+                }
+            }
+            handlePlayerCollision();
+        }
+        
+        // 侵蚀等级: 每60秒提升一级 (精确计时)
+        function updateEntropy(nowSec) {
+            if(!gameActive || liuyingClearing) return;
+            
+            // 检查是否有难度保持卡生效
+            if (isDifficultyKept()) {
+                return; // 如果有难度保持卡生效，不提升难度
+            }
+            
+            // 每分钟整点提升等级 (基于存活秒数)
+            let currentMinute = Math.floor(survivalSeconds / 60);
+            if (currentMinute > entropyLevel) {
+                entropyLevel = Math.min(currentMinute, MAX_ENTROPY_LEVEL);
+                updateUI();
+                createFloatingText(`🌀 侵蚀等级 ${entropyLevel}`, canvas.width/2, 120, "#ff8866", 26);
+                screenShakeEffect(5, 0.2);
+                if (entropyLevel === 1) {
+                    createFloatingText(`⚠️ 远程畸变体出现！`, canvas.width/2, 160, "#ffaa66", 22);
+                }
+                if (entropyLevel === 2) {
+                    createFloatingText(`⚠️ 共生协议超载：清屏冷却延长至10秒`, canvas.width/2, 160, "#ffaa66", 22);
+                }
+                // 达到最高等级时生成第一次boss
+                if (entropyLevel >= MAX_ENTROPY_LEVEL && !bossSpawnedAtMaxLevel) {
+                    bossSpawnedAtMaxLevel = true;
+                    spawnBoss();
+                    // 设置下一次boss生成时间（2分钟后）
+                    nextBossSpawnTime = survivalSeconds + 120;
+                }
+            }
+            adjustMonsterCount();
+            
+        }
+        
+        // 更新存活时间（每秒+1）
+        let lastSecondUpdate = 0;
+        let pauseStartTime = 0;
+        let totalPauseTime = 0;
+        function updateSurvivalTime(nowSec) {
+            if (!gameActive || liuyingClearing) return;
+            if (gamePaused) {
+                if (pauseStartTime === 0) pauseStartTime = nowSec;
+                return;
+            }
+            if (pauseStartTime > 0) {
+                totalPauseTime += nowSec - pauseStartTime;
+                pauseStartTime = 0;
+            }
+            let newSeconds = Math.floor(nowSec - gameStartTime - totalPauseTime);
+            if (newSeconds > survivalSeconds) {
+                survivalSeconds = newSeconds;
+                updateUI();
+            }
+        }
+        
+        function updateCooldowns(nowSec, deltaTime) {
+            if (screenClearCooldown > 0) {
+                screenClearCooldown -= deltaTime;
+                if (screenClearCooldown < 0) screenClearCooldown = 0;
+            }
+            
+            if (spawnCooldown > 0) {
+                spawnCooldown -= deltaTime;
+                if (spawnCooldown < 0) spawnCooldown = 0;
+            }
+            
+            // 更新波次间隔冷却
+            if (waveCooldown > 0) {
+                waveCooldown -= deltaTime;
+                if (waveCooldown < 0) waveCooldown = 0;
+            }
+            
+            // 更新Boss前空闲期
+            if (bossIdleTime > 0) {
+                bossIdleTime -= deltaTime;
+                if (bossIdleTime < 0) bossIdleTime = 0;
+            }
+            
+            // 更新缩放动画
+            if (liuyingAnimState === 'target_zoom') {
+                liuyingZoomProgress += deltaTime / 0.3;
+                if (liuyingZoomProgress >= 1) {
+                    liuyingZoomProgress = 1;
+                }
+            }
+        }
+        
+        function updateParticles() {
+            for(let i=0;i<particles.length;i++){
+                let p=particles[i];
+                p.x+=p.vx; p.y+=p.vy;
+                p.life -= 0.025;
+                if(p.life<=0){ particles.splice(i,1); i--; }
+            }
+        }
+        
+        // 绘制载具瞄准标记
+        function drawAimingMarkers() {
+            if (!currentSelectedVehicle) return;
+            
+            const target = getVehicleTarget(currentSelectedVehicle.id);
+            if (!target || !monsters.includes(target)) return;
+            
+            const now = Date.now() / 1000;
+            const pulse = Math.sin(now * 5) * 0.3 + 0.7;
+            
+            ctx.save();
+            ctx.shadowBlur = 15;
+            
+            if (currentSelectedVehicle.type === 'plane') {
+                // 战机：小圆环
+                ctx.strokeStyle = `rgba(255, 136, 102, ${pulse})`;
+                ctx.shadowColor = 'rgba(255, 136, 102, 0.8)';
+                ctx.lineWidth = 2;
+                
+                // 外圆环
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, target.radius + 15, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // 内圆环
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, target.radius + 8, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // 中心点
+                ctx.fillStyle = `rgba(255, 136, 102, ${pulse})`;
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+            } else {
+                // 坦克/火炮：十字标
+                ctx.strokeStyle = `rgba(80, 210, 160, ${pulse})`;
+                ctx.shadowColor = 'rgba(80, 210, 160, 0.8)';
+                ctx.lineWidth = 2;
+                
+                const crossSize = target.radius + 15;
+                
+                // 垂直线
+                ctx.beginPath();
+                ctx.moveTo(target.x, target.y - crossSize);
+                ctx.lineTo(target.x, target.y - target.radius - 3);
+                ctx.moveTo(target.x, target.y + target.radius + 3);
+                ctx.lineTo(target.x, target.y + crossSize);
+                ctx.stroke();
+                
+                // 水平线
+                ctx.beginPath();
+                ctx.moveTo(target.x - crossSize, target.y);
+                ctx.lineTo(target.x - target.radius - 3, target.y);
+                ctx.moveTo(target.x + target.radius + 3, target.y);
+                ctx.lineTo(target.x + crossSize, target.y);
+                ctx.stroke();
+                
+                // 中心点
+                ctx.fillStyle = `rgba(80, 210, 160, ${pulse})`;
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // 外框
+                ctx.strokeStyle = `rgba(80, 210, 160, ${pulse * 0.5})`;
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(target.x, target.y, target.radius + 5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+            
+            ctx.restore();
+        }
+        
+        // 绘图 (保留华丽风格)
+        function draw() {
+            ctx.save();
+            if(screenShake>0){
+                ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
+            }
+
+            // 绘制大地图（背景和网格）
+            drawMap();
+
+            // 应用视口偏移
+            ctx.save();
+            ctx.translate(-viewport.x, -viewport.y);
+
+            // 绘制星空粒子背景
+            for(let i=0;i<220;i++){
+                ctx.fillStyle=`rgba(255,200,100,${0.08+Math.sin(Date.now()*0.0008+i)*0.04})`;
+                ctx.fillRect((i*179)%MAP_WIDTH, (i*311)%MAP_HEIGHT, 2,2);
+            }
+
+            for(let m of monsters){
+                // 使用target.png图片渲染怪物
+                let size = m.radius * 2;
+                if (monsterImgLoaded) {
+                    ctx.drawImage(monsterImg, m.x - m.radius, m.y - m.radius, size, size);
+                } else {
+                    // 图片未加载完成时使用默认绘制
+                    let gradMon=ctx.createRadialGradient(m.x-4,m.y-4,3,m.x,m.y,m.radius);
+                    gradMon.addColorStop(0,m.color1 || "#dc5a2c");
+                    gradMon.addColorStop(1,m.color2 || "#5e1c08");
+                    ctx.fillStyle=gradMon;
+                    ctx.beginPath(); ctx.arc(m.x,m.y,m.radius,0,Math.PI*2); ctx.fill();
+                }
+                
+                // 显示血量
+                ctx.fillStyle="#ffccaa";
+                ctx.font="bold 12 monospace";
+                ctx.fillText(`${Math.floor(m.hp)}`, m.x - 8, m.y + m.radius + 15);
+                
+                // 远程怪物标记
+                if(m.isRanged){
+                    ctx.fillStyle="#ffdd99";
+                    ctx.font="bold 16 monospace";
+                    ctx.fillText("🏹", m.x - 8, m.y - m.radius - 5);
+                }
+            }
+
+            for(let p of projectiles){
+                ctx.fillStyle="#ff5533";
+                ctx.shadowBlur=10;
+                ctx.beginPath(); ctx.arc(p.x,p.y,6,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle="#ffaa77";
+                ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
+            }
+
+            for(let b of bullets){
+                ctx.fillStyle="#ffdd77";
+                ctx.shadowBlur=10;
+                ctx.beginPath(); ctx.arc(b.x,b.y,6,0,Math.PI*2); ctx.fill();
+                ctx.fillStyle="white";
+                ctx.beginPath(); ctx.arc(b.x,b.y,2.5,0,Math.PI*2); ctx.fill();
+            }
+
+            for(let t of liuying.trailPos){
+                ctx.globalAlpha = t.life * 0.5;
+                ctx.fillStyle="#ffaacc";
+                ctx.beginPath(); ctx.ellipse(t.x, t.y, 10, 12, 0, 0, Math.PI*2); ctx.fill();
+                ctx.globalAlpha=1;
+            }
+
+            if (liuyingImgLoaded) {
+                ctx.save();
+                ctx.translate(liuying.x, liuying.y);
+                ctx.rotate(liuying.wingAngle * 0.1);
+
+                let displayRadius = liuying.radius;
+                if (liuyingAnimState === 'target_zoom') {
+                    displayRadius = liuying.radius * (1 + liuyingZoomProgress * 0.5);
+                }
+
+                ctx.drawImage(liuyingImg, -displayRadius, -displayRadius, displayRadius * 2, displayRadius * 2);
+                ctx.restore();
+            } else {
+                ctx.fillStyle="#ffb7c5";
+                ctx.beginPath(); ctx.ellipse(liuying.x, liuying.y, 11, 13, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle="#d46b8c";
+                ctx.beginPath(); ctx.ellipse(liuying.x-2, liuying.y-3, 6, 7, 0, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle="#000";
+                ctx.beginPath(); ctx.arc(liuying.x-6, liuying.y-6, 1.2, 0, Math.PI*2); ctx.fill();
+            }
+
+            // 玩家始终在屏幕中心
+            ctx.save();
+            // 撤销视口变换，回到屏幕坐标系
+            ctx.translate(viewport.x, viewport.y);
+            
+            // 屏幕中心位置
+            const screenCenterX = canvas.width / 2;
+            const screenCenterY = canvas.height / 2;
+            const playerScreenRadius = player.radius;
+            
+            if (playerAvatarLoaded) {
+                ctx.beginPath();
+                ctx.arc(screenCenterX, screenCenterY, playerScreenRadius, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(playerAvatarImg, screenCenterX - playerScreenRadius, screenCenterY - playerScreenRadius, playerScreenRadius * 2, playerScreenRadius * 2);
+            } else {
+                ctx.fillStyle="#6dd5ff";
+                ctx.beginPath(); ctx.arc(screenCenterX, screenCenterY, playerScreenRadius, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle="white";
+                ctx.beginPath(); ctx.arc(screenCenterX - 5, screenCenterY - 4, 3.5, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle="#fff";
+                ctx.beginPath(); ctx.arc(screenCenterX - 6, screenCenterY - 5, 1.3, 0, Math.PI*2); ctx.fill();
+            }
+            ctx.restore();
+
+            for(let p of particles){
+                ctx.shadowBlur = p.glow ? 6 : 2;
+                ctx.fillStyle = p.color;
+                ctx.beginPath(); ctx.arc(p.x, p.y, p.size*(p.life/p.maxLife), 0, Math.PI*2);
+                ctx.fill();
+            }
+
+            // 新增：绘制载具瞄准效果
+            drawAimingMarkers();
+
+            // 恢复视口偏移
+            ctx.restore();
+
+            // 绘制浮动文字（屏幕空间，需根据缩放调整位置）
+            for(let i = window.floatingTexts.length - 1; i >= 0; i--) {
+                let t = window.floatingTexts[i];
+                ctx.font=`bold ${t.size}px monospace`;
+                ctx.fillStyle = t.color;
+                let screenX = t.x - viewport.x;
+                let screenY = t.y - viewport.y;
+                ctx.fillText(t.msg, screenX - 50, screenY - (1-t.life)*35);
+                t.life-=0.02;
+                if(t.life<=0) window.floatingTexts.splice(i, 1);
+            }
+
+            if(globalFlash>0){
+                ctx.fillStyle = `rgba(255,255,200,${globalFlash*0.5})`;
+                ctx.fillRect(0,0,canvas.width,canvas.height);
+            }
+            if(!gameActive && !liuyingClearing){
+                let gameOverGif = document.getElementById('gameOverGif');
+                if (gameOverGif && gameOverGif.style.transform === 'translate(-50%, -50%) scale(0)') {
+                    gameOverGif.style.display = 'block';
+                    gameOverGif.style.width = canvas.width + 'px';
+                    gameOverGif.style.height = canvas.height + 'px';
+                    requestAnimationFrame(() => {
+                        gameOverGif.style.transform = 'translate(-50%, -50%) scale(1)';
+                    });
+                }
+                ctx.font="bold 38 monospace";
+                ctx.fillStyle="#ff7755";
+                ctx.textAlign = "center";
+                ctx.fillText("游戏结束", canvas.width/2, canvas.height/2 + 30);
+                ctx.textAlign = "left";
+            } else if(liuyingClearing){
+                ctx.font="bold 28 monospace";
+                ctx.fillStyle="#ffccaa";
+                ctx.fillText("🌸 流萤·共生终曲 🌸", canvas.width/2-200, canvas.height/2-40);
+            } else if(gamePaused){
+                ctx.fillStyle="rgba(0, 10, 20, 0.7)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font="bold 42px monospace";
+                ctx.fillStyle="#50d2a0";
+                ctx.textAlign="center";
+                ctx.fillText("游戏暂停", canvas.width/2-120, canvas.height/2-30);
+                ctx.font="18px monospace";
+                ctx.fillStyle="#a0e0c0";
+                ctx.fillText("按 ESC 继续游戏", canvas.width/2-130, canvas.height/2+30);
+            }
+            ctx.restore();
+        }
+        
+        // 升级
+        function upgradeFireRate(){ if(gameActive && currency>=30 && fireRate<14){ currency-=30; fireRate+=0.4; updateUI(); } }
+        function upgradeDamage(){ if(gameActive && currency>=15){ currency-=15; bulletDamage+=2; updateUI(); } }
+        
+        let gameStartTime = 0;
+        function resetGame(){
+            gameActive=true;
+            liuyingClearing=false;
+            liuyingUltimate1Active=false;
+            liuyingUltimate1Timer=0;
+            liuyingUltimate2Active=false;
+            liuyingUltimate2Timer=0;
+            survivalSeconds=0;
+            entropyLevel=0;
+            currency=0;
+            gameExp=0;
+            killCount=0;
+            vehicleKillCount=0;
+            // 缩放功能已移除
+            liuyingDamageBonus=0;
+            liuyingDamageRefreshTimer=0;
+            player.x=MAP_WIDTH/2; player.y=MAP_HEIGHT/2;
+            player.speed=5.0;
+            bullets=[]; monsters=[]; projectiles=[]; particles=[];
+            bulletDamage=2; fireRate=3.2;
+            lastShootTime=performance.now()/1000;
+            screenClearCooldown=0;
+            spawnCooldown=0;
+            bossSpawnedAtMaxLevel=false;
+            nextBossSpawnTime=0;
+            currentRangedMonsterCount=0;
+            waveInProgress=false;
+            waveCooldown=0;
+            bossIdleTime=0;
+            liuying.x=player.x+70; liuying.y=player.y-40;
+            liuying.lastAttackTime=0; liuying.attackTimer=0; liuying.trailPos=[];
+            liuying.wanderTargetX = null;
+            liuying.wanderTargetY = null;
+            liuying.wanderCooldown = 0;
+            liuyingAnimState = 'normal';
+            liuyingZoomProgress = 0;
+            gameOverVisible = false;
+            isReloading = false;
+            missileShotCount = 0;
+            isPlaneOnCooldown = false;
+            vehicleAmmoState = {};
+            currentSelectedVehicle = null;
+            pauseStartTime = 0;
+            totalPauseTime = 0;
+            lastSelectedVehicleIndex = -1;
+            vehicleAutoAttack = {};
+            vehicleTargets = {};
+            playerTarget = null;
+            activePlaneStrikes = [];
+            const reloadContainer = document.getElementById('reloadBarContainer');
+            const cooldownDisplay = document.getElementById('planeCooldownDisplay');
+            if (reloadContainer) reloadContainer.style.display = 'none';
+            if (cooldownDisplay) cooldownDisplay.style.display = 'none';
+            closeAmmoDialog();
+            let gameOverGif = document.getElementById('gameOverGif');
+            if (gameOverGif) {
+                gameOverGif.style.display = 'none';
+                gameOverGif.style.transform = 'translate(-50%, -50%) scale(0)';
+            }
+            updateLiuyingState('idle');
+            
+            let liuyingAvatar = document.getElementById('liuyingAvatarImg');
+            if (liuyingAvatar) {
+                liuyingAvatar.classList.remove('avatar-zoom');
+                liuyingAvatar.src = liuyingImages['idle'];
+            }
+            
+            for(let i=0;i<15;i++) spawnMonster();
+            gameStartTime = performance.now() / 1000;
+            updateUI();
+            window.floatingTexts=[];
+        }
+        
+        let lastTimestamp = 0;
+        function gameLoop(nowMs){
+            requestAnimationFrame(gameLoop);
+            if(!gameStarted) {
+                drawStartScreen();
+                return;
+            }
+            let nowSec = nowMs/1000;
+            let delta = Math.min(0.05, nowSec - (lastTimestamp || nowSec));
+            lastTimestamp = nowSec;
+            if(gameActive && !liuyingClearing){
+                if(gamePaused){
+                    updateSurvivalTime(nowSec); // 暂停时也要调用以记录暂停时间
+                } else {
+                    handlePlayerMove();
+                    updateSurvivalTime(nowSec);
+                    updateEntropy(nowSec);
+                    if (entropyLevel >= MAX_ENTROPY_LEVEL) {
+                        liuyingDamageRefreshTimer += delta;
+                        if (liuyingDamageRefreshTimer >= 30) {
+                            liuyingDamageRefreshTimer = 0;
+                            let minuteInLevel = Math.floor(survivalSeconds / 60);
+                            let timeBonus = minuteInLevel >= 1 ? 1.0 : (minuteInLevel === 0 ? 0.5 : 0);
+                            if (minuteInLevel >= 2) timeBonus = minuteInLevel;
+                            liuyingDamageBonus = Math.floor(bulletDamage * 0.25 * timeBonus);
+                            createFloatingText(`⚡ 流萤伤害 +${liuyingDamageBonus}`, canvas.width/2, 180, "#ffcc88", 20);
+                        }
+                    }
+                    shootAuto(nowSec);
+                    updateBullets();
+                    updateRangedMonsters(nowSec);
+                    updateProjectiles();
+                    updateMonsters();
+                    updateLiuying(nowSec);
+                    updateLiuyingUltimate1(nowSec);
+                    updateLiuyingUltimate2(nowSec);
+                    updateParticles();
+                    updateCooldowns(nowSec, delta);
+                    updatePlaneStrikes(nowSec); // 新增：更新战机攻击
+                    updateVehicleAutoAttack(nowSec); // 新增：更新载具自动攻击
+                    updateItems(nowSec, delta); // 新增：更新道具系统
+                }
+            } else if(liuyingClearing){
+                updateParticles();
+            }
+
+            if (isReloading) updateReloadBar();
+            if (isPlaneOnCooldown) updatePlaneCooldownDisplay();
+            updateVehicleCooldownDisplay(); // 新增：更新载具冷却圆环显示
+
+            draw();
+            drawMinimap();
+        }
+
+        function drawStartScreen() {
+            ctx.fillStyle = '#050a10';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#50d2a0';
+            ctx.font = 'bold 32px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('点击"开始游戏"按钮开始', canvas.width/2, canvas.height/2);
+        }
+
+        function checkAmmoAvailability() {
+            const ownedItems = JSON.parse(localStorage.getItem('ownedItems')) || {};
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const teamVehicles = (teamSettings.vehicles || []).filter(function(id) { return id && id.trim() !== ''; });
+            const missingAmmo = [];
+
+            teamVehicles.forEach(function(vehicleId) {
+                const vehicle = vehicleData.find(function(v) { return v.id === vehicleId; });
+                if (!vehicle) return;
+
+                let hasAnyAmmo = false;
+                const missingAmmoForVehicle = [];
+
+                vehicle.ammo.forEach(function(ammo) {
+                    // 没有 ammoId 的弹药（如无限弹药）视为有弹药
+                    if (!ammo.ammoId) {
+                        hasAnyAmmo = true;
+                        return;
+                    }
+                    
+                    const owned = ownedItems[ammo.ammoId] || 0;
+                    if (owned > 0) {
+                        hasAnyAmmo = true;
+                    } else {
+                        missingAmmoForVehicle.push(ammo.name);
+                    }
+                });
+
+                // 只有当载具完全没有任何一种弹药可以使用时，才弹出提示
+                if (!hasAnyAmmo && missingAmmoForVehicle.length > 0) {
+                    missingAmmo.push({
+                        vehicle: vehicle.name,
+                        ammo: missingAmmoForVehicle
+                    });
+                }
+            });
+
+            return missingAmmo;
+        }
+
+        function showAmmoCheckDialog(missingAmmo) {
+            const dialog = document.getElementById('ammoCheckDialog');
+            const list = document.getElementById('ammoCheckList');
+
+            let html = '';
+            missingAmmo.forEach(function(item) {
+                html += '<div class="ammo-check-item">';
+                html += '<div class="ammo-check-item-vehicle">' + item.vehicle + '</div>';
+                html += '<div class="ammo-check-item-ammo">缺少: ' + item.ammo.join(', ') + '</div>';
+                html += '</div>';
+            });
+
+            list.innerHTML = html;
+            dialog.classList.add('visible');
+        }
+
+        function hideAmmoCheckDialog() {
+            const dialog = document.getElementById('ammoCheckDialog');
+            dialog.classList.remove('visible');
+        }
+
+        function showAmmoEmptyNotification(vehicleName, ammoName) {
+            const notification = document.getElementById('ammoEmptyNotification');
+            const text = document.getElementById('ammoEmptyText');
+
+            text.textContent = vehicleName + ' 的 ' + ammoName + ' 已耗尽！';
+            notification.classList.add('visible');
+
+            setTimeout(function() {
+                notification.classList.remove('visible');
+            }, 3000);
+        }
+
+        function startGame() {
+            const missingAmmo = checkAmmoAvailability();
+            if (missingAmmo.length > 0) {
+                // 显示警告但仍然允许开始游戏
+                showAmmoCheckDialog(missingAmmo);
+            }
+            // 无论弹药是否充足，都允许开始游戏
+            proceedToGame();
+        }
+
+        function proceedToGame() {
+            gameStarted = true;
+            document.getElementById('startOverlay').classList.add('hidden');
+            document.getElementById('userInfoPanel').classList.remove('disabled');
+            resetGame();
+            loadOwnedItems(); // 加载道具面板
+        }
+        
+        async function loadConfig() {
+            try {
+                const response = await fetch('../main/configStart.json');
+                return await response.json();
+            } catch (error) {
+                console.error('加载配置文件失败:', error);
+                return null;
+            }
+        }
+
+        async function loadUserInfo() {
+            let userAvatar = localStorage.getItem('userAvatar');
+            const settings = JSON.parse(localStorage.getItem('userSettings')) || {};
+            let userName = settings.username || '游客';
+            
+            if (!userAvatar || userAvatar.trim() === '') {
+                const config = await loadConfig();
+                userAvatar = config?.user?.avatar;
+            }
+            
+            const avatarImg = document.getElementById('gameUserAvatar');
+            const nameEl = document.getElementById('gameUserName');
+            
+            if (userAvatar && userAvatar.trim() !== '') {
+                avatarImg.src = userAvatar;
+                playerAvatarImg.src = userAvatar;
+                playerAvatarImg.onload = () => { playerAvatarLoaded = true; };
+            } else {
+                // 使用默认头像
+                avatarImg.src = '../../img/key/default.jpg';
+                playerAvatarImg.src = '../../img/key/default.jpg';
+                playerAvatarImg.onload = () => { playerAvatarLoaded = true; };
+            }
+            
+            liuyingImg.src = '../../img/game_img/walk.png';
+            liuyingImg.onload = () => { liuyingImgLoaded = true; };
+            
+            // 加载怪物图片
+            monsterImg.src = '../../img/game_img/target.png';
+            monsterImg.onload = () => { monsterImgLoaded = true; };
+            
+            let liuyingAvatar = document.getElementById('liuyingAvatarImg');
+            if (liuyingAvatar) {
+                liuyingAvatar.src = '../../img/game_img/walk.png';
+            }
+            
+            gameOverVisible = true;
+            
+            nameEl.textContent = userName;
+        }
+        
+        // 游戏结束处理
+        let gameEnded = false;
+        let isPlayerQuit = false; // 标记是否是玩家主动退出
+        
+        // 累积数据（多次重启协议时累加）
+        let accumulatedData = {
+            currency: 0,
+            exp: 0,
+            killCount: 0,
+            vehicleKillCount: 0,
+            winCount: 0,
+            loseCount: 0
+        };
+        
+        // 弹药使用追踪
+        const ammoUsageTracker = {}; // 格式: { ammoId: { name: string, count: number } }
+        
+        function trackAmmoUsage(ammoId, ammoName, amount = 1) {
+            if (!ammoId) return;
+            if (!ammoUsageTracker[ammoId]) {
+                ammoUsageTracker[ammoId] = { name: ammoName, count: 0 };
+            }
+            ammoUsageTracker[ammoId].count += amount;
+        }
+        
+        // 伤害追踪
+        let totalDamageDealt = 0;
+        
+        function trackDamage(damage) {
+            totalDamageDealt += damage;
+        }
+        
+        // 保存战斗记录并累加数据（不立即结算）
+        function saveBattleRecord(isQuit) {
+            // 计算游戏时长
+            const gameDuration = Math.floor((performance.now() / 1000) - gameStartTime);
+            const minutes = Math.floor(gameDuration / 60);
+            const seconds = gameDuration % 60;
+            const timeStr = `${minutes}m${seconds}s`;
+            
+            // 游戏模式名称
+            const gameMode = '无限协议';
+            
+            // 只有玩家主动结束才算胜利，死亡算失败
+            const result = isQuit ? 'win' : 'lose';
+            
+            // 获取使用的载具队列
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const usedVehicles = teamSettings.vehicles || [];
+            
+            // 记录载具详细信息
+            const vehicleDetails = usedVehicles.map(vehicleId => {
+                const vehicle = vehicleData.find(v => v.id === vehicleId);
+                if (vehicle) {
+                    return {
+                        id: vehicle.id,
+                        name: vehicle.name,
+                        icon: vehicle.icon,
+                        type: vehicle.type,
+                        ammo: vehicle.ammo.map(a => ({
+                            name: a.name,
+                            ammoId: a.ammoId
+                        }))
+                    };
+                }
+                return null;
+            }).filter(v => v !== null);
+            
+            // 记录弹药使用（从追踪器获取实际消耗）
+            const ammoUsed = Object.values(ammoUsageTracker).map(a => ({
+                name: a.name,
+                count: a.count
+            }));
+            
+            // 创建战斗记录
+            const battleRecord = {
+                result: result,
+                time: timeStr,
+                currency: currency,
+                exp: gameExp,
+                mode: gameMode,
+                killCount: killCount,
+                vehicleKillCount: vehicleKillCount,
+                survivalTime: gameDuration,
+                entropyLevel: entropyLevel,
+                damage: totalDamageDealt,
+                timestamp: Date.now(),
+                vehicles: vehicleDetails,
+                ammoUsed: ammoUsed,
+                isPlayerQuit: isQuit
+            };
+            
+            // 从localStorage获取现有战斗记录
+            const battles = JSON.parse(localStorage.getItem('battleData')) || [];
+            
+            // 添加新记录到开头
+            battles.unshift(battleRecord);
+            
+            // 只保留最近100条记录
+            const recentBattles = battles.slice(0, 100);
+            
+            // 保存到localStorage
+            localStorage.setItem('battleData', JSON.stringify(recentBattles));
+            
+            // 累加数据到累积变量（不立即结算到用户账户）
+            accumulatedData.currency += currency;
+            accumulatedData.exp += gameExp;
+            accumulatedData.killCount += killCount;
+            accumulatedData.vehicleKillCount += vehicleKillCount;
+            if (result === 'win') {
+                accumulatedData.winCount++;
+            } else {
+                accumulatedData.loseCount++;
+            }
+        }
+        
+        // 结算累积数据到用户账户（玩家退出游戏时调用）
+        function settleAccumulatedData() {
+            if (accumulatedData.currency === 0 && accumulatedData.exp === 0 &&
+                accumulatedData.killCount === 0 && accumulatedData.winCount === 0 && accumulatedData.loseCount === 0) {
+                return; // 没有累积数据，不需要结算
+            }
+
+            // 确保所有数值取整
+            const finalCurrency = Math.floor(accumulatedData.currency);
+            const finalExp = Math.floor(accumulatedData.exp);
+
+            // 更新用户货币
+            const gold = BigInt(localStorage.getItem('gold') || '0');
+            localStorage.setItem('gold', (gold + BigInt(finalCurrency)).toString());
+            if (finalCurrency > 0) {
+                localStorage.setItem('pendingBattleCurrency', finalCurrency.toString());
+            }
+
+            // 更新用户经验
+            let userLevel = parseInt(localStorage.getItem('userLevel')) || 0;
+            let userExp = parseInt(localStorage.getItem('userExp')) || 0;
+            userExp += finalExp;
+            
+            // 检查升级
+            let levelUpCurrency = 0;
+            let levelUpCount = 0;
+            while (userExp >= calculateExpForLevel(userLevel + 1)) {
+                userExp -= calculateExpForLevel(userLevel + 1);
+                userLevel++;
+                levelUpCount++;
+                const currencyForLevel = Math.floor(100 * Math.pow(1.2, userLevel - 1));
+                levelUpCurrency += currencyForLevel;
+            }
+            
+            // 如果升级获得了货币
+            if (levelUpCurrency > 0) {
+                const gold = BigInt(localStorage.getItem('gold') || '0');
+                localStorage.setItem('gold', (gold + BigInt(levelUpCurrency)).toString());
+                localStorage.setItem('pendingLevelUpCurrency', levelUpCurrency.toString());
+                localStorage.setItem('pendingLevelUpCount', levelUpCount.toString());
+            }
+            
+            localStorage.setItem('userLevel', userLevel.toString());
+            localStorage.setItem('userExp', userExp.toString());
+            
+            // 更新游戏次数
+            const gameCount = parseInt(localStorage.getItem('userGameCount')) || 0;
+            localStorage.setItem('userGameCount', (gameCount + accumulatedData.winCount + accumulatedData.loseCount).toString());
+            
+            // 清空累积数据
+            accumulatedData = {
+                currency: 0,
+                exp: 0,
+                killCount: 0,
+                vehicleKillCount: 0,
+                winCount: 0,
+                loseCount: 0
+            };
+        }
+        
+        // 更新用户统计数据
+        function updateUserStats(battle) {
+            // 更新等级和经验
+            let userLevel = parseInt(localStorage.getItem('userLevel')) || 0;
+            let userExp = parseInt(localStorage.getItem('userExp')) || 0;
+            
+            // 使用游戏中的实时经验（已应用道具倍数）
+            userExp += battle.exp;
+            
+            // 通关获得经验（胜利时）
+            if (battle.result === 'win') {
+                userExp += 50;
+            }
+            
+            // 检查升级并计算升级获得的货币
+            let levelUpCurrency = 0;
+            let levelUpCount = 0;
+            while (userExp >= calculateExpForLevel(userLevel + 1)) {
+                userExp -= calculateExpForLevel(userLevel + 1);
+                userLevel++;
+                levelUpCount++;
+                // 计算升级获得的货币：1级100，每升一级增加20%
+                const currencyForLevel = Math.floor(100 * Math.pow(1.2, userLevel - 1));
+                levelUpCurrency += currencyForLevel;
+            }
+            
+            // 如果升级获得了货币，保存到localStorage
+            if (levelUpCurrency > 0) {
+                const gold = BigInt(localStorage.getItem('gold') || '0');
+                localStorage.setItem('gold', (gold + BigInt(levelUpCurrency)).toString());
+                // 保存升级获得的货币到pending，用于UI显示
+                localStorage.setItem('pendingLevelUpCurrency', levelUpCurrency.toString());
+                localStorage.setItem('pendingLevelUpCount', levelUpCount.toString());
+            }
+            
+            localStorage.setItem('userLevel', userLevel.toString());
+            localStorage.setItem('userExp', userExp.toString());
+            
+            // 更新偏好模式和最近游玩
+            const modeCount = JSON.parse(localStorage.getItem('userModeCount')) || {};
+            modeCount[battle.mode] = (modeCount[battle.mode] || 0) + 1;
+            localStorage.setItem('userModeCount', JSON.stringify(modeCount));
+            
+            // 设置最近游玩模式
+            localStorage.setItem('userRecentMode', battle.mode);
+            
+            // 计算偏好模式（玩得最多的模式）
+            let preferredMode = battle.mode;
+            let maxCount = 1;
+            for (const [mode, count] of Object.entries(modeCount)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    preferredMode = mode;
+                }
+            }
+            localStorage.setItem('userPreferredMode', preferredMode);
+            
+            // 更新用户货币（将本局获得的货币添加到总余额）
+            const gold = BigInt(localStorage.getItem('gold') || '0');
+            localStorage.setItem('gold', (gold + BigInt(battle.currency)).toString());
+            
+            // 如果本局获得了货币，保存到pending用于UI显示
+            if (battle.currency > 0) {
+                localStorage.setItem('pendingBattleCurrency', battle.currency.toString());
+            }
+            
+            // 更新游戏次数
+            const gameCount = parseInt(localStorage.getItem('userGameCount')) || 0;
+            localStorage.setItem('userGameCount', (gameCount + 1).toString());
+            
+            // 检查成就
+            checkAchievements(battle, gameCount);
+        }
+        
+        // 检查成就条件
+        function checkAchievements(battle, gameCount) {
+            const unlocked = getUnlockedAchievements();
+            const newAchievements = [];
+            
+            // 1. 初来乍到 - 第一次打开游戏（在inMaxNineUI中触发）
+            
+            // 2. 第'一'次？战斗！ - 首次完成任意游戏并结束
+            if (!unlocked.includes('medal_one_xie') && gameCount === 1) {
+                newAchievements.push('medal_one_xie');
+            }
+            
+            // 3. 怪诞达人 - 在同协中击杀150个敌人以上并完成游戏
+            if (!unlocked.includes('medal_one_xie_main') && battle.killCount >= 150) {
+                newAchievements.push('medal_one_xie_main');
+            }
+            
+            // 4. 战斗大师 - 完成10场战斗，每次结束时货币至少1500
+            if (!unlocked.includes('medal_two_xie') && gameCount >= 10 && battle.currency >= 1500) {
+                // 检查前10场是否都满足货币条件
+                const battles = JSON.parse(localStorage.getItem('battleData')) || [];
+                const last10Battles = battles.slice(0, 10);
+                const allMeetCurrency = last10Battles.every(b => b.currency >= 1500);
+                if (allMeetCurrency) {
+                    newAchievements.push('medal_two_xie');
+                }
+            }
+            
+            // 5. 超级怪诞 - 在同协中击杀500个敌人以上并完成游戏
+            if (!unlocked.includes('medal_two_xie_main') && battle.killCount >= 500) {
+                newAchievements.push('medal_two_xie_main');
+            }
+            
+            // 如果有新成就，保存并更新
+            if (newAchievements.length > 0) {
+                const allUnlocked = [...unlocked, ...newAchievements];
+                saveUnlockedAchievements(allUnlocked);
+                
+                // 保存待显示的成就队列
+                localStorage.setItem('pendingAchievements', JSON.stringify(newAchievements));
+            }
+        }
+        
+        // 检查是否触发核弹
+        function checkNuclearLaunch() {
+            if (killCount >= 650 && !nuclearLaunched && gameActive) {
+                nuclearLaunched = true;
+                launchNuclearMissile();
+            }
+        }
+        
+        // 触发核弹
+        function launchNuclearMissile() {
+            // 显示核弹警告
+            createFloatingText('⚠️ 核弹发射警告 ⚠️', canvas.width / 2, canvas.height / 2, '#ff4444', 36);
+            
+            // 延迟后触发核弹爆炸
+            setTimeout(() => {
+                // 清除所有怪物
+                for (let i = monsters.length - 1; i >= 0; i--) {
+                    createExplosion(monsters[i].x, monsters[i].y, "#ff6600", 20, 3);
+                    killCount++;
+                }
+                monsters = [];
+                
+                // 添加核弹爆炸视觉效果
+                showNuclearExplosion();
+                
+                // 增加货币奖励
+                currency += 100000;
+                
+                // 记录核弹次数
+                let nuclearCount = parseInt(localStorage.getItem('nuclearCount') || '0');
+                nuclearCount++;
+                localStorage.setItem('nuclearCount', nuclearCount.toString());
+                
+                // 解锁核弹成就
+                const unlocked = getUnlockedAchievements();
+                if (!unlocked.includes('medal_nuclear')) {
+                    unlocked.push('medal_nuclear');
+                    saveUnlockedAchievements(unlocked);
+                    localStorage.setItem('pendingAchievements', JSON.stringify(['medal_nuclear']));
+                }
+                
+                // 强制结束游戏（胜利）
+                setTimeout(() => {
+                    gameActive = false;
+                    showGameResult('win');
+                }, 2000);
+            }, 3000);
+        }
+        
+        // 显示核弹爆炸效果
+        function showNuclearExplosion() {
+            const overlay = document.createElement('div');
+            overlay.id = 'nuclearOverlay';
+            overlay.style.cssText = `
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: radial-gradient(circle, #ffff00 0%, #ff8800 30%, #ff0000 60%, #000000 100%);
+                opacity: 0;
+                z-index: 1000;
+                pointer-events: none;
+                animation: nuclearFlash 2s ease-out forwards;
+            `;
+            document.body.appendChild(overlay);
+            
+            // 添加动画样式
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes nuclearFlash {
+                    0% { opacity: 0; transform: scale(0); }
+                    50% { opacity: 1; transform: scale(1); }
+                    100% { opacity: 0; transform: scale(2); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 播放音效提示
+            createFloatingText('💥 核爆! 💥', canvas.width / 2, canvas.height / 3, '#ffffff', 48);
+            createFloatingText('+100000 货币', canvas.width / 2, canvas.height / 2, '#ffee88', 24);
+            
+            // 移除效果
+            setTimeout(() => {
+                overlay.remove();
+                style.remove();
+            }, 2000);
+        }
+        
+        // 获取已解锁的成就
+        function getUnlockedAchievements() {
+            let achievements = JSON.parse(localStorage.getItem('unlockedAchievements')) || [];
+            if (achievements.length === 0) {
+                achievements = JSON.parse(localStorage.getItem('userAchievements')) || [];
+            }
+            return achievements;
+        }
+        
+        // 保存已解锁的成就
+        function saveUnlockedAchievements(achievements) {
+            localStorage.setItem('unlockedAchievements', JSON.stringify(achievements));
+        }
+        
+        // 计算升级所需经验
+        function calculateExpForLevel(level) {
+            if (level <= 1) return 100;
+            return Math.floor(100 * Math.pow(1.5, level - 1));
+        }
+        
+        // 游戏结束处理函数（玩家死亡）
+        function handleGameEnd() {
+            if (!gameStarted || gameEnded) return;
+            gameEnded = true;
+            
+            // 玩家死亡，不算胜利
+            saveBattleRecord(false);
+        }
+        
+        // 监听游戏结束
+        function checkGameEnd() {
+            if (!gameActive && gameStarted && !gameEnded && !liuyingClearing) {
+                handleGameEnd();
+            }
+        }
+        
+        // 定时检查游戏状态
+        setInterval(checkGameEnd, 500);
+        
+        function initControls(){
+            window.addEventListener('keydown',e=>{ 
+                let k=e.key.toUpperCase();
+                if(k==='W')keys.w=true; 
+                if(k==='S')keys.s=true; 
+                if(k==='A')keys.a=true; 
+                if(k==='D')keys.d=true; 
+                if(k===' ')e.preventDefault(); 
+                if(k==='ESCAPE' && gameStarted){
+                    gamePaused = !gamePaused;
+                }
+                // 同协快捷键 - 载具选择
+                if(k===coopKeys.vehicleKey1) selectVehicle(0);
+                if(k===coopKeys.vehicleKey2) selectVehicle(1);
+                if(k===coopKeys.vehicleKey3) selectVehicle(2);
+                if(k===coopKeys.vehicleKey4) selectVehicle(3);
+                if(k===coopKeys.vehicleKey5) selectVehicle(4);
+                // 同协快捷键 - 弹药选择
+                if(k===coopKeys.ammoKey1) selectAmmo(0);
+                if(k===coopKeys.ammoKey2) selectAmmo(1);
+                if(k===coopKeys.ammoKey3) selectAmmo(2);
+                // 同协快捷键 - 升级
+                if(k===coopKeys.fireRateKey && gameActive) upgradeFireRate();
+                if(k===coopKeys.damageKey && gameActive) upgradeDamage();
+                // 同协快捷键 - 发射（默认空格）
+                const fireKey = coopKeys.fireKey === 'SPACE' ? ' ' : coopKeys.fireKey;
+                if((k === fireKey || k === coopKeys.fireKey) && gameActive) shootOnce();
+                // 同协快捷键 - 攻击
+                if(coopKeys.attackKey==='Mouse1'){}
+                if(coopKeys.attackKey==='Space' && k==='SPACE' && gameActive){ shootOnce(); }
+                // 同协快捷键 - 停止载具攻击（默认X）
+                if(k === coopKeys.stopAttackKey && gameActive) handleStopVehicleAttack();
+            });
+            window.addEventListener('keyup',e=>{ let k=e.key.toUpperCase(); if(k==='W')keys.w=false; if(k==='S')keys.s=false; if(k==='A')keys.a=false; if(k==='D')keys.d=false; });
+            
+            // 停止载具攻击按钮点击事件
+            document.getElementById('stopVehicleAttackBtn').addEventListener('click', handleStopVehicleAttack);
+            
+            // 攻击按键 - 支持同协设置的攻击键
+            function getAttackButton(attackKey) {
+                if(attackKey === 'Mouse1') return 0;
+                if(attackKey === 'Mouse2') return 1;
+                if(attackKey === 'Mouse3') return 2;
+                if(attackKey === 'Mouse4') return 3;
+                if(attackKey === 'Mouse5') return 4;
+                return -1;
+            }
+            
+            canvas.addEventListener('mousedown',e=>{
+                let attackBtn = getAttackButton(coopKeys.attackKey);
+                if(e.button === attackBtn){ mouseDown=true; e.preventDefault(); }
+            });
+            window.addEventListener('mouseup',e=>{
+                let attackBtn = getAttackButton(coopKeys.attackKey);
+                if(e.button === attackBtn) mouseDown=false;
+            });
+            
+            canvas.addEventListener('contextmenu',e=>e.preventDefault());
+            
+            // 小地图拖动功能
+            let isDragging = false;
+            let dragOffset = { x: 0, y: 0 };
+            
+            minimapCanvas.addEventListener('mousedown', (e) => {
+                e.stopPropagation();
+                e.preventDefault();
+                isDragging = true;
+                // 清除所有可能冲突的定位属性
+                minimapCanvas.style.right = 'auto';
+                const rect = minimapCanvas.getBoundingClientRect();
+                dragOffset.x = e.clientX - rect.left;
+                dragOffset.y = e.clientY - rect.top;
+                minimapCanvas.style.zIndex = '2000';
+            });
+            
+            window.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                let newX = e.clientX - dragOffset.x;
+                let newY = e.clientY - dragOffset.y;
+                
+                // 限制在屏幕范围内
+                newX = Math.max(0, Math.min(newX, window.innerWidth - minimapCanvas.width));
+                newY = Math.max(0, Math.min(newY, window.innerHeight - minimapCanvas.height));
+                
+                minimapCanvas.style.left = newX + 'px';
+                minimapCanvas.style.top = newY + 'px';
+            });
+            
+            window.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    minimapCanvas.style.zIndex = '1000';
+                }
+            });
+            
+            minimapCanvas.addEventListener('selectstart', (e) => {
+                e.preventDefault();
+            });
+
+            document.querySelectorAll('.vehicle-slot').forEach((slot, index) => {
+                slot.addEventListener('click', function() {
+                    selectVehicle(index);
+                });
+                slot.style.cursor = 'pointer';
+            });
+        }
+        
+        function bindUpgrades(){
+            document.getElementById('upgradeFireRate').onclick=upgradeFireRate;
+            document.getElementById('upgradeDamage').onclick=upgradeDamage;
+            
+            // 重启协议按钮 - 保存战斗记录后重置游戏（玩家主动结束算胜利）
+            document.getElementById('resetBtn').onclick=function() {
+                if (gameStarted && gameActive) {
+                    saveBattleRecord(true); // true表示玩家主动结束，算胜利
+                }
+                resetGame();
+                gameEnded = false;
+            };
+            
+            // 退出游戏函数
+            window.exitGame = function() {
+                if (gameStarted && gameActive) {
+                    saveBattleRecord(true); // 保存战斗记录并累加数据
+                }
+                // 退出游戏前结算所有累积数据
+                settleAccumulatedData();
+                window.history.back();
+            };
+            
+            document.getElementById('startBtn').onclick=startGame;
+        }
+        
+        initControls();
+        bindUpgrades();
+        loadUserInfo();
+        
+        const vehicleData = [
+            { id: 'vehicle_1', name: 'T-80BVM', icon: '🚙', type: 'tank', fireRate: 5, image: '../../img/card_img/tank/t80bvm.png', ammo: [{name: '3BM60钢针', count: 1, ammoId: 'ammo_1'}, {name: '高爆弹', count: 1, ammoId: 'ammo_2'}, {name: '破甲弹', count: 1, ammoId: 'ammo_13', effect: 'stun'}] },
+            { id: 'vehicle_2', name: 'T90M', icon: '🚙', type: 'tank', fireRate: 5, image: '../../img/card_img/tank/t90m.png', ammo: [{name: '3BM66钢针', count: 1, ammoId: 'ammo_1'}, {name: '高爆弹', count: 1, ammoId: 'ammo_2'}, {name: '破甲弹', count: 1, ammoId: 'ammo_13', effect: 'stun'}] },
+            { id: 'vehicle_3', name: 'T-72B3A', icon: '🚙', type: 'tank', fireRate: 5, image: '../../img/card_img/tank/t72b3a.png', ammo: [{name: '3BM42钢针', count: 1, ammoId: 'ammo_1'}, {name: '高爆弹', count: 1, ammoId: 'ammo_2'}, {name: '破甲弹', count: 1, ammoId: 'ammo_13', effect: 'stun'}] },
+            { id: 'vehicle_4', name: '豹2A7V', icon: '🚙', type: 'tank', fireRate: 5, image: '../../img/card_img/tank/l2a7v.png', ammo: [{name: 'DM73钢针', count: 1, ammoId: 'ammo_1'}, {name: '高爆弹', count: 1, ammoId: 'ammo_2'}, {name: '破甲弹', count: 1, ammoId: 'ammo_13', effect: 'stun'}] },
+            { id: 'vehicle_5', name: 'M1A2', icon: '🚙', type: 'tank', fireRate: 5, image: '../../img/card_img/tank/m1a2.png', ammo: [{name: 'M829A3钢针', count: 1, ammoId: 'ammo_1'}, {name: '高爆弹', count: 1, ammoId: 'ammo_2'}, {name: '破甲弹', count: 1, ammoId: 'ammo_13', effect: 'stun'}] },
+            { id: 'vehicle_6', name: 'M3A3布兰德利', icon: '🚙', type: 'tank', fireRate: 1, image: '../../img/card_img/tank/m3a3.png', ammo: [{name: 'M791脱壳穿甲弹', count: 1, ammoId: 'ammo_3', damage: 10}, {name: '陶式导弹', count: 2, ammoId: 'ammo_4', reloadTime: 10}] },
+            { id: 'vehicle_7', name: '挑战者2', icon: '🚙', type: 'tank', fireRate: 5, image: '../../img/card_img/tank/tiao2.png', ammo: [{name: 'L27钢针', count: 1, ammoId: 'ammo_1'}, {name: '高爆弹', count: 1, ammoId: 'ammo_2'}, {name: '破甲弹', count: 1, ammoId: 'ammo_13', effect: 'stun'}] },
+            { id: 'vehicle_8', name: 'PzH2000', icon: '💣', type: 'artillery', fireRate: 5, image: '../../img/card_img/tank/pzh2000.png', ammo: [{name: '火炮高爆弹', count: 1, ammoId: 'ammo_5', splashRadius: 25}] },
+            { id: 'vehicle_9', name: 'PLZ-05', icon: '💣', type: 'artillery', fireRate: 5, image: '../../img/card_img/tank/plz05.png', ammo: [{name: '火炮高爆弹', count: 1, ammoId: 'ammo_5', splashRadius: 25}] },
+            { id: 'vehicle_10', name: 'EF2000', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/ef2000.png', ammo: [{name: 'SPACE250', count: 8, ammoId: 'ammo_6'}] },
+            { id: 'vehicle_11', name: 'F-15E', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/f15e.png', ammo: [{name: 'GBU-39', count: 15, ammoId: 'ammo_7'}, {name: '小牛导弹', count: 6, ammoId: 'ammo_8', reloadTime: 2.5}] },
+            { id: 'vehicle_12', name: 'Su-30SM', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/su30sm.png', ammo: [{name: 'KH-29', count: 6, ammoId: 'ammo_9', reloadTime: 2.5}] },
+            { id: 'vehicle_13', name: 'J-15T', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/j15t.png', ammo: [{name: '雷石导弹', count: 8, ammoId: 'ammo_10'}] },
+            { id: 'vehicle_14', name: 'J-11B', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/j11b.png', ammo: [{name: 'KH-29', count: 4, ammoId: 'ammo_9', reloadTime: 2.5}, {name: '雷石导弹', count: 4, ammoId: 'ammo_10'}] },
+            { id: 'vehicle_15', name: 'J-10C', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/j10c.png', ammo: [{name: '雷石导弹', count: 12, ammoId: 'ammo_10'}] },
+            { id: 'vehicle_16', name: 'JAS-39C', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/jas39c.png', ammo: [{name: '小牛导弹', count: 6, ammoId: 'ammo_8'}] },
+            { id: 'vehicle_17', name: '阵风', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/rafale.png', ammo: [{name: '铁锤导弹', count: 6, ammoId: 'ammo_11'}] },
+            { id: 'vehicle_18', name: 'F-16I', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/f16i.png', ammo: [{name: 'SPACE250', count: 12, ammoId: 'ammo_6'}] },
+            { id: 'vehicle_19', name: 'A-10C', icon: '✈️', type: 'plane', cooldown: 60, image: '../../img/card_img/plant/a10c.png', ammo: [{name: 'GBU-39', count: 24, ammoId: 'ammo_7'}, {name: '小牛导弹', count: 6, ammoId: 'ammo_8', reloadTime: 2.5}] },
+            { id: 'vehicle_20', name: 'AC-130', icon: '✈️', type: 'plane', cooldown: 120, image: '../../img/card_img/plant/ac130.png', ammo: [{name: '130专供包', count: Infinity, ammoId: 'ammo_12'}] }
+        ];
+        
+        function updateVehiclePanel() {
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const teamVehicles = (teamSettings.vehicles || []).filter(function(id) { return id && id.trim() !== ''; });
+            const slots = document.querySelectorAll('.vehicle-slot');
+            
+            for (var i = 0; i < 5; i++) {
+                var slot = slots[i];
+                if (!slot) continue;
+                var vehicleId = teamVehicles[i];
+                
+                if (vehicleId) {
+                    var vehicle = vehicleData.find(function(v) { return v.id === vehicleId; });
+                    if (vehicle) {
+                        slot.classList.remove('empty');
+                        slot.classList.add('filled');
+                        // 判断是否有图片路径（坦克和火炮）
+                        if (vehicle.image) {
+                            slot.querySelector('.vehicle-slot-img').innerHTML = '<img src="' + vehicle.image + '" alt="' + vehicle.name + '" style="width:100%;height:100%;object-fit:cover;border-radius:4px;">';
+                        } else {
+                            slot.querySelector('.vehicle-slot-img').textContent = vehicle.icon;
+                        }
+                        slot.querySelector('.vehicle-slot-name').textContent = vehicle.name;
+                    } else {
+                        slot.classList.add('empty');
+                        slot.classList.remove('filled');
+                        slot.querySelector('.vehicle-slot-img').textContent = 'not';
+                        slot.querySelector('.vehicle-slot-name').textContent = 'not';
+                    }
+                } else {
+                    slot.classList.add('empty');
+                    slot.classList.remove('filled');
+                    slot.querySelector('.vehicle-slot-img').textContent = 'not';
+                    slot.querySelector('.vehicle-slot-name').textContent = 'not';
+                }
+            }
+        }
+
+        updateVehiclePanel();
+
+        let vehicleLastShotTime = {}; // 记录每个载具上次射击时间
+        
+        // 开始载具自动攻击
+        let vehicleAutoAttack = {}; // {vehicleId: {isActive, lastAutoShot, firstShotFired}} 
+        
+        // 开始载具自动攻击
+        function startVehicleAutoAttack(vehicleId) {
+            if (!vehicleAutoAttack[vehicleId]) {
+                vehicleAutoAttack[vehicleId] = { isActive: true, lastAutoShot: 0, firstShotFired: false };
+            } else {
+                vehicleAutoAttack[vehicleId].isActive = true;
+                vehicleAutoAttack[vehicleId].firstShotFired = false; // 重置第一发状态
+            }
+        }
+        
+        // 停止载具自动攻击
+        function stopVehicleAutoAttack(vehicleId) {
+            if (vehicleAutoAttack[vehicleId]) {
+                vehicleAutoAttack[vehicleId].isActive = false;
+            }
+        }
+        
+        // 更新载具冷却圆环显示
+        function updateVehicleCooldownDisplay() {
+            const slots = document.querySelectorAll('.vehicle-slot');
+            slots.forEach((slot, index) => {
+                const canvas = slot.querySelector('.vehicle-cooldown-canvas');
+                if (!canvas) return;
+                
+                const ctx = canvas.getContext('2d');
+                // 清空画布
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // 检查是否有载具且正在冷却
+                const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+                const teamVehicles = (teamSettings.vehicles || []).filter(function(id) { return id && id.trim() !== ''; });
+                const vehicleId = teamVehicles[index];
+                
+                if (!vehicleId) return;
+                
+                const vehicle = vehicleData.find(function(v) { return v.id === vehicleId; });
+                if (!vehicle) return;
+                
+                // 检查冷却状态
+                const autoAttack = vehicleAutoAttack[vehicleId];
+                if (!autoAttack || !autoAttack.isActive) return;
+                
+                const nowSec = performance.now() / 1000;
+                const fireRate = vehicle.fireRate || 1;
+                const elapsed = nowSec - autoAttack.lastAutoShot;
+                const remaining = Math.max(0, fireRate - elapsed);
+                const progress = 1 - (remaining / fireRate);
+                
+                if (progress >= 1) return; // 冷却完成
+                
+                // 绘制冷却圆环
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const radius = Math.min(canvas.width, canvas.height) / 2 - 2;
+                
+                // 绘制背景圆环（半透明）
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)';
+                ctx.lineWidth = 4;
+                ctx.stroke();
+                
+                // 绘制冷却进度圆环
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - progress));
+                ctx.strokeStyle = '#ff6b6b';
+                ctx.lineWidth = 4;
+                ctx.lineCap = 'round';
+                ctx.stroke();
+                
+                // 显示剩余时间
+                ctx.fillStyle = '#fff';
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(Math.ceil(remaining) + 's', centerX, centerY);
+            });
+        }
+        
+        // 处理停止载具攻击（按钮和快捷键通用）
+        function handleStopVehicleAttack() {
+            if (!currentSelectedVehicle) {
+                createFloatingText('请先选择载具!', player.x, player.y - 30, '#ff8866', 14);
+                return;
+            }
+            
+            const vehicleId = currentSelectedVehicle.id;
+            const autoAttack = vehicleAutoAttack[vehicleId];
+            
+            if (autoAttack && autoAttack.isActive) {
+                stopVehicleAutoAttack(vehicleId);
+                setVehicleTarget(vehicleId, null); // 清除瞄准目标
+                createFloatingText('已停止载具攻击', player.x, player.y - 30, '#ff8866', 14);
+            } else {
+                createFloatingText('载具未在攻击中', player.x, player.y - 30, '#aaaaaa', 14);
+            }
+        }
+        
+        // 更新载具自动攻击
+        function updateVehicleAutoAttack(nowSec) {
+            if (!currentSelectedVehicle) return;
+            const vehicleId = currentSelectedVehicle.id;
+            const autoAttack = vehicleAutoAttack[vehicleId];
+            if (!autoAttack || !autoAttack.isActive) return;
+            
+            // 检查载具是否可以攻击
+            if (!canFire()) return;
+            
+            // 获取载具的冷却时间（fireRate就是冷却时间，单位秒）
+            let fireInterval = getFireRate();
+            if (currentSelectedVehicle.type === 'plane') return; // 战机使用特殊的攻击系统
+            
+            // 坦克和火炮：第一发可以立即发射（炮膛里有一发），之后才需要冷却
+            const isTankOrArtillery = currentSelectedVehicle.type === 'tank' || currentSelectedVehicle.type === 'artillery';
+            if (!autoAttack.firstShotFired && isTankOrArtillery) {
+                // 第一发：立即发射
+            } else {
+                // 非第一发或非坦克/火炮：检查冷却时间
+                if (nowSec - autoAttack.lastAutoShot < fireInterval) return;
+            }
+            
+            if (monsters.length === 0) return;
+            
+            // 确保有目标（随机选择）
+            const target = ensureVehicleHasTarget(vehicleId);
+            if (!target) return;
+            
+            // 检查弹药是否足够
+            if (!consumeAmmo()) {
+                stopVehicleAutoAttack(vehicleId);
+                return;
+            }
+            
+            // 射击
+            autoAttack.lastAutoShot = nowSec;
+            autoAttack.firstShotFired = true; // 标记第一发已发射
+            vehicleLastShotTime[vehicleId] = nowSec;
+            
+            // 获取弹药效果
+            const state = vehicleAmmoState[currentSelectedVehicle.id];
+            const ammoIdx = state ? state.selectedAmmoIndex : 0;
+            const ammoConfig = currentSelectedVehicle.ammo[ammoIdx];
+            let bulletEffect = ammoConfig ? ammoConfig.effect : null;
+            // 优先使用弹药中定义的damage值，否则使用默认值
+            let damage = ammoConfig && ammoConfig.damage ? ammoConfig.damage : bulletDamage;
+            
+            // 根据弹药类型设置伤害值
+            if (ammoConfig) {
+                if (ammoConfig.name.includes('高爆弹')) {
+                    // 火炮高爆弹100血，其他高爆弹50血
+                    if (currentSelectedVehicle.type === 'artillery' || ammoConfig.name.includes('火炮')) {
+                        damage = 100;
+                    } else {
+                        damage = 50;
+                    }
+                } else if (ammoConfig.name.includes('钢针弹') || ammoConfig.name.includes('APFSDS')) {
+                    damage = 25;
+                } else if (ammoConfig.name.includes('导弹')) {
+                    damage = 75;
+                } else if (ammoConfig.name.includes('破甲弹') || ammoConfig.name.includes('HEAT')) {
+                    damage = 75;
+                    bulletEffect = 'armorPenetration'; // 标记为破甲弹
+                }
+            }
+            
+            // 检查是否是秒杀弹药且不是boss
+            const isInstantKill = (ammoConfig && (
+                ammoConfig.name.includes('火炮高爆弹') || 
+                ammoConfig.name.includes('导弹') || 
+                ammoConfig.name.includes('破甲弹') ||
+                ammoConfig.name.includes('KH-29') ||
+                ammoConfig.name.includes('雷石') ||
+                ammoConfig.name.includes('GBU-39') ||
+                ammoConfig.name.includes('小牛') ||
+                ammoConfig.name.includes('铁锤') ||
+                ammoConfig.name.includes('SPACE250')
+            )) && !target.isBoss;
+            
+            // 检查是否有范围伤害（splashRadius）
+            const splashRadius = ammoConfig && ammoConfig.splashRadius ? ammoConfig.splashRadius : 0;
+            
+            // 即时造成伤害
+            if (isInstantKill) {
+                target.hp = 0;
+                createFloatingText('💥秒杀!', target.x, target.y - 20, '#ff4444', 16);
+                // 秒杀时记录目标最大血量作为伤害
+                trackDamage(target.maxHp || damage);
+                
+                // 范围伤害处理（秒杀弹药也有范围效果）
+                if (splashRadius > 0) {
+                    applySplashDamage(target.x, target.y, splashRadius, damage, target, vehicleId);
+                }
+            } else {
+                // 破甲弹对重甲目标造成额外伤害
+                let finalDamage = damage;
+                if (bulletEffect === 'armorPenetration' && target.isHeavyArmor) {
+                    finalDamage = 175;
+                }
+                target.hp -= finalDamage;
+                trackDamage(finalDamage);
+                createFloatingText('-' + finalDamage, target.x, target.y - 15, '#ff6666', 14);
+                
+                // 范围伤害处理
+                if (splashRadius > 0) {
+                    applySplashDamage(target.x, target.y, splashRadius, damage, target, vehicleId);
+                }
+            }
+            
+            // 应用眩晕效果
+            if (bulletEffect === 'stun' && !target.isBoss) {
+                target.stunnedUntil = nowSec + 5; // 眩晕5秒
+            }
+            
+            // 检查是否击杀
+            if (target.hp <= 0) {
+                // 载具击杀效果
+                vehicleKillCount = (vehicleKillCount || 0) + 1;
+                createFloatingText('🎯' + currentSelectedVehicle.name + '击杀!', target.x, target.y - 25, '#50d2a0', 14);
+                createFloatingText('+' + Math.floor(10 + entropyLevel * 1.5) + ' 积分', target.x, target.y - 10, '#ffee88', 12);
+                
+                // 找到目标索引并击杀
+                const idx = monsters.indexOf(target);
+                if (idx !== -1) {
+                    killMonster(idx, false);
+                }
+                
+                // 立即选择新目标（用于小地图显示）
+                if (monsters.length > 0) {
+                    const newTarget = selectRandomTarget();
+                    setVehicleTarget(vehicleId, newTarget);
+                } else {
+                    setVehicleTarget(vehicleId, null);
+                }
+            }
+            
+            // 创建击中特效
+            createExplosion(target.x, target.y, "#ffaa55", 8, 1.5);
+            
+            // 创建范围伤害特效
+            if (splashRadius > 0) {
+                // 范围伤害圈特效
+                for (let i = 0; i < 12; i++) {
+                    const angle = (i / 12) * Math.PI * 2;
+                    const px = target.x + Math.cos(angle) * splashRadius;
+                    const py = target.y + Math.sin(angle) * splashRadius;
+                    createExplosion(px, py, "#ff4400", 3, 1);
+                }
+            }
+            
+            // 开始冷却（使用载具的fireRate作为冷却时间）
+            startReload(fireInterval);
+        }
+        
+        // 范围伤害处理函数
+        function applySplashDamage(centerX, centerY, radius, maxDamage, originalTarget, vehicleId) {
+            for (let i = monsters.length - 1; i >= 0; i--) {
+                const monster = monsters[i];
+                if (monster === originalTarget) continue; // 跳过原始目标
+                
+                const dx = monster.x - centerX;
+                const dy = monster.y - centerY;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance <= radius) {
+                        // 根据距离计算伤害（中心100%，边缘50%）
+                        const damageRatio = 1 - (distance / radius) * 0.5;
+                        const splashDamage = Math.floor(maxDamage * damageRatio);
+                        
+                        monster.hp -= splashDamage;
+                        trackDamage(splashDamage);
+                        createFloatingText('-' + splashDamage, monster.x, monster.y - 15, '#ffaa00', 12);
+                    
+                    // 检查是否击杀
+                    if (monster.hp <= 0) {
+                        vehicleKillCount = (vehicleKillCount || 0) + 1;
+                        createFloatingText('🎯' + (currentSelectedVehicle ? currentSelectedVehicle.name : '载具') + '击杀!', monster.x, monster.y - 25, '#50d2a0', 14);
+                        createFloatingText('+' + Math.floor(10 + entropyLevel * 1.5) + ' 积分', monster.x, monster.y - 10, '#ffee88', 12);
+                        killMonster(i, false);
+                    }
+                }
+            }
+        }
+        
+        // 随机选择一个怪物作为目标（整个地图范围）
+        function selectRandomTarget() {
+            if (monsters.length === 0) return null;
+            const randomIndex = Math.floor(Math.random() * monsters.length);
+            return monsters[randomIndex];
+        }
+        
+        // 为载具设置瞄准目标
+        function setVehicleTarget(vehicleId, target) {
+            if (!target) {
+                delete vehicleTargets[vehicleId];
+            } else {
+                vehicleTargets[vehicleId] = target;
+            }
+        }
+        
+        // 获取载具的当前瞄准目标
+        function getVehicleTarget(vehicleId) {
+            const target = vehicleTargets[vehicleId];
+            // 检查目标是否还存在
+            if (target && !monsters.includes(target)) {
+                delete vehicleTargets[vehicleId];
+                return null;
+            }
+            return target;
+        }
+        
+        // 获取玩家的当前瞄准目标
+        function getPlayerTarget() {
+            // 检查目标是否还存在
+            if (playerTarget && !monsters.includes(playerTarget)) {
+                playerTarget = null;
+                return null;
+            }
+            return playerTarget;
+        }
+        
+        // 设置玩家的瞄准目标
+        function setPlayerTarget(target) {
+            playerTarget = target;
+        }
+        
+        // 确保载具拥有一个瞄准目标
+        function ensureVehicleHasTarget(vehicleId) {
+            let target = getVehicleTarget(vehicleId);
+            if (!target && monsters.length > 0) {
+                target = selectRandomTarget();
+                setVehicleTarget(vehicleId, target);
+            }
+            return target;
+        }
+
+        function getAmmoCountFromInventory(ammoId) {
+            if (!ammoId) return Infinity;
+            const ownedItems = JSON.parse(localStorage.getItem('ownedItems')) || {};
+            return ownedItems[ammoId] || 0;
+        }
+
+        function saveAmmoCountToInventory(ammoId, count) {
+            if (!ammoId) return;
+            const ownedItems = JSON.parse(localStorage.getItem('ownedItems')) || {};
+            ownedItems[ammoId] = count;
+            localStorage.setItem('ownedItems', JSON.stringify(ownedItems));
+        }
+
+        function showAmmoDialog(vehicle, slotIndex) {
+            const dialog = document.getElementById('ammoDialog');
+            const title = document.getElementById('ammoDialogTitle');
+            const container = document.getElementById('ammoSlotsContainer');
+            const reloadContainer = document.getElementById('reloadBarContainer');
+            const reloadFill = document.getElementById('reloadBarFill');
+            const cooldownDisplay = document.getElementById('planeCooldownDisplay');
+
+            title.textContent = vehicle.name + ' - 弹药选择';
+
+            if (!vehicleAmmoState[vehicle.id]) {
+                vehicleAmmoState[vehicle.id] = {
+                    selectedAmmoIndex: 0,
+                    ammoCounts: vehicle.ammo.map(function(a) { 
+                        return getAmmoCountFromInventory(a.ammoId);
+                    })
+                };
+            }
+            const state = vehicleAmmoState[vehicle.id];
+
+            // 更新弹药数量为当前仓库中的数量
+            vehicle.ammo.forEach(function(a, idx) {
+                state.ammoCounts[idx] = getAmmoCountFromInventory(a.ammoId);
+            });
+
+            container.innerHTML = '';
+
+            if (vehicle.type === 'plane') {
+                reloadContainer.style.display = 'none';
+                if (isPlaneOnCooldown && planeCooldownDuration > 0) {
+                    cooldownDisplay.style.display = 'block';
+                    updatePlaneCooldownDisplay();
+                } else {
+                    cooldownDisplay.style.display = 'none';
+                }
+            } else {
+                cooldownDisplay.style.display = 'none';
+                if (isReloading && reloadDuration > 0) {
+                    reloadContainer.style.display = 'block';
+                    updateReloadBar();
+                } else {
+                    reloadContainer.style.display = 'none';
+                }
+            }
+
+            vehicle.ammo.forEach(function(ammo, idx) {
+                const count = state.ammoCounts[idx];
+                // 只显示仓库中有数量的弹药（数量 > 0 或无限）
+                if (count !== Infinity && count <= 0) {
+                    return;
+                }
+
+                const slot = document.createElement('div');
+                slot.className = 'ammo-slot';
+                if (idx === state.selectedAmmoIndex) {
+                    slot.classList.add('selected');
+                }
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'ammo-name';
+                // 钢针类弹药简化显示为"钢针弹"
+                const displayName = ammo.name.includes('钢针') ? '钢针弹' : ammo.name;
+                nameSpan.textContent = displayName;
+
+                const countSpan = document.createElement('span');
+                countSpan.className = 'ammo-count';
+                if (count === Infinity) {
+                    countSpan.textContent = '∞';
+                } else {
+                    countSpan.textContent = 'x' + count;
+                }
+
+                slot.appendChild(nameSpan);
+                slot.appendChild(countSpan);
+
+                slot.addEventListener('click', function() {
+                    if (count <= 0 && state.ammoCounts[idx] <= 0) return;
+                    state.selectedAmmoIndex = idx;
+                    currentSelectedAmmoIndex = idx;
+                    updateAmmoDialogDisplay();
+                    createFloatingText('已选择: ' + ammo.name, player.x, player.y - 30, '#88ccff', 16);
+                });
+
+                container.appendChild(slot);
+            });
+
+            dialog.classList.add('visible');
+        }
+
+        function updateAmmoDialogDisplay() {
+            if (!currentSelectedVehicle) return;
+            const state = vehicleAmmoState[currentSelectedVehicle.id];
+            // 更新弹药数量为当前仓库中的数量
+            currentSelectedVehicle.ammo.forEach(function(a, idx) {
+                state.ammoCounts[idx] = getAmmoCountFromInventory(a.ammoId);
+            });
+            const slots = document.querySelectorAll('.ammo-slot');
+            slots.forEach(function(slot, idx) {
+                slot.classList.remove('selected');
+                const count = state.ammoCounts[idx];
+                if (idx === state.selectedAmmoIndex) {
+                    slot.classList.add('selected');
+                }
+                if (count <= 0) {
+                    slot.classList.add('disabled');
+                } else {
+                    slot.classList.remove('disabled');
+                }
+                const countSpan = slot.querySelector('.ammo-count');
+                if (countSpan) {
+                    countSpan.textContent = count === Infinity ? '∞' : 'x' + count;
+                }
+            });
+        }
+
+        function updateReloadBar() {
+            if (!isReloading || reloadDuration <= 0) return;
+            const elapsed = (performance.now() / 1000) - reloadStartTime;
+            const progress = Math.min(100, (elapsed / reloadDuration) * 100);
+            const fill = document.getElementById('reloadBarFill');
+            if (fill) {
+                fill.style.width = progress + '%';
+            }
+            if (elapsed >= reloadDuration) {
+                isReloading = false;
+                document.getElementById('reloadBarContainer').style.display = 'none';
+            }
+        }
+
+        function updatePlaneCooldownDisplay() {
+            if (!isPlaneOnCooldown || planeCooldownDuration <= 0) return;
+            const elapsed = (performance.now() / 1000) - planeCooldownStart;
+            const remaining = Math.max(0, planeCooldownDuration - elapsed);
+            const progress = Math.min(100, (elapsed / planeCooldownDuration) * 100);
+            
+            const fill = document.getElementById('cooldownBarFill');
+            const remainingText = document.getElementById('cooldownRemaining');
+            
+            if (fill) {
+                fill.style.width = progress + '%';
+            }
+            if (remainingText) {
+                remainingText.textContent = '剩余: ' + Math.ceil(remaining) + 's';
+            }
+            if (remaining <= 0) {
+                isPlaneOnCooldown = false;
+                document.getElementById('planeCooldownDisplay').style.display = 'none';
+            }
+        }
+
+        function closeAmmoDialog() {
+            const dialog = document.getElementById('ammoDialog');
+            dialog.classList.remove('visible');
+        }
+
+        document.getElementById('closeAmmoDialog').addEventListener('click', closeAmmoDialog);
+
+        document.getElementById('cancelGameStart').addEventListener('click', function() {
+            hideAmmoCheckDialog();
+        });
+
+        document.getElementById('continueGameStart').addEventListener('click', function() {
+            hideAmmoCheckDialog();
+            proceedToGame();
+        });
+
+        document.addEventListener('click', function(e) {
+            const dialog = document.getElementById('ammoDialog');
+            const vehiclePanel = document.getElementById('vehiclePanel');
+            if (dialog.classList.contains('visible') &&
+                !dialog.contains(e.target) &&
+                !vehiclePanel.contains(e.target)) {
+                closeAmmoDialog();
+            }
+        });
+
+        let lastSelectedVehicleIndex = -1;
+
+        function selectVehicle(index) {
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const teamVehicles = (teamSettings.vehicles || []).filter(function(id) { return id && id.trim() !== ''; });
+            const vehicleId = teamVehicles[index];
+            if (!vehicleId) return;
+
+            const vehicle = vehicleData.find(function(v) { return v.id === vehicleId; });
+            if (!vehicle) return;
+
+            const slots = document.querySelectorAll('.vehicle-slot');
+            slots.forEach(function(s, i) {
+                if (i === index) {
+                    s.style.borderColor = '#ffdd77';
+                    s.style.boxShadow = '0 0 15px rgba(255, 220, 120, 0.5)';
+                } else {
+                    s.style.borderColor = '';
+                    s.style.boxShadow = '';
+                }
+            });
+
+            if (lastSelectedVehicleIndex === index) {
+                closeAmmoDialog();
+                lastSelectedVehicleIndex = -1;
+                return;
+            }
+
+            lastSelectedVehicleIndex = index;
+            currentSelectedVehicle = vehicle;
+            
+            // 初始化载具弹药状态，默认选择第一个弹药
+            if (!vehicleAmmoState[vehicle.id]) {
+                vehicleAmmoState[vehicle.id] = {
+                    selectedAmmoIndex: 0, // 默认选择第一个弹药
+                    ammoCounts: vehicle.ammo.map(function(a) { 
+                        return getAmmoCountFromInventory(a.ammoId);
+                    })
+                };
+            }
+            
+            currentSelectedAmmoIndex = vehicleAmmoState[vehicle.id].selectedAmmoIndex;
+            createFloatingText('已选择: ' + vehicle.name, player.x, player.y - 30, '#ffdd77', 18);
+
+            if (vehicle.type === 'plane') {
+                if (isPlaneOnCooldown) {
+                    createFloatingText('战机冷却中: ' + Math.ceil(planeCooldownDuration - (performance.now() / 1000 - planeCooldownStart)) + 's', player.x, player.y - 60, '#ff8866', 14);
+                }
+            }
+
+            showAmmoDialog(vehicle, index);
+        }
+
+        function selectAmmo(index) {
+            if (!currentSelectedVehicle) return;
+            const state = vehicleAmmoState[currentSelectedVehicle.id];
+            if (!state) return;
+            const count = state.ammoCounts[index];
+            if (count <= 0) {
+                createFloatingText('弹药不足!', player.x, player.y - 30, '#ff4444', 16);
+                return;
+            }
+            state.selectedAmmoIndex = index;
+            currentSelectedAmmoIndex = index;
+            updateAmmoDialogDisplay();
+            const ammoName = currentSelectedVehicle.ammo[index] ? currentSelectedVehicle.ammo[index].name : '未知';
+            createFloatingText('弹药: ' + ammoName, player.x, player.y - 30, '#88ccff', 16);
+        }
+
+        function consumeAmmo() {
+            if (!currentSelectedVehicle) return true;
+            const state = vehicleAmmoState[currentSelectedVehicle.id];
+            if (!state) return true;
+            const count = state.ammoCounts[state.selectedAmmoIndex];
+            if (count <= 0) return false;
+
+            // 每次只消耗1发弹药
+            const consumeAmount = 1;
+
+            if (count !== Infinity) {
+                // 检查是否有足够的弹药
+                if (count < consumeAmount) {
+                    createFloatingText('弹药不足!', player.x, player.y - 30, '#ff4444', 16);
+                    return false;
+                }
+                
+                state.ammoCounts[state.selectedAmmoIndex] -= consumeAmount;
+                // 同步更新仓库中的弹药数量
+                const ammoConfig = currentSelectedVehicle.ammo[state.selectedAmmoIndex];
+                if (ammoConfig && ammoConfig.ammoId) {
+                    // 追踪弹药使用
+                    trackAmmoUsage(ammoConfig.ammoId, ammoConfig.name, consumeAmount);
+                    saveAmmoCountToInventory(ammoConfig.ammoId, state.ammoCounts[state.selectedAmmoIndex]);
+                }
+                // 检查是否耗尽
+                if (state.ammoCounts[state.selectedAmmoIndex] === 0) {
+                    const ammoName = ammoConfig ? ammoConfig.name : '未知';
+                    showAmmoEmptyNotification(currentSelectedVehicle.name, ammoName);
+                }
+            }
+
+            updateAmmoDialogDisplay();
+            return true;
+        }
+
+        function startReload(duration) {
+            reloadStartTime = performance.now() / 1000;
+            reloadDuration = duration;
+            isReloading = true;
+            const container = document.getElementById('reloadBarContainer');
+            const fill = document.getElementById('reloadBarFill');
+            container.style.display = 'block';
+            fill.style.width = '0%';
+        }
+
+        function startPlaneCooldown(duration) {
+            planeCooldownStart = performance.now() / 1000;
+            planeCooldownDuration = duration;
+            isPlaneOnCooldown = true;
+            const display = document.getElementById('planeCooldownDisplay');
+            display.style.display = 'block';
+            updatePlaneCooldownDisplay();
+        }
+
+        function canFire() {
+            if (!currentSelectedVehicle) return true;
+            if (currentSelectedVehicle.type === 'plane') {
+                return !isPlaneOnCooldown;
+            }
+            if (isReloading) return false;
+            const state = vehicleAmmoState[currentSelectedVehicle.id];
+            if (!state) return true;
+            return state.ammoCounts[state.selectedAmmoIndex] > 0;
+        }
+
+        function getFireRate() {
+            if (!currentSelectedVehicle) return 5;
+            return currentSelectedVehicle.fireRate || 5;
+        }
+
+        function getAmmoReloadTime(ammoIdx) {
+            if (!currentSelectedVehicle) return 5;
+            const ammo = currentSelectedVehicle.ammo[ammoIdx];
+            if (!ammo) return 5;
+            return ammo.reloadTime || currentSelectedVehicle.fireRate || 5;
+        }
+
+        function shootOnce() {
+            if (!gameActive || liuyingClearing) return;
+            if (!canFire()) {
+                if (isReloading) createFloatingText('装填中...', player.x, player.y - 30, '#ff8866', 14);
+                else if (isPlaneOnCooldown) createFloatingText('战机冷却中', player.x, player.y - 30, '#ff8866', 14);
+                else createFloatingText('弹药不足!', player.x, player.y - 30, '#ff4444', 14);
+                return;
+            }
+            mouseDown = true;
+            var nowSec = performance.now() / 1000;
+
+            if (currentSelectedVehicle && currentSelectedVehicle.type === 'plane') {
+                const state = vehicleAmmoState[currentSelectedVehicle.id];
+                const ammoIdx = state ? state.selectedAmmoIndex : 0;
+                const ammoConfig = currentSelectedVehicle.ammo[ammoIdx];
+                const totalShots = ammoConfig ? (ammoConfig.count || 1) : 1;
+                
+                // 战机一次性消耗所有弹药
+                const ammoId = ammoConfig.ammoId;
+                const currentAmmoCount = ammoId ? getAmmoCountFromInventory(ammoId) : Infinity;
+                
+                if (currentAmmoCount < totalShots && currentAmmoCount !== Infinity) {
+                    createFloatingText('弹药不足! 需要' + totalShots + '发', player.x, player.y - 30, '#ff4444', 14);
+                    mouseDown = false;
+                    return;
+                }
+                
+                // 消耗所有弹药
+                if (ammoId && currentAmmoCount !== Infinity) {
+                    saveAmmoCountToInventory(ammoId, currentAmmoCount - totalShots);
+                }
+                
+                startPlaneCooldown(currentSelectedVehicle.cooldown || 60);
+                createFloatingText('战机出击! 挂载x' + totalShots, player.x, player.y - 30, '#ffaa66', 18);
+                
+                // 创建战机攻击任务
+                const targets = [];
+                // 为每发弹药选择一个目标（可以重复选择）
+                for (let i = 0; i < totalShots; i++) {
+                    const target = selectRandomTarget();
+                    if (target) {
+                        targets.push(target);
+                    }
+                }
+                // 如果没有足够的目标，用重复的目标填充
+                while (targets.length < totalShots && monsters.length > 0) {
+                    const target = selectRandomTarget();
+                    if (target) {
+                        targets.push(target);
+                    }
+                }
+                
+                activePlaneStrikes.push({
+                    vehicleId: currentSelectedVehicle.id,
+                    ammoConfig: ammoConfig,
+                    remainingShots: totalShots,
+                    targets: targets,
+                    currentTargetIndex: 0,
+                    lastShotTime: nowSec,
+                    shotInterval: 0.3 // 每0.3秒发射一发
+                });
+                
+                // 为战机设置第一个瞄准目标
+                if (targets.length > 0) {
+                    setVehicleTarget(currentSelectedVehicle.id, targets[0]);
+                }
+                
+                mouseDown = false;
+                return;
+            }
+
+            // 坦克/火炮：切换自动攻击状态
+            if (currentSelectedVehicle && (currentSelectedVehicle.type === 'tank' || currentSelectedVehicle.type === 'artillery')) {
+                const vehicleId = currentSelectedVehicle.id;
+                const autoAttack = vehicleAutoAttack[vehicleId];
+                
+                if (autoAttack && autoAttack.isActive) {
+                    // 停止自动攻击
+                    stopVehicleAutoAttack(vehicleId);
+                    createFloatingText('停止自动攻击', player.x, player.y - 30, '#ffaa66', 14);
+                } else {
+                    // 开始自动攻击
+                    startVehicleAutoAttack(vehicleId);
+                    createFloatingText('开始自动攻击!', player.x, player.y - 30, '#50d2a0', 14);
+                }
+                
+                mouseDown = false;
+                return;
+            }
+
+            if (currentSelectedVehicle && currentSelectedVehicle.type === 'tank') {
+                const ammoIdx = vehicleAmmoState[currentSelectedVehicle.id] ? vehicleAmmoState[currentSelectedVehicle.id].selectedAmmoIndex : 0;
+                if (currentSelectedVehicle.id === 'vehicle_6' && ammoIdx === 1) {
+                    missileShotCount++;
+                    if (missileShotCount >= 2) {
+                        missileShotCount = 0;
+                        startReload(missileReloadDuration);
+                        createFloatingText('导弹装填中...', player.x, player.y - 30, '#ff8866', 14);
+                    } else {
+                        startReload(getAmmoReloadTime(ammoIdx));
+                    }
+                } else {
+                    startReload(getFireRate());
+                }
+            }
+
+            shootAuto(nowSec);
+            setTimeout(function() { mouseDown = false; }, 100);
+        }
+        
+        // 更新正在进行的战机攻击
+        function updatePlaneStrikes(nowSec) {
+            for (let i = activePlaneStrikes.length - 1; i >= 0; i--) {
+                const strike = activePlaneStrikes[i];
+                
+                // 检查是否需要发射下一发
+                if (strike.remainingShots > 0 && 
+                    nowSec - strike.lastShotTime >= strike.shotInterval &&
+                    monsters.length > 0) {
+                    
+                    // 获取当前目标
+                    let target = strike.targets[strike.currentTargetIndex];
+                    // 如果目标已死亡，选择新目标
+                    if (!target || !monsters.includes(target)) {
+                        target = selectRandomTarget();
+                        strike.targets[strike.currentTargetIndex] = target;
+                    }
+                    
+                    if (target) {
+                            // 更新瞄准目标
+                            setVehicleTarget(strike.vehicleId, target);
+                            
+                            // 检查是否是秒杀弹药且不是boss
+                            const isInstantKill = (strike.ammoConfig && (
+                                strike.ammoConfig.name.includes('KH-29') ||
+                                strike.ammoConfig.name.includes('雷石') ||
+                                strike.ammoConfig.name.includes('GBU-39') ||
+                                strike.ammoConfig.name.includes('小牛') ||
+                                strike.ammoConfig.name.includes('铁锤') ||
+                                strike.ammoConfig.name.includes('SPACE250')
+                            )) && !target.isBoss;
+                            
+                            // 即时造成伤害
+                            if (isInstantKill) {
+                                target.hp = 0;
+                                createFloatingText('💥秒杀!', target.x, target.y - 20, '#ff4444', 16);
+                            } else {
+                                target.hp -= bulletDamage;
+                                createFloatingText('-' + bulletDamage, target.x, target.y - 15, '#ff6666', 14);
+                            }
+                            
+                            // 检查是否击杀
+                            if (target.hp <= 0) {
+                                // 载具击杀效果
+                                vehicleKillCount = (vehicleKillCount || 0) + 1;
+                                createFloatingText('🎯战机击杀!', target.x, target.y - 25, '#50d2a0', 14);
+                                createFloatingText('+' + Math.floor(10 + entropyLevel * 1.5) + ' 积分', target.x, target.y - 10, '#ffee88', 12);
+                                
+                                // 找到目标索引并击杀
+                                const idx = monsters.indexOf(target);
+                                if (idx !== -1) {
+                                    killMonster(idx, false);
+                                }
+                            }
+                            
+                            // 创建击中特效
+                            createExplosion(target.x, target.y, "#ffaa55", 8, 1.5);
+                            
+                            strike.remainingShots--;
+                            strike.currentTargetIndex++;
+                            strike.lastShotTime = nowSec;
+                        }
+                }
+                
+                // 如果攻击完成，移除该任务
+                if (strike.remainingShots <= 0) {
+                    delete vehicleTargets[strike.vehicleId];
+                    activePlaneStrikes.splice(i, 1);
+                }
+            }
+        }
+
+        // ---------- 道具系统 ----------
+        const itemData = {
+            'item_2': {
+                name: '双倍金币卡',
+                icon: '../../img/key/item_coins_double.png',
+                iconType: 'image',
+                fallbackIcon: 'coins',
+                description: '一局游戏金币翻倍',
+                duration: 0, // 0表示持续到游戏结束
+                type: 'currency',
+                multiplier: 2
+            },
+            'item_3': {
+                name: '经验药水',
+                icon: '../../img/key/item_exp.png',
+                iconType: 'image',
+                fallbackIcon: 'flask',
+                description: '获得额外50%经验',
+                duration: 0, // 0表示持续到游戏结束
+                type: 'exp',
+                multiplier: 1.5
+            },
+            'item_4': {
+                name: '四倍货币卡',
+                icon: '../../img/key/item_coins_quad.png',
+                iconType: 'image',
+                fallbackIcon: 'coins',
+                description: '一局游戏金币翻四倍',
+                duration: 0, // 0表示持续到游戏结束
+                type: 'currency',
+                multiplier: 4
+            },
+            'item_5': {
+                name: '难度保持卡(1分钟)',
+                icon: '../../img/key/item_clock_1.png',
+                iconType: 'image',
+                fallbackIcon: 'clock',
+                description: '一分钟内难度不增加',
+                duration: 60,
+                type: 'difficulty_keep'
+            },
+            'item_6': {
+                name: '难度保持卡(3分钟)',
+                icon: '../../img/key/item_clock_3.png',
+                iconType: 'image',
+                fallbackIcon: 'clock',
+                description: '三分钟内难度不增加',
+                duration: 180,
+                type: 'difficulty_keep'
+            },
+            'item_7': {
+                name: '难度保持卡(5分钟)',
+                icon: '../../img/key/item_clock_5.png',
+                iconType: 'image',
+                fallbackIcon: 'clock',
+                description: '五分钟内难度不增加',
+                duration: 300,
+                type: 'difficulty_keep'
+            },
+            'item_8': {
+                name: '难度保持卡(10分钟)',
+                icon: '../../img/key/item_clock_10.png',
+                iconType: 'image',
+                fallbackIcon: 'clock',
+                description: '十分钟内难度不增加',
+                duration: 600,
+                type: 'difficulty_keep'
+            },
+            'item_9': {
+                name: '经验加成卡(10%)',
+                icon: '../../img/key/item_exp_10.png',
+                iconType: 'image',
+                fallbackIcon: 'flask',
+                description: '获得额外10%经验',
+                duration: 0,
+                type: 'exp',
+                multiplier: 1.1
+            },
+            'item_10': {
+                name: '经验加成卡(20%)',
+                icon: '../../img/key/item_exp_20.png',
+                iconType: 'image',
+                fallbackIcon: 'flask',
+                description: '获得额外20%经验',
+                duration: 0,
+                type: 'exp',
+                multiplier: 1.2
+            },
+            'item_11': {
+                name: '经验加成卡(50%)',
+                icon: '../../img/key/item_exp_50.png',
+                iconType: 'image',
+                fallbackIcon: 'flask',
+                description: '获得额外50%经验',
+                duration: 0,
+                type: 'exp',
+                multiplier: 1.5
+            },
+            'item_12': {
+                name: '经验加成卡(100%)',
+                icon: '../../img/key/item_exp_100.png',
+                iconType: 'image',
+                fallbackIcon: 'flask',
+                description: '获得额外100%经验',
+                duration: 0,
+                type: 'exp',
+                multiplier: 2.0
+            }
+        };
+
+        let activeItems = {};
+        let itemDurations = {};
+
+        function loadOwnedItems() {
+            const ownedItems = JSON.parse(localStorage.getItem('ownedItems')) || {};
+            const container = document.getElementById('itemSlotsContainer');
+            let hasItems = false;
+            
+            let html = '';
+            for (const itemId in itemData) {
+                const count = ownedItems[itemId] || 0;
+                if (count > 0) {
+                    hasItems = true;
+                    const item = itemData[itemId];
+                    const isActive = activeItems[itemId];
+                    const remainingTime = itemDurations[itemId] || 0;
+                    
+                    // 根据icon类型生成icon HTML，图片加载失败时回退到fontawesome
+                    const iconHtml = item.iconType === 'image' 
+                        ? `<img src="${item.icon}" alt="${item.name}" style="width: 28px; height: 28px; object-fit: contain;" onerror="this.onerror=null;this.src='';this.outerHTML='<i class=\\'fas fa-${item.fallbackIcon}\\' style=\\'font-size: 20px;\\'></i>';">`
+                        : `<i class="fas fa-${item.icon}" style="font-size: 20px;"></i>`;
+                    
+                    html += `
+                        <div class="item-slot ${isActive ? 'active' : ''}" data-item-id="${itemId}">
+                            <div class="item-icon">${iconHtml}</div>
+                            <div class="item-info">
+                                <div class="item-name">${item.name}</div>
+                                <div class="item-count">x${count}</div>
+                                ${isActive && item.duration > 0 ? `<div class="item-duration">剩余: ${Math.ceil(remainingTime)}s</div>` : ''}
+                                ${isActive && item.duration === 0 ? `<div class="item-duration" style="color: #50d2a0;">持续生效</div>` : ''}
+                            </div>
+                            <div class="item-description">${item.description}</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            if (!hasItems) {
+                html = '<div class="no-items-message">暂无道具</div>';
+            }
+            
+            container.innerHTML = html;
+            
+            // 添加点击事件 - 道具只能通过鼠标点击使用
+            document.querySelectorAll('.item-slot').forEach(slot => {
+                slot.addEventListener('click', function() {
+                    const itemId = this.getAttribute('data-item-id');
+                    useItem(itemId);
+                });
+            });
+        }
+
+        function useItem(itemId) {
+            if (!gameActive) {
+                createFloatingText('游戏未开始!', canvas.width/2, 100, '#ff4444', 18);
+                return;
+            }
+            
+            if (activeItems[itemId]) {
+                createFloatingText('该道具已在使用中!', canvas.width/2, 100, '#ff8844', 18);
+                return;
+            }
+            
+            const ownedItems = JSON.parse(localStorage.getItem('ownedItems')) || {};
+            if (!ownedItems[itemId] || ownedItems[itemId] <= 0) {
+                createFloatingText('道具不足!', canvas.width/2, 100, '#ff4444', 18);
+                return;
+            }
+            
+            // 检查是否有同类型道具正在使用（同类道具不可叠加使用）
+            const item = itemData[itemId];
+            for (const activeId in activeItems) {
+                if (activeItems[activeId]) {
+                    const activeItem = itemData[activeId];
+                    if (activeItem.type === item.type) {
+                        createFloatingText('同类道具已在生效中!', canvas.width/2, 100, '#ff8844', 18);
+                        return;
+                    }
+                }
+            }
+            
+            // 消耗道具
+            ownedItems[itemId]--;
+            localStorage.setItem('ownedItems', JSON.stringify(ownedItems));
+            
+            // 激活道具效果
+            activeItems[itemId] = true;
+            if (item.duration > 0) {
+                itemDurations[itemId] = item.duration;
+            }
+            
+            // 显示提示
+            const durationText = item.duration === 0 ? '（持续到游戏结束）' : `（${item.duration}秒）`;
+            createFloatingText(`✅ ${item.name} 已激活${durationText}!`, canvas.width/2, 100, '#50d2a0', 20);
+            
+            // 更新显示
+            loadOwnedItems();
+        }
+
+        function updateItemDurations(deltaTime) {
+            for (const itemId in activeItems) {
+                if (activeItems[itemId]) {
+                    const item = itemData[itemId];
+                    // 只有有时间限制的道具才需要更新时间
+                    if (item.duration > 0 && itemDurations[itemId] > 0) {
+                        itemDurations[itemId] -= deltaTime;
+                        if (itemDurations[itemId] <= 0) {
+                            // 道具效果结束
+                            activeItems[itemId] = false;
+                            itemDurations[itemId] = 0;
+                            createFloatingText(`⏰ ${item.name} 效果结束!`, canvas.width/2, 100, '#ffdd77', 18);
+                        }
+                    }
+                }
+            }
+        }
+
+        function getItemMultiplier(itemType) {
+            for (const itemId in activeItems) {
+                if (activeItems[itemId]) {
+                    const item = itemData[itemId];
+                    if (item.type === itemType && item.multiplier) {
+                        return item.multiplier;
+                    }
+                }
+            }
+            return 1;
+        }
+
+        function isDifficultyKept() {
+            for (const itemId in activeItems) {
+                if (activeItems[itemId]) {
+                    const item = itemData[itemId];
+                    if (item.type === 'difficulty_keep') {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 游戏结束时重置道具状态
+        function resetItemState() {
+            activeItems = {};
+            itemDurations = {};
+        }
+
+        // 游戏循环中更新道具
+        function updateItems(nowSec, deltaTime) {
+            if (gameActive && !gamePaused) {
+                updateItemDurations(deltaTime);
+                loadOwnedItems(); // 更新显示
+            }
+        }
+
+        // 将道具系统暴露到全局，供其他游戏使用
+        window.GameItemSystem = {
+            itemData: itemData,
+            activeItems: activeItems,
+            itemDurations: itemDurations,
+            loadOwnedItems: loadOwnedItems,
+            useItem: useItem,
+            getItemMultiplier: getItemMultiplier,
+            isDifficultyKept: isDifficultyKept,
+            resetItemState: resetItemState,
+            updateItems: updateItems
+        };
+
+        requestAnimationFrame(gameLoop);
+
+        function applyPageBackground(pageName) {
+            const pageBackgrounds = JSON.parse(localStorage.getItem('pageBackgrounds')) || {};
+            if (pageBackgrounds[pageName]) {
+                document.body.style.background = `url(${pageBackgrounds[pageName]}) center/cover no-repeat fixed`;
+            } else {
+                document.body.style.background = 'linear-gradient(180deg, #4AB8A0 0%, #000000 100%)';
+            }
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+            applyPageBackground('game');
+        });
+        
+        // 页面关闭/刷新时自动保存游戏数据
+        window.addEventListener('beforeunload', function(e) {
+            // 如果游戏已经开始过，需要保存数据
+            if (gameStarted) {
+                // 保存当前游戏的数据（即使游戏未主动结束）
+                if (gameActive && survivalSeconds > 0) {
+                    saveBattleRecord(true); // 算作主动退出
+                }
+                // 结算所有累积数据
+                settleAccumulatedData();
+            }
+        });
+    })();
+</script>
+</body>
+</html>

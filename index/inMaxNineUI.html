@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title></title>
+		<link rel="icon" href="../img/handHap.png" type="image/png">
+		<link rel="stylesheet" href="../resource/font-awesome.css">
+		<link rel="stylesheet" href="../index/css/ItemAll.css" type="text/css">
+		<!-- 引入win-lo-card组件 -->
+		<script src="js/component/win_lo.js" type="text/javascript"></script>
+		<!-- 引入game-card组件 -->
+		<script src="js/component/GameCard/gamecard.js" type="text/javascript"></script>
+		<!-- 引入成就数据 -->
+		<script src="js/core/configStart.js" type="text/javascript"></script>
+		<!-- 引入xz-wall组件 -->
+		<script src="js/component/GameCard/xz_wall.js" type="text/javascript"></script>
+		<!-- 引入主题脚本 -->
+		<script src="js/core/theme.js" type="text/javascript"></script>
+	</head>
+	<body>
+		<!-- 加载进度条 -->
+		<div id="loader">
+			<div class="loader-container">
+				<div class="loader-bar"></div>
+				<div class="loader-percentage">0%</div>
+				<div class="loader-text">当再次邂逅的那天到来，我想我会假装我们素未谋面，再重新认识你一次，希望那是一个，有流星划过的美丽夜晚</div>
+			</div>
+		</div>
+
+		<!-- 性别选择 -->
+		<div id="sexSelector" style="display: none;">
+			<div class="sexDiv" id="male" onclick="selectSex('male')">
+				<img src="../img/Brsh_S1.png" alt="男" style="width: 60px; height: 60px;">
+				<p style="color: #fff; font-size: 18px; margin-top: 20px;">男</p>
+			</div>
+			<div class="sexDiv" id="female" onclick="selectSex('female')">
+				<img src="../img/Brsh_S1.png" alt="女" style="width: 60px; height: 60px;">
+				<p style="color: #fff; font-size: 18px; margin-top: 20px;">女</p>
+			</div>
+		</div>
+
+		<!-- 主内容 -->
+		<div id="content" style="display: none;">
+			<!-- 导航栏 -->
+			<div class="navBar">
+					<div class="navLeft">
+						<div class="userAvatar" id="userAvatar" onclick="goToSettings()" style="cursor: pointer;">
+							<img src="" alt="用户头像" id="avatarImg">
+							<i class="fas fa-user" id="avatarPlaceholder"></i>
+							<img src="../img/Brsh_S1.png" alt="性别图标" id="sexIcon" style="display: none; width: 32px; height: 32px; position: absolute; bottom: -10px; right: 25px;">
+							<img src="../img/hand_S1.png" alt="装饰图片" id="handDecor" style="position: absolute; top: -48px; right: -50px; width: 80px;  z-index: 10;">
+						</div>
+					</div>
+					<div class="navCenter">
+						<!-- 导航栏中间 -->
+						<div class="navMiddle">
+							<div class="navMiddleLeft" onclick="setTheme('light')"></div>
+							<div class="navMiddleRight" onclick="setTheme('dark')"></div>
+							<div class="navMiddleSplit"></div>
+						</div>
+						<!-- 导航栏中间用户信息 -->
+						<div class="userInfoContainer">
+							<div class="userInfoItem">
+								<i class="fas fa-star" style="color: #D2B48C;"></i>
+								<span class="userInfoLabel">等级</span>
+								<span class="userInfoValue" id="userLevel">0</span>
+							</div>
+							<div class="userInfoItem">
+								<i class="fas fa-clock" style="color: #D2B48C;"></i>
+								<span class="userInfoLabel">时长</span>
+								<span class="userInfoValue" id="userPlayTime">0.0</span>
+							</div>
+							<div class="userInfoItem" style="cursor: pointer;" onclick="showNuclearModal()">
+								<i class="fas fa-gamepad" style="color: #D2B48C;"></i>
+								<span class="userInfoLabel">次数</span>
+								<span class="userInfoValue" id="userGameCount">0</span>
+							</div>
+							<div class="userInfoItem">
+								<i class="fas fa-trophy" style="color: #D2B48C;"></i>
+								<span class="userInfoLabel">成就</span>
+								<span class="userInfoValue" id="userAchievements">0</span>
+							</div>
+							<div class="userInfoItem">
+								<i class="fas fa-heart" style="color: #D2B48C;"></i>
+								<span class="userInfoLabel">偏好模式</span>
+								<span class="userInfoValue" id="userPreferredModes">-</span>
+							</div>
+							<div class="userInfoItem">
+								<i class="fas fa-history" style="color: #D2B48C;"></i>
+								<span class="userInfoLabel">最近游玩</span>
+								<span class="userInfoValue" id="userRecentMode">-</span>
+							</div>
+						</div>
+					</div>
+					<!-- 导航栏右侧设置 -->
+					<div class="navRight">
+						<div class="chatIcon" onclick="openChat()">
+							<i class="fas fa-comments" style="color: #D2B48C; font-size: 26px;"></i>
+						</div>
+						<div class="shopIcon" onclick="openShop()">
+							<i class="fas fa-shopping-bag" style="color: #D2B48C; font-size: 28px;"></i>
+						</div>
+						<div class="warehouseIcon" onclick="openWarehouse()">
+							<i class="fas fa-warehouse" style="color: #D2B48C; font-size: 24px;"></i>
+						</div>
+						<div class="settingsIcon" onclick="openSettings()">
+							<i class="fas fa-cog" style="color: #D2B48C;"></i>
+						</div>
+					</div>
+				</div>
+
+			<!-- 自定义边框 -->
+			<div class="custom-border-bar"></div>
+			<div class="navBar-bottom-img" style="position: absolute; top: 28px; left: 20%; transform: translateX(-50%); z-index: 9999;">
+			<img id="bottomRandomImg" src="" alt="加载中。。。" style="width: 300px; height: auto;">
+		</div>
+
+<div class="container">
+	<!-- 对局表 -->
+	<div class="leftContent" id="leftContent">
+		<div class="leftContentInner">
+			<div class="sectionHeader">
+				<span class="viewAll" onclick="window.location.href='ac_data.html'"><i class="fas fa-list" style="color: #D2B48C;"></i>查看全部</span>
+			</div>
+			<!-- win_lo组件 -->
+			<div id="battleCardsContainer" style="display: flex; flex-direction: column; gap: 5px;">
+				<!-- 战斗卡片将通过JavaScript动态添加 -->
+			</div>
+		</div>
+		<div class="leftSlideImg" id="leftSlideImg">
+			<img src="../img/key/left_div_img.png" alt="加载中。。。" style="width: 300px; height: auto;">
+		</div>
+	</div>
+	<!-- 正式内容上 -->
+	<div class="centerContent">
+		<game-card game-id="infinity" icon="../img/key/two_our.png" name="无限协议" description="无限流游戏？打不过怎么办？"></game-card>
+		<game-card game-id="medal" icon="../img/key/medal_first.png" name="像素斗（功能不完善版）" description="收集勋章，成就传奇！&#10;NOT NOT NOT"></game-card>
+	</div>
+	<!-- 展示图,成就-->
+	 <div class="rightContent">
+		<div class="sectionHeader">
+				<span class="viewAll" onclick="window.location.href='chieve_system.html'"><i class="fas fa-list" style="color: #D2B48C;"></i>查看全部</span>
+			</div>
+		<div id="latestAchievements" style="display: flex; flex-direction: column; gap: 10px;"></div>
+	</div>
+	
+
+</div>
+			
+		</div>
+		<footer>
+			<!--  聊天内容 -->
+	<div class="chat" onclick="startGalGame()" style="display: flex; align-items: center; justify-content: center; gap: 15px; cursor: pointer;">
+		<img src="../img/gal_game_img.png" alt="GalGame" style="width: 60px; height: 60px;">
+		<div>
+			<h2>GalGame 不启动</h2>
+			<p>点击开始不了体验，依旧开发中。。。</p>
+		</div>
+	</div>
+		</footer>
+	</body>
+<script src="../index/js/component/custom-modal.js" type="text/javascript"></script>
+<script src="../index/js/core/ItemAll.js" type="text/javascript"></script>
+<script>
+	// 从localStorage获取战斗数据并显示最近3场
+	function loadRecentBattles() {
+		// 从localStorage获取战斗数据，如果没有则使用空数组
+		const battles = JSON.parse(localStorage.getItem('battleData')) || [];
+
+		const container = document.getElementById('battleCardsContainer');
+		container.innerHTML = '';
+
+		// 检查是否有战斗数据
+		if (battles.length === 0) {
+			// 显示无游玩记录提示
+			container.innerHTML = `
+				<div style="text-align: center; padding: 40px 20px; background: rgba(255, 255, 255, 0.8); border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);">
+					<h2 style="color: #333; font-size: 20px; margin-bottom: 10px;">当前还没有游玩记录</h2>
+					<p style="color: #666; font-size: 14px;">开始游戏，创建您的第一条战斗记录吧！</p>
+				</div>
+			`;
+			return;
+		}
+
+		// 最多显示3场战斗
+		const recentBattles = battles.slice(0, 3);
+
+		recentBattles.forEach(battle => {
+			const battleCard = document.createElement('div');
+			battleCard.innerHTML = `
+				<win-lo-card 
+					result="${battle.result}" 
+					time="${battle.time}" 
+					currency="${battle.currency}" 
+					mode="${battle.mode}"
+				></win-lo-card>
+			`;
+			container.appendChild(battleCard);
+		});
+	}
+
+	// 页面加载时初始化
+	window.onload = function() {
+		loadRecentBattles();
+		// 每3秒刷新一次战斗数据
+		setInterval(loadRecentBattles, 500);
+
+		// 随机加载底部图片
+		loadRandomBottomImage();
+
+		// 初始化用户信息同步
+		initUserInfoSync();
+
+		// 初始化在线时间跟踪
+		initOnlineTimeTracking();
+
+		// 检查"初来乍到"成就
+		checkFirstVisitAchievement();
+
+		// 初始化用户头像（默认头像或已保存的头像）
+		initUserAvatar();
+		
+		// 加载最近3个成就
+		loadLatestAchievements();
+		
+		// 检查升级获得的货币并显示模态框
+		checkLevelUpCurrency();
+
+		// 为等级添加点击事件
+		const levelItem = document.querySelector('.userInfoItem:nth-child(1)');
+		if (levelItem) {
+			levelItem.style.cursor = 'pointer';
+			levelItem.addEventListener('click', showLevelModal);
+		}
+
+		// 为时长添加点击事件
+		const timeItem = document.querySelector('.userInfoItem:nth-child(2)');
+		if (timeItem) {
+			timeItem.style.cursor = 'pointer';
+			timeItem.addEventListener('click', showTimeModal);
+		}
+
+		// 为game-card添加点击事件监听器
+		const gameCard = document.querySelector('game-card');
+		if (gameCard) {
+			gameCard.addEventListener('game-start', function() {
+				window.location.href = 'game/game_one.html';
+			});
+		}
+	};
+
+	// 初始化用户头像
+	function initUserAvatar() {
+		const avatarImg = document.getElementById('avatarImg');
+		const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+		
+		// 获取保存的头像路径，如果没有则使用默认头像
+		const savedAvatar = localStorage.getItem('userAvatar');
+		
+		if (savedAvatar) {
+			avatarImg.src = savedAvatar;
+			avatarImg.style.display = 'block';
+			avatarPlaceholder.style.display = 'none';
+		} else {
+			// 使用默认头像
+			avatarImg.src = '../img/key/default.jpg';
+			avatarImg.style.display = 'block';
+			avatarPlaceholder.style.display = 'none';
+		}
+		
+		// 头像加载失败时使用默认头像
+		avatarImg.onerror = function() {
+			this.src = '../img/key/default.jpg';
+		};
+	}
+
+	// 检查"初来乍到"成就 - 第一次打开游戏时解锁
+	function checkFirstVisitAchievement() {
+		const visited = localStorage.getItem('firstVisit');
+		const unlocked = getUnlockedAchievements();
+		
+		if (!visited && !unlocked.includes('first_try')) {
+			// 标记已访问
+			localStorage.setItem('firstVisit', 'true');
+			
+			// 解锁成就
+			const newUnlocked = [...unlocked, 'first_try'];
+			localStorage.setItem('unlockedAchievements', JSON.stringify(newUnlocked));
+			
+			// 保存待显示的成就队列
+			localStorage.setItem('pendingAchievements', JSON.stringify(['first_try']));
+		}
+	}
+
+	// 获取已解锁的成就
+	function getUnlockedAchievements() {
+		let achievements = JSON.parse(localStorage.getItem('unlockedAchievements')) || [];
+		if (achievements.length === 0) {
+			achievements = JSON.parse(localStorage.getItem('userAchievements')) || [];
+		}
+		return achievements;
+	}
+
+	// 加载最近3个成就并显示
+let achievementsLoaded = false;
+function loadLatestAchievements() {
+	// 防止重复加载
+	if (achievementsLoaded) return;
+	
+	const container = document.getElementById('latestAchievements');
+	if (!container) return;
+	
+	const unlocked = getUnlockedAchievements();
+	
+	if (unlocked.length === 0) {
+		container.innerHTML = `
+			<div style="text-align: center; padding: 20px; background: rgba(255,255,255,0.8); border-radius: 10px; color: #666;">
+				<p>暂无成就</p>
+			</div>
+		`;
+		achievementsLoaded = true;
+		return;
+	}
+	
+	const latestOne = unlocked.slice(-1).reverse();
+	container.innerHTML = '';
+	
+	latestOne.forEach(achievementId => {
+		const wallElement = document.createElement('xz-wall');
+		wallElement.setAttribute('achievement-id', achievementId);
+		container.appendChild(wallElement);
+	});
+	
+	achievementsLoaded = true;
+}
+
+	// 在线时间跟踪
+	function initOnlineTimeTracking() {
+		// 初始化在线开始时间
+		if (!localStorage.getItem('onlineStartTime')) {
+			localStorage.setItem('onlineStartTime', Date.now().toString());
+		}
+		// 每秒更新在线时长显示
+		setInterval(updateOnlineTimeDisplay, 1000);
+	}
+
+	// 更新在线时长显示
+	function updateOnlineTimeDisplay() {
+		const onlineStartTime = parseInt(localStorage.getItem('onlineStartTime')) || Date.now();
+		const totalOnlineSeconds = Math.floor((Date.now() - onlineStartTime) / 1000);
+
+		// 只显示在线时长
+		document.getElementById('userPlayTime').textContent = formatDuration(totalOnlineSeconds);
+	}
+
+	// 时长模态框
+	function showTimeModal() {
+		const onlineStartTime = parseInt(localStorage.getItem('onlineStartTime')) || Date.now();
+		const totalOnlineSeconds = Math.floor((Date.now() - onlineStartTime) / 1000);
+
+		const gamePlayTimeSeconds = parseInt(localStorage.getItem('userPlayTime')) || 0;
+
+		const modal = document.createElement('div');
+		modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:10000;';
+		modal.innerHTML = `
+			<div style="background:#fff;border-radius:15px;padding:30px;max-width:400px;width:90%;text-align:center;position:relative;">
+				<img src="../img/key/Mtk.webp" style="position:absolute;top:-15px;left:-15px;width:50px;height:50px;border-radius:50%;">
+				<img src="../img/key/dt.gif" style="position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;">
+				<h2 style="color:#333;margin-bottom:20px;">时长信息</h2>
+				<div style="background:#f5f5f5;border-radius:10px;padding:20px;margin-bottom:15px;text-align:left;">
+					<div style="display:flex;justify-content:space-between;margin-bottom:15px;">
+						<span style="color:#666;">在线时长</span>
+						<span style="color:#333;font-weight:bold;">${formatTime(totalOnlineSeconds)}</span>
+					</div>
+					<div style="display:flex;justify-content:space-between;">
+						<span style="color:#666;">游戏时长</span>
+						<span style="color:#333;font-weight:bold;">${formatTime(gamePlayTimeSeconds)}</span>
+					</div>
+				</div>
+				<div style="color:#888;font-size:13px;margin-bottom:20px;">
+					在线时长：您打开软件以来的累计时间<br>
+					游戏时长：您在游戏中实际游玩的时间（从战绩计算）
+				</div>
+				<button onclick="this.parentElement.parentElement.remove()" style="background:#D2B48C;color:#fff;border:none;padding:10px 30px;border-radius:5px;cursor:pointer;">关闭</button>
+			</div>
+		`;
+		modal.addEventListener('click', function(e) {
+			if (e.target === modal) modal.remove();
+		});
+		document.body.appendChild(modal);
+	}
+
+	// 核弹次数模态框
+	function showNuclearModal() {
+		const nuclearCount = parseInt(localStorage.getItem('nuclearCount')) || 0;
+		const battles = JSON.parse(localStorage.getItem('battleData')) || [];
+		const winCount = battles.filter(b => b.result === 'win').length;
+		const loseCount = battles.filter(b => b.result === 'lose').length;
+
+		const modal = document.createElement('div');
+		modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:10000;';
+		modal.innerHTML = `
+			<div style="background:#fff;border-radius:15px;padding:30px;max-width:400px;width:90%;text-align:center;position:relative;">
+				<img src="../img/key/wow.webp" style="position:absolute;top:-15px;left:-15px;width:50px;height:50px;border-radius:50%;">
+				<img src="../img/key/Mtk.webp" style="position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;">
+				<h2 style="color:#333;margin-bottom:20px;">游戏统计</h2>
+				<div style="background:#f5f5f5;border-radius:10px;padding:20px;margin-bottom:15px;text-align:left;">
+					<div style="display:flex;justify-content:space-between;margin-bottom:15px;">
+						<span style="color:#666;">总游戏次数</span>
+						<span style="color:#333;font-weight:bold;">${battles.length}</span>
+					</div>
+					<div style="display:flex;justify-content:space-between;margin-bottom:15px;">
+						<span style="color:#666;">胜利次数</span>
+						<span style="color:#4CAF50;font-weight:bold;">${winCount}</span>
+					</div>
+					<div style="display:flex;justify-content:space-between;margin-bottom:15px;">
+						<span style="color:#666;">失败次数</span>
+						<span style="color:#f44336;font-weight:bold;">${loseCount}</span>
+					</div>
+					<div style="display:flex;justify-content:space-between;border-top:1px solid #ddd;padding-top:15px;">
+						<span style="color:#666;">💣 核弹次数</span>
+						<span style="color:#ff6b35;font-weight:bold;">${nuclearCount}</span>
+					</div>
+				</div>
+				<div style="color:#888;font-size:13px;margin-bottom:20px;">
+					核弹：击杀650个敌人后触发，强制结束游戏并获得100000货币
+				</div>
+				<button onclick="this.parentElement.parentElement.remove()" style="background:#D2B48C;color:#fff;border:none;padding:10px 30px;border-radius:5px;cursor:pointer;">关闭</button>
+			</div>
+		`;
+		modal.addEventListener('click', function(e) {
+			if (e.target === modal) modal.remove();
+		});
+		document.body.appendChild(modal);
+	}
+
+	// 用户信息同步
+	function initUserInfoSync() {
+		syncUserInfoFromBattles();
+		setInterval(syncUserInfoFromBattles, 5000);
+	}
+
+	// 解析战斗时间字符串 (格式: 5m30s) 为总秒数
+	function parseBattleTime(timeStr) {
+		if (!timeStr) return 0;
+		const match = timeStr.match(/(\d+)m(\d+)s/);
+		if (match) {
+			return parseInt(match[1]) * 60 + parseInt(match[2]);
+		}
+		return 0;
+	}
+
+	// 格式化时长为 时:分 (不显示秒)
+	function formatDuration(totalSeconds) {
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
+		return `${hours}:${String(minutes).padStart(2, '0')}`;
+	}
+
+	// 格式化秒数为时:分:秒
+	function formatTime(totalSeconds) {
+		const hours = Math.floor(totalSeconds / 3600);
+		const minutes = Math.floor((totalSeconds % 3600) / 60);
+		const seconds = totalSeconds % 60;
+		if (hours > 0) {
+			return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+		}
+		return `${minutes}:${String(seconds).padStart(2, '0')}`;
+	}
+
+	// 从战斗数据同步用户信息
+	function syncUserInfoFromBattles() {
+		const battles = JSON.parse(localStorage.getItem('battleData')) || [];
+
+		// 更新游戏次数
+		localStorage.setItem('userGameCount', battles.length);
+
+		// 计算总游戏时长（秒）
+		let totalGameSeconds = 0;
+		battles.forEach(battle => {
+			totalGameSeconds += parseBattleTime(battle.time);
+		});
+		localStorage.setItem('userPlayTime', totalGameSeconds.toString());
+
+		// 统计偏好模式（从游戏保存的数据读取）
+		const preferredMode = localStorage.getItem('userPreferredMode');
+		
+		// 设置最近游玩（从游戏保存的数据读取）
+		const recentMode = localStorage.getItem('userRecentMode');
+
+		// 更新页面显示
+		document.getElementById('userLevel').textContent = localStorage.getItem('userLevel') || 0;
+		const onlineStartTime = parseInt(localStorage.getItem('onlineStartTime')) || Date.now();
+		const totalOnlineSeconds = Math.floor((Date.now() - onlineStartTime) / 1000);
+		document.getElementById('userPlayTime').textContent = formatDuration(totalOnlineSeconds);
+		document.getElementById('userGameCount').textContent = battles.length;
+		document.getElementById('userPreferredModes').textContent = preferredMode || '-';
+		document.getElementById('userRecentMode').textContent = recentMode || '-';
+	}
+
+	// 等级模态框
+	function showLevelModal() {
+		const level = parseInt(localStorage.getItem('userLevel')) || 0;
+		const currentExp = parseInt(localStorage.getItem('userExp')) || 0;
+		const expForNextLevel = calculateExpForLevel(level + 1);
+		const progress = expForNextLevel > 0 ? Math.min((currentExp / expForNextLevel) * 100, 100) : 0;
+
+		const modal = document.createElement('div');
+		modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:10000;';
+		modal.innerHTML = `
+			<div style="background:#fff;border-radius:15px;padding:30px;max-width:400px;width:90%;text-align:center;position:relative;">
+				<img src="../img/key/Mtk.webp" style="position:absolute;top:-15px;left:-15px;width:50px;height:50px;border-radius:50%;">
+				<img src="../img/key/dt.gif" style="position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;">
+				<h2 style="color:#333;margin-bottom:20px;">等级信息</h2>
+				<div style="font-size:48px;color:#D2B48C;margin-bottom:10px;">Lv.${level}</div>
+				<div style="color:#666;margin-bottom:20px;">当前经验: ${currentExp} / ${expForNextLevel}</div>
+				<div style="background:#eee;border-radius:10px;height:20px;overflow:hidden;margin-bottom:20px;">
+					<div style="background:linear-gradient(90deg,#D2B48C,#E6C200);height:100%;width:${progress}%;transition:width 0.3s;"></div>
+				</div>
+				<div style="color:#888;font-size:14px;margin-bottom:20px;">
+					升级还需: ${expForNextLevel - currentExp} 经验
+				</div>
+				<div style="background:#f5f5f5;border-radius:10px;padding:15px;text-align:left;margin-bottom:20px;">
+					<div style="color:#333;font-weight:bold;margin-bottom:10px;">升级方式：</div>
+					<div style="color:#666;font-size:13px;">• 击杀敌人 +${getExpByAction('kill')} 经验</div>
+					<div style="color:#666;font-size:13px;">• 通关游戏 +${getExpByAction('win')} 经验</div>
+					<div style="color:#666;font-size:13px;">• 获得成就 +${getExpByAction('achievement')} 经验</div>
+				</div>
+				<button onclick="this.parentElement.parentElement.remove()" style="background:#D2B48C;color:#fff;border:none;padding:10px 30px;border-radius:5px;cursor:pointer;">关闭</button>
+			</div>
+		`;
+		modal.addEventListener('click', function(e) {
+			if (e.target === modal) modal.remove();
+		});
+		document.body.appendChild(modal);
+	}
+
+	// 计算指定等级所需经验值 (升级所需总经验)
+	function calculateExpForLevel(level) {
+		if (level <= 1) return 100;
+		return Math.floor(100 * Math.pow(1.5, level - 1));
+	}
+
+	// 获取各动作经验奖励
+	function getExpByAction(action) {
+		const expTable = {
+			kill: 10,
+			win: 50,
+			achievement: 30
+		};
+		return expTable[action] || 10;
+	}
+
+	// 随机加载底部图片
+	function loadRandomBottomImage() {
+		const images = ['bottom_img_one.png', 'bottom_img_two.png', 'bottom_img.png'];
+		const randomIndex = Math.floor(Math.random() * images.length);
+		const imgElement = document.getElementById('bottomRandomImg');
+		if (imgElement) {
+			imgElement.src = '../img/key/' + images[randomIndex];
+		}
+	}
+	
+	// 检查升级获得的货币并显示模态框
+	function checkLevelUpCurrency() {
+		const pendingCurrency = localStorage.getItem('pendingLevelUpCurrency');
+		const pendingLevelUpCount = localStorage.getItem('pendingLevelUpCount');
+		
+		if (pendingCurrency && parseInt(pendingCurrency) > 0) {
+			const currency = parseInt(pendingCurrency);
+			const levelUpCount = parseInt(pendingLevelUpCount) || 1;
+			
+			// 创建模态框
+			const modal = document.createElement('div');
+			modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:10000;';
+			modal.innerHTML = `
+				<div style="background:#fff;border-radius:15px;padding:30px;max-width:400px;width:90%;text-align:center;position:relative;">
+					<img src="../img/key/Mtk.webp" style="position:absolute;top:-15px;left:-15px;width:50px;height:50px;border-radius:50%;">
+					<img src="../img/key/dt.gif" style="position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;">
+					<div style="font-size:48px;margin-bottom:20px;">🎉</div>
+					<h2 style="color:#333;margin-bottom:10px;">升级奖励</h2>
+					<p style="color:#666;margin-bottom:20px;">恭喜你提升了 ${levelUpCount} 级！</p>
+					<div style="background:linear-gradient(135deg, #FFD700, #FFA500);border-radius:15px;padding:20px;margin-bottom:20px;">
+						<div style="color:#fff;font-size:14px;margin-bottom:5px;">获得货币奖励</div>
+						<div style="color:#fff;font-size:36px;font-weight:bold;">+${currency}</div>
+					</div>
+					<button onclick="this.parentElement.parentElement.remove(); checkBattleCurrency();" style="background:#D2B48C;color:#fff;border:none;padding:10px 30px;border-radius:5px;cursor:pointer;">确定</button>
+				</div>
+			`;
+			modal.addEventListener('click', function(e) {
+				if (e.target === modal) {
+					modal.remove();
+					checkBattleCurrency();
+				}
+			});
+			document.body.appendChild(modal);
+			
+			// 清除pending数据
+			localStorage.removeItem('pendingLevelUpCurrency');
+			localStorage.removeItem('pendingLevelUpCount');
+		} else {
+			// 如果没有升级奖励，检查战斗奖励
+			checkBattleCurrency();
+		}
+	}
+	
+	// 检查战斗获得的货币并显示模态框
+	function checkBattleCurrency() {
+		const pendingCurrency = localStorage.getItem('pendingBattleCurrency');
+		
+		if (pendingCurrency && parseInt(pendingCurrency) > 0) {
+			const currency = parseInt(pendingCurrency);
+			
+			// 创建模态框
+			const modal = document.createElement('div');
+			modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:10000;';
+			modal.innerHTML = `
+				<div style="background:#fff;border-radius:15px;padding:30px;max-width:400px;width:90%;text-align:center;position:relative;">
+					<img src="../img/key/Mtk.webp" style="position:absolute;top:-15px;left:-15px;width:50px;height:50px;border-radius:50%;">
+					<img src="../img/key/dt.gif" style="position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;">
+					<div style="font-size:48px;margin-bottom:20px;">💰</div>
+					<h2 style="color:#333;margin-bottom:10px;">战斗奖励</h2>
+					<p style="color:#666;margin-bottom:20px;">本局游戏获得货币</p>
+					<div style="background:linear-gradient(135deg, #4CAF50, #8BC34A);border-radius:15px;padding:20px;margin-bottom:20px;">
+						<div style="color:#fff;font-size:14px;margin-bottom:5px;">获得货币</div>
+						<div style="color:#fff;font-size:36px;font-weight:bold;">+${currency}</div>
+					</div>
+					<button onclick="this.parentElement.parentElement.remove()" style="background:#D2B48C;color:#fff;border:none;padding:10px 30px;border-radius:5px;cursor:pointer;">确定</button>
+				</div>
+			`;
+			modal.addEventListener('click', function(e) {
+				if (e.target === modal) modal.remove();
+			});
+			document.body.appendChild(modal);
+			
+			// 清除pending数据
+			localStorage.removeItem('pendingBattleCurrency');
+		}
+	}
+
+	// 应用背景图片
+	function applyPageBackground(pageName) {
+		const pageBackgrounds = JSON.parse(localStorage.getItem('pageBackgrounds')) || {};
+		if (pageBackgrounds[pageName]) {
+			document.body.style.background = `url(${pageBackgrounds[pageName]}) center/cover no-repeat fixed`;
+		} else {
+			document.body.style.background = 'linear-gradient(180deg, #4AB8A0 0%, #000000 100%)';
+		}
+	}
+
+	// 跳转到设置页面
+	function goToSettings() {
+		window.location.href = 'setting.html';
+	}
+
+	// 显示感谢公告
+	function showWelcomeNotice() {
+		const modal = document.createElement('div');
+		modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:flex;justify-content:center;align-items:center;z-index:10000;';
+		modal.innerHTML = `
+			<div style="background:rgba(255,255,255,0.95);border-radius:20px;padding:40px;max-width:500px;width:90%;text-align:center;position:relative;box-shadow:0 10px 40px rgba(0,0,0,0.3);">
+				<h2 style="color:#333;font-size:24px;margin-bottom:20px;border-bottom:2px solid #D2B48C;padding-bottom:15px;display:flex;align-items:center;"><img src="../img/key/wow.webp" style="width:120px;height:120px;margin-right:10px;">公告</h2>
+				<div style="color:#666;font-size:16px;line-height:1.8;text-align:left;">
+					<p>感谢使用并且下载安装我们的游戏！</p>
+					<p style="margin-top:10px;">更新日志：0.0.2 版本发布</p>
+					<p style="margin-top:10px;">移动了感谢墙，添加了新的支持者，和字母索引。</p>
+					<p style="margin-top:10px;">添加了第二个游戏模式，不过功能依旧不完善</p>
+					<p style="margin-top:10px;">移除了商店和库页面中载具和弹药过多的问题，只留下了必要的载具和弹药。</p>
+					<p style="margin-top:10px;">添加了一个新成就</p>
+					<p style="margin-top:10px;">聊天页面正在准备中。。。</p>
+					<p style="margin-top:10px;">修复了部分bug</p>
+					<p style="margin-top:15px;font-weight:bold;color:#D2B48C;">祝您游戏愉快！</p>
+				</div>
+				<button onclick="this.parentElement.parentElement.remove()" 
+					style="margin-top:25px;padding:12px 40px;background:#D2B48C;color:#fff;border:none;border-radius:30px;font-size:16px;cursor:pointer;transition:all 0.3s;">
+					知道了
+				</button>
+			</div>
+		`;
+		modal.addEventListener('click', function(e) {
+			if (e.target === modal) modal.remove();
+		});
+		document.body.appendChild(modal);
+	}
+
+	// 页面加载时应用背景
+	window.addEventListener('DOMContentLoaded', function() {
+		applyPageBackground('main');
+		
+		// 检查是否是第一次访问
+		const hasSeenNotice = localStorage.getItem('hasSeenWelcomeNotice');
+		if (!hasSeenNotice) {
+			// 延迟显示，让页面完全加载
+			setTimeout(showWelcomeNotice, 1000);
+			localStorage.setItem('hasSeenWelcomeNotice', 'true');
+		}
+	});
+</script>
+</html>

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仓库</title>
+    <link rel="icon" href="../img/handHap.png" type="image/png">
+    <link rel="stylesheet" href="../resource/font-awesome.css">
+    <link rel="stylesheet" href="css/ItemAll.css" type="text/css">
+    <script src="js/core/theme.js" type="text/javascript"></script>
+    <script src="js/component/custom-modal.js" type="text/javascript"></script>
+</head>
+<body>
+    <div class="shop-container">
+        <div class="shop-navBar">
+            <div class="navLeft">
+                <a href="inMaxNineUI.html" class="back-button">
+                    <i class="fas fa-arrow-left" style="color: #D2B48C;"></i> 返回
+                </a>
+                <h1><i class="fas fa-warehouse" style="color: #D2B48C;"></i> 仓库</h1>
+            </div>
+            <div class="navRight" id="currencyDisplay">
+                <button class="config-btn" onclick="openTeamConfig()">
+                    <i class="fas fa-users"></i>
+                    <span>载具队伍</span>
+                </button>
+                <div class="shop-btn" onclick="goToShop()">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span>商店</span>
+                </div>
+                <div class="currency-item">
+                    <span style="color: #666; margin-right: 8px;">货币:</span>
+                    <i class="fas fa-coins"></i>
+                    <span id="goldAmount">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="shop-categories">
+            <button class="shop-category-btn active" onclick="filterItems('all')">全部</button>
+            <button class="shop-category-btn" onclick="filterItems('item')">道具卡</button>
+            <button class="shop-category-btn" onclick="filterItems('food')">食物</button>
+            <button class="shop-category-btn" onclick="filterItems('vehicle')">载具</button>
+            <button class="shop-category-btn" onclick="filterItems('ammo')">弹药</button>
+        </div>
+
+        <div class="shop-grid" id="shopGrid"></div>
+    </div>
+
+    <!-- 销毁确认模态框 -->
+    <div class="destroy-modal" id="destroyModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 2000; background: rgba(0,0,0,0.7);">
+        <div style="background: white; border-radius: 15px; padding: 30px; width: 90%; max-width: 400px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 30px rgba(0,0,0,0.3);">
+            <img src="../img/key/Mtk.webp" style="position:absolute;top:-15px;left:-15px;width:50px;height:50px;border-radius:50%;">
+            <img src="../img/key/dt.gif" style="position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;">
+            <h2 style="color: #333; margin-bottom: 20px; text-align: center;"><i class="fas fa-trash-alt" style="color: #e74c3c;"></i> 销毁物品</h2>
+            <div style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 10px;">物品名称: <span id="destroyItemName" style="color: #333; font-weight: bold;"></span></p>
+                <p style="color: #666; margin-bottom: 10px;">持有数量: <span id="destroyItemCount" style="color: #333; font-weight: bold;"></span></p>
+                <p style="color: #666; margin-bottom: 15px;">销毁数量: <span id="destroyCount" style="color: #e74c3c; font-weight: bold;">0</span></p>
+            </div>
+            <div style="margin-bottom: 20px;">
+                <input type="range" id="destroySlider" min="0" max="1" value="0" style="width: 100%; height: 30px; cursor: pointer;" oninput="updateDestroyPreview()">
+            </div>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                <p style="color: #666; font-size: 14px;">返还货币 (75%):</p>
+                <p style="color: #FFD700; font-size: 24px; font-weight: bold; margin: 5px 0;"><i class="fas fa-coins"></i> <span id="destroyRefund">0</span></p>
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button onclick="closeDestroyModal()" style="padding: 10px 30px; background: #ccc; color: #333; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">取消</button>
+                <button id="confirmDestroyBtn" onclick="confirmDestroy()" style="padding: 10px 30px; background: #e74c3c; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px;">确认销毁</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 载具队伍配置模态框 -->
+    <div class="team-config-modal" id="teamConfigModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000;">
+        <div class="team-config-content" id="teamConfigContent" style="background: white; border-radius: 15px; padding: 30px; width: 90%; max-width: 500px; max-height: 80vh; overflow-y: auto; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <img src="../img/key/Mtk.webp" style="position:absolute;top:-15px;left:-15px;width:50px;height:50px;border-radius:50%;">
+            <img src="../img/key/dt.gif" style="position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;">
+            <div id="teamConfigHeader" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; cursor: move;">
+                <h2 style="color: #333; margin: 0;"><i class="fas fa-users" style="color: #2196F3;"></i> 载具队伍配置</h2>
+                <button onclick="closeTeamConfig()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+            </div>
+            <div style="margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 8px;">
+                <span style="color: #666; font-size: 14px;">队伍载具: <span id="teamVehicleCount">0</span>/2</span>
+            </div>
+            <div class="team-config-list" id="teamConfigList"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="saveTeamConfig()" style="padding: 10px 30px; background: #4CAF50; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer;">保存队伍</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 选择载具模态框 -->
+    <div class="select-vehicle-modal" id="selectVehicleModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.7); align-items: center; justify-content: center; z-index: 1001;">
+        <div class="select-vehicle-content" style="background: white; border-radius: 15px; padding: 30px; width: 90%; max-width: 400px; max-height: 60vh; overflow-y: auto; position: relative;">
+            <img src="../img/key/Mtk.webp" style="position:absolute;top:-15px;left:-15px;width:50px;height:50px;border-radius:50%;">
+            <img src="../img/key/dt.gif" style="position:absolute;top:-15px;right:-15px;width:50px;height:50px;border-radius:50%;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="color: #333; margin: 0;">选择载具</h3>
+                <button onclick="closeSelectVehicle()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+            </div>
+            <div class="vehicle-select-list" id="vehicleSelectList"></div>
+        </div>
+    </div>
+
+    <script>
+        const shopItems = [
+            // 难度保持卡
+            { id: 'item_5', name: '难度保持卡(1分钟)', description: '1分钟内难度不增加', price: 10, category: 'item', icon: 'clock' },
+            { id: 'item_6', name: '难度保持卡(3分钟)', description: '3分钟内难度不增加', price: 30, category: 'item', icon: 'clock' },
+            { id: 'item_7', name: '难度保持卡(5分钟)', description: '5分钟内难度不增加', price: 50, category: 'item', icon: 'clock' },
+            { id: 'item_8', name: '难度保持卡(10分钟)', description: '10分钟内难度不增加', price: 100, category: 'item', icon: 'clock' },
+            // 经验加成卡
+            { id: 'item_9', name: '经验加成卡(10%)', description: '获得额外10%经验', price: 20, category: 'item', icon: 'flask' },
+            { id: 'item_10', name: '经验加成卡(20%)', description: '获得额外20%经验', price: 50, category: 'item', icon: 'flask' },
+            { id: 'item_11', name: '经验加成卡(50%)', description: '获得额外50%经验', price: 100, category: 'item', icon: 'flask' },
+            { id: 'item_12', name: '经验加成卡(100%)', description: '获得额外100%经验', price: 200, category: 'item', icon: 'flask' },
+            // 原有道具
+            { id: 'item_2', name: '双倍金币卡', description: '一局游戏金币翻倍', price: 300, category: 'item', icon: 'coins' },
+            { id: 'item_3', name: '经验药水', description: '获得额外50%经验', price: 200, category: 'item', icon: 'flask' },
+            { id: 'item_4', name: '四倍货币卡', description: '一局游戏金币翻四倍', price: 400, category: 'item', icon: 'coins' },
+            // 食物
+            { id: 'food_4', name: '橡木蛋糕卷', description: '美味的蛋糕卷', price: 10000, category: 'food', icon: 'birthday-cake' },
+            // 保留的载具
+            { id: 'vehicle_8', name: 'PzH2000', description: '德制自行火炮', price: 80000, category: 'vehicle', icon: 'bomb', image: '../img/card_img/tank/pzh2000.png' },
+            { id: 'vehicle_19', name: 'A-10C', description: '美制攻击机', price: 85000, category: 'vehicle', icon: 'plane', image: '../img/card_img/plant/a10c.png' },
+            // 相关弹药
+            { id: 'ammo_5', name: '火炮高爆弹', description: '自行火炮专用（PzH2000）', price: 45, category: 'ammo', icon: 'bomb' },
+            { id: 'ammo_7', name: 'GBU-39', description: 'A-10C专用精确制导炸弹', price: 40, category: 'ammo', icon: 'bomb' },
+            { id: 'ammo_8', name: '小牛导弹', description: 'A-10C专用空对地导弹', price: 50, category: 'ammo', icon: 'rocket' }
+        ];
+
+        function getCurrency() {
+            const goldStr = localStorage.getItem('gold') || '0';
+            return { gold: goldStr };
+        }
+
+        // 跳转到商店
+        function goToShop() {
+            window.location.href = 'shop.html';
+        }
+
+        function getOwnedItems() {
+            const owned = localStorage.getItem('ownedItems');
+            return owned ? JSON.parse(owned) : {};
+        }
+
+        function saveOwnedItems(items) {
+            localStorage.setItem('ownedItems', JSON.stringify(items));
+        }
+
+        function initDefaultItems() {
+            const hasInit = localStorage.getItem('hasInitializedItems');
+            const owned = getOwnedItems();
+
+            // First time initialization: inject default owned items and default team
+            if (hasInit !== 'true') {
+                // 默认获得 PzH2000 和 A-10C 两个载具
+                if (!owned['vehicle_8']) owned['vehicle_8'] = 1;  // PzH2000
+                if (!owned['vehicle_19']) owned['vehicle_19'] = 1; // A-10C
+                // 默认弹药
+                if (!owned['ammo_5']) owned['ammo_5'] = 100;  // 火炮高爆弹
+                if (!owned['ammo_7']) owned['ammo_7'] = 100;  // GBU-39
+                if (!owned['ammo_8']) owned['ammo_8'] = 50;   // 小牛导弹
+                saveOwnedItems(owned);
+
+                // 初始化默认载具队伍（仅首次）
+                const teamSettings = { vehicles: ['vehicle_8', 'vehicle_19'] };
+                localStorage.setItem('vehicleTeamSettings', JSON.stringify(teamSettings));
+
+                localStorage.setItem('hasInitializedItems', 'true');
+                return;
+            }
+
+            // Subsequent loads: do not inject defaults. Only validate existing data.
+            // Ensure owned structure is saved (no overwrite of existing counts)
+            saveOwnedItems(owned);
+
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            let vehicles = (teamSettings.vehicles || []).filter(id => id && id.trim() !== '');
+
+            // 过滤掉不存在或无库存的载具，限制数量，不自动补齐默认载具
+            const validVehicleIds = ['vehicle_8', 'vehicle_19'];
+            vehicles = vehicles.filter(v => validVehicleIds.includes(v) && (owned[v] || 0) > 0).slice(0, 2);
+
+            teamSettings.vehicles = vehicles;
+            localStorage.setItem('vehicleTeamSettings', JSON.stringify(teamSettings));
+        }
+
+        function updateCurrencyDisplay() {
+            document.getElementById('goldAmount').textContent = getCurrency().gold;
+        }
+
+        function renderItems(category = 'all') {
+            const grid = document.getElementById('shopGrid');
+            grid.innerHTML = '';
+            const owned = getOwnedItems();
+            const filteredItems = category === 'all' 
+                ? shopItems.filter(item => (owned[item.id] || 0) > 0)
+                : shopItems.filter(item => item.category === category && (owned[item.id] || 0) > 0);
+            
+            if (filteredItems.length === 0) {
+                grid.innerHTML = '<p style="text-align:center;color:#666;grid-column:1/-1;">暂无物品</p>';
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const count = owned[item.id] || 0;
+                const div = document.createElement('div');
+                div.className = 'shop-item';
+                // 载具和弹药显示销毁按钮
+                const showDestroyButton = item.category === 'vehicle' || item.category === 'ammo';
+                const destroyButtonHtml = showDestroyButton ? `
+                    <div class="shop-item-actions" style="display: flex; gap: 5px; justify-content: center;">
+                        <button class="destroy-btn" onclick="openDestroyModal('${item.id}')" ${count <= 0 ? 'disabled' : ''}>销毁</button>
+                    </div>
+                ` : '';
+                // 载具和弹药不显示使用按钮
+                const showUseButton = item.category !== 'vehicle' && item.category !== 'ammo';
+                const useButtonHtml = showUseButton ? `
+                    <div class="shop-item-actions">
+                        <button class="use-btn" onclick="useItem('${item.id}')" ${count <= 0 ? 'disabled' : ''}>使用</button>
+                    </div>
+                ` : '';
+                // 判断是否有图片路径（坦克和火炮）
+                const iconHtml = item.image ? `
+                    <div class="shop-item-icon"><img src="${item.image}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;"></div>
+                ` : `
+                    <div class="shop-item-icon"><i class="fas fa-${item.icon}"></i></div>
+                `;
+                div.innerHTML = `
+                    ${iconHtml}
+                    <h3>${item.name}</h3>
+                    <p>${item.description}</p>
+                    <div class="shop-item-footer">
+                        <span class="price"><i class="fas fa-coins"></i> ${item.price}</span>
+                        <span class="owned">持有: ${count}</span>
+                    </div>
+                    ${destroyButtonHtml}
+                    ${useButtonHtml}
+                `;
+                grid.appendChild(div);
+            });
+        }
+
+        function useItem(itemId) {
+            const owned = getOwnedItems();
+            if (!owned[itemId] || owned[itemId] <= 0) return;
+            
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item) return;
+            
+            owned[itemId]--;
+            saveOwnedItems(owned);
+            
+            if (itemId.startsWith('item_')) {
+                localStorage.setItem('activeItem_' + itemId, 'true');
+                showCustomAlert(`使用了 ${item.name}！`, 'success');
+            } else {
+                showCustomAlert(`使用了 ${item.name}！`, 'success');
+            }
+            
+            renderItems();
+        }
+
+        let currentDestroyItem = null;
+
+        function openDestroyModal(itemId) {
+            const owned = getOwnedItems();
+            const count = owned[itemId] || 0;
+            
+            if (count < 1) {
+                return;
+            }
+            
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item) return;
+            
+            currentDestroyItem = { id: itemId, item: item, count: count };
+            
+            document.getElementById('destroyItemName').textContent = item.name;
+            document.getElementById('destroyItemCount').textContent = count;
+            document.getElementById('destroyCount').textContent = '0';
+            document.getElementById('destroyRefund').textContent = '0';
+            
+            const slider = document.getElementById('destroySlider');
+            slider.min = 1;
+            slider.max = count;
+            slider.value = count;
+            
+            const modal = document.getElementById('destroyModal');
+            modal.style.display = 'block';
+            
+            updateDestroyPreview();
+        }
+
+        function updateDestroyPreview() {
+            if (!currentDestroyItem) return;
+            
+            const slider = document.getElementById('destroySlider');
+            const count = parseInt(slider.value);
+            const refund = Math.floor(currentDestroyItem.item.price * count * 0.75);
+            
+            document.getElementById('destroyCount').textContent = count;
+            document.getElementById('destroyRefund').textContent = refund.toLocaleString();
+        }
+
+        function closeDestroyModal() {
+            const modal = document.getElementById('destroyModal');
+            modal.style.display = 'none';
+            currentDestroyItem = null;
+        }
+
+        function confirmDestroy() {
+            if (!currentDestroyItem) return;
+            
+            const slider = document.getElementById('destroySlider');
+            const count = parseInt(slider.value);
+            
+            destroyItem(currentDestroyItem.id, count);
+            closeDestroyModal();
+        }
+
+        function destroyItem(itemId, count) {
+            const owned = getOwnedItems();
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item || !owned[itemId] || owned[itemId] < count) return;
+            
+            const refund = Math.floor(item.price * count * 0.75);
+            
+            owned[itemId] -= count;
+            saveOwnedItems(owned);
+            
+            // 如果销毁的是载具，需要从队伍配置中移除
+            if (item.category === 'vehicle') {
+                const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+                const vehicles = teamSettings.vehicles || [];
+                // 移除所有匹配的载具实例
+                teamSettings.vehicles = vehicles.filter(v => v !== itemId);
+                localStorage.setItem('vehicleTeamSettings', JSON.stringify(teamSettings));
+            }
+            
+            // 使用字符串运算处理大整数，避免精度丢失
+            const currentGold = localStorage.getItem('gold') || '0';
+            const newGold = (BigInt(currentGold) + BigInt(refund)).toString();
+            localStorage.setItem('gold', newGold);
+            
+            updateCurrencyDisplay();
+            renderItems();
+            
+            const savedTheme = localStorage.getItem('currentTheme') || 'light';
+            applyTheme(savedTheme);
+            
+            showCustomAlert(`已销毁 ${count} 个 ${item.name}，返还 ${refund.toLocaleString()} 货币！`, 'success');
+        }
+
+        function filterItems(category) {
+            document.querySelectorAll('.shop-category-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            renderItems(category);
+            // 重新应用主题样式
+            const savedTheme = localStorage.getItem('currentTheme') || 'light';
+            applyTheme(savedTheme);
+        }
+
+        function buyItem(itemId) {
+            const item = shopItems.find(i => i.id === itemId);
+            if (!item) return;
+            
+            const currentGold = localStorage.getItem('gold') || '0';
+            const goldBigInt = BigInt(currentGold);
+            
+            if (goldBigInt < BigInt(item.price)) {
+                showCustomAlert('金币不足！', 'error');
+                return;
+            }
+            
+            const newGold = (goldBigInt - BigInt(item.price)).toString();
+            localStorage.setItem('gold', newGold);
+            
+            const owned = getOwnedItems();
+            owned[itemId] = (owned[itemId] || 0) + 1;
+            saveOwnedItems(owned);
+            
+            updateCurrencyDisplay();
+            renderItems();
+            showCustomAlert(`购买了 ${item.name}！`, 'success');
+        }
+
+        window.onload = function() {
+            initDefaultItems();
+            updateCurrencyDisplay();
+            renderItems();
+            // 应用保存的主题
+            const savedTheme = localStorage.getItem('currentTheme') || 'light';
+            applyTheme(savedTheme);
+        };
+
+        function openTeamConfig() {
+            const modal = document.getElementById('teamConfigModal');
+            modal.style.display = 'flex';
+            renderTeamConfigList();
+            initDrag();
+            // 应用主题样式到队伍配置模态框
+            applyTeamConfigTheme();
+        }
+
+        function closeTeamConfig() {
+            const modal = document.getElementById('teamConfigModal');
+            modal.style.display = 'none';
+        }
+
+        function applyTeamConfigTheme() {
+            const theme = localStorage.getItem('currentTheme') || 'light';
+            const content = document.getElementById('teamConfigContent');
+            const teamVehicleCount = document.getElementById('teamVehicleCount');
+            
+            if (theme === 'dark') {
+                // 黑夜模式 - 设置深色背景和白色文字
+                content.style.background = 'rgba(40, 40, 60, 0.95)';
+                
+                // 设置所有文字为白色
+                const allTextElements = content.querySelectorAll('h2, span, div, p, button, label, li');
+                allTextElements.forEach(el => {
+                    el.style.color = '#FFFFFF';
+                });
+                
+                // 队伍载具计数区域 - 浅色背景黑色文字
+                if (teamVehicleCount) {
+                    const parentSpan = teamVehicleCount.parentElement;
+                    const grandParentDiv = parentSpan ? parentSpan.parentElement : null;
+                    if (grandParentDiv) {
+                        grandParentDiv.style.background = '#f5f5f5';
+                        grandParentDiv.style.color = '#000000';
+                        parentSpan.style.setProperty('color', '#000000', 'important');
+                        teamVehicleCount.style.setProperty('color', '#000000', 'important');
+                    }
+                }
+            } else {
+                // 白天模式 - 恢复默认样式
+                content.style.background = 'white';
+                
+                const allTextElements = content.querySelectorAll('h2, span, div, p, button, label, li');
+                allTextElements.forEach(el => {
+                    el.style.color = '';
+                });
+                
+                if (teamVehicleCount) {
+                    const parentSpan = teamVehicleCount.parentElement;
+                    const grandParentDiv = parentSpan ? parentSpan.parentElement : null;
+                    if (grandParentDiv) {
+                        grandParentDiv.style.background = '#f5f5f5';
+                        grandParentDiv.style.color = '#666';
+                        parentSpan.style.color = '#666';
+                        teamVehicleCount.style.color = '#666';
+                    }
+                }
+            }
+        }
+
+        let isDragging = false;
+        let dragOffsetX = 0;
+        let dragOffsetY = 0;
+
+        function initDrag() {
+            const header = document.getElementById('teamConfigHeader');
+            const content = document.getElementById('teamConfigContent');
+            
+            header.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                const rect = content.getBoundingClientRect();
+                dragOffsetX = e.clientX - rect.left;
+                dragOffsetY = e.clientY - rect.top;
+                
+                document.addEventListener('mousemove', onDrag);
+                document.addEventListener('mouseup', stopDrag);
+            });
+        }
+
+        function onDrag(e) {
+            if (!isDragging) return;
+            
+            const content = document.getElementById('teamConfigContent');
+            const modal = document.getElementById('teamConfigModal');
+            
+            let newX = e.clientX - dragOffsetX;
+            let newY = e.clientY - dragOffsetY;
+            
+            const maxX = modal.clientWidth - content.offsetWidth;
+            const maxY = modal.clientHeight - content.offsetHeight;
+            
+            newX = Math.max(0, Math.min(newX, maxX));
+            newY = Math.max(0, Math.min(newY, maxY));
+            
+            content.style.left = newX + 'px';
+            content.style.top = newY + 'px';
+            content.style.transform = 'none';
+        }
+
+        function stopDrag() {
+            isDragging = false;
+            document.removeEventListener('mousemove', onDrag);
+            document.removeEventListener('mouseup', stopDrag);
+        }
+
+        function renderTeamConfigList() {
+            const list = document.getElementById('teamConfigList');
+            const owned = getOwnedItems();
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const theme = localStorage.getItem('currentTheme') || 'light';
+            
+            // 根据主题设置颜色
+            const textColor = theme === 'dark' ? '#FFFFFF' : '#333';
+            const emptyColor = theme === 'dark' ? '#888' : '#ccc';
+            
+            // 过滤有效载具并限制数量为2
+            let teamVehicles = (teamSettings.vehicles || []).filter(id => id && id.trim() !== '');
+            const validVehicleIds = ['vehicle_8', 'vehicle_19'];
+            teamVehicles = teamVehicles.filter(v => validVehicleIds.includes(v) && (owned[v] || 0) > 0).slice(0, 2);
+            
+            // 如果队伍配置有变化，保存回去
+            if (teamVehicles.length !== (teamSettings.vehicles || []).length) {
+                teamSettings.vehicles = teamVehicles;
+                localStorage.setItem('vehicleTeamSettings', JSON.stringify(teamSettings));
+            }
+            
+            let html = '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">';
+            for (let i = 0; i < 2; i++) {
+                const vehicleId = teamVehicles[i];
+                if (vehicleId) {
+                    const vehicle = shopItems.find(item => item.id === vehicleId);
+                    if (vehicle) {
+                        html += `
+                            <div class="team-slot filled" data-slot="${i}" onclick="removeVehicleFromTeam(${i})" style="border: 2px solid #4CAF50; border-radius: 10px; padding: 10px; text-align: center; background: rgba(76, 175, 80, 0.1); cursor: pointer; position: relative;">
+                                <div style="position: absolute; top: -8px; right: -8px; background: #e74c3c; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 20px;">×</div>
+                                <i class="fas fa-${vehicle.icon}" style="font-size: 24px; color: #D2B48C; margin-bottom: 5px;"></i>
+                                <div style="font-size: 11px; color: ${textColor}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${vehicle.name}</div>
+                            </div>
+                        `;
+                    } else {
+                        html += `<div class="team-slot empty" data-slot="${i}" onclick="openSelectVehicle(${i})" style="border: 2px dashed ${emptyColor}; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; min-height: 60px; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-plus" style="font-size: 20px; color: ${emptyColor};"></i>
+                        </div>`;
+                    }
+                } else {
+                    html += `<div class="team-slot empty" data-slot="${i}" onclick="openSelectVehicle(${i})" style="border: 2px dashed ${emptyColor}; border-radius: 10px; padding: 10px; text-align: center; cursor: pointer; min-height: 60px; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-plus" style="font-size: 20px; color: ${emptyColor};"></i>
+                    </div>`;
+                }
+            }
+            html += '</div>';
+            
+            list.innerHTML = html;
+            updateTeamVehicleCount();
+        }
+
+        function updateTeamVehicleCount() {
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const count = (teamSettings.vehicles || []).filter(id => id && id.trim() !== '').length;
+            document.getElementById('teamVehicleCount').textContent = count;
+        }
+
+        function openSelectVehicle(slotIndex) {
+            const modal = document.getElementById('selectVehicleModal');
+            modal.style.display = 'flex';
+            currentTeamSlot = slotIndex;
+            renderVehicleSelectList(slotIndex);
+        }
+
+        let currentTeamSlot = -1;
+
+        function closeSelectVehicle() {
+            const modal = document.getElementById('selectVehicleModal');
+            modal.style.display = 'none';
+            currentTeamSlot = -1;
+        }
+
+        function renderVehicleSelectList(slotIndex) {
+            const list = document.getElementById('vehicleSelectList');
+            const owned = getOwnedItems();
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const selectedIds = (teamSettings.vehicles || []).filter(id => id && id.trim() !== '');
+            const theme = localStorage.getItem('currentTheme') || 'light';
+            
+            // 根据主题设置颜色
+            const textColor = theme === 'dark' ? '#FFFFFF' : '#333';
+            const disabledTextColor = theme === 'dark' ? '#888' : '#999';
+            const borderColor = theme === 'dark' ? '#555' : '#ddd';
+            const disabledBg = theme === 'dark' ? 'rgba(80, 80, 100, 0.5)' : '#f5f5f5';
+            const disabledBorder = theme === 'dark' ? '#555' : '#ddd';
+            const emptyColor = theme === 'dark' ? '#888' : '#666';
+            
+            const ownedVehicles = shopItems.filter(item => 
+                item.category === 'vehicle' && 
+                (owned[item.id] || 0) > 0
+            );
+            
+            if (ownedVehicles.length === 0) {
+                list.innerHTML = `<p style="text-align: center; color: ${emptyColor};">暂无拥有的载具</p>`;
+                return;
+            }
+            
+            let html = '<div style="display: flex; flex-direction: column; gap: 8px;">';
+            ownedVehicles.forEach(vehicle => {
+                const isSelected = selectedIds.includes(vehicle.id);
+                const disabledStyle = isSelected ? `background: ${disabledBg}; border-color: ${disabledBorder}; opacity: 0.6;` : '';
+                html += `
+                    <div class="vehicle-option" onclick="${isSelected ? '' : `selectVehicleForTeam('${vehicle.id}')`}" style="padding: 10px; border: 1px solid ${borderColor}; border-radius: 8px; cursor: ${isSelected ? 'not-allowed' : 'pointer'}; display: flex; align-items: center; gap: 10px; transition: all 0.2s; ${disabledStyle}">
+                        <i class="fas fa-${vehicle.icon}" style="color: ${isSelected ? disabledTextColor : '#D2B48C'};"></i>
+                        <span style="color: ${isSelected ? disabledTextColor : textColor}; font-weight: bold;">${vehicle.name}</span>
+                        ${isSelected ? `<span style="margin-left: auto; font-size: 12px; color: ${disabledTextColor};">已添加</span>` : ''}
+                    </div>
+                `;
+            });
+            html += '</div>';
+            
+            if (selectedIds.length >= 2) {
+                html += `<p style="margin-top: 10px; text-align: center; color: ${emptyColor}; font-size: 12px;">队伍已满（2/2），请移除现有载具后再添加</p>`;
+            }
+            
+            list.innerHTML = html;
+        }
+
+        function selectVehicleForTeam(vehicleId) {
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const validVehicles = (teamSettings.vehicles || []).filter(id => id && id.trim() !== '');
+            if (validVehicles.length >= 2) {
+                return;
+            }
+            if (!validVehicles.includes(vehicleId)) {
+                validVehicles.push(vehicleId);
+            }
+            teamSettings.vehicles = validVehicles.slice(0, 2);
+            localStorage.setItem('vehicleTeamSettings', JSON.stringify(teamSettings));
+            closeSelectVehicle();
+            renderTeamConfigList();
+        }
+
+        function removeVehicleFromTeam(slotIndex) {
+            const teamSettings = JSON.parse(localStorage.getItem('vehicleTeamSettings')) || { vehicles: [] };
+            const vehicles = teamSettings.vehicles || [];
+            vehicles.splice(slotIndex, 1);
+            teamSettings.vehicles = vehicles;
+            localStorage.setItem('vehicleTeamSettings', JSON.stringify(teamSettings));
+            renderTeamConfigList();
+        }
+
+        function saveTeamConfig() {
+            closeTeamConfig();
+            showCustomAlert('载具队伍配置已保存！', 'success');
+        }
+    </script>
+    <style>
+        .owned { color: #4CAF50; font-weight: bold; }
+        .use-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .use-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .use-btn:hover:not(:disabled) { background: #45a049; }
+        
+        .destroy-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .destroy-btn:disabled { background: #ccc; cursor: not-allowed; }
+        .destroy-btn:hover:not(:disabled) { background: #c0392b; }
+        
+        .shop-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 16px;
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid #B8860B;
+            border-radius: 20px;
+            cursor: pointer;
+            color: #B8860B;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+        }
+        .shop-btn:hover {
+            background: rgba(255, 193, 7, 0.3);
+            transform: scale(1.05);
+        }
+        .shop-btn i { margin-right: 4px; }
+
+        .config-btn {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 16px;
+            background: rgba(33, 150, 243, 0.2);
+            border: 1px solid #2196F3;
+            border-radius: 20px;
+            cursor: pointer;
+            color: #2196F3;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            margin-right: 15px;
+        }
+        .config-btn:hover {
+            background: rgba(33, 150, 243, 0.3);
+            transform: scale(1.05);
+        }
+        .config-btn i { margin-right: 4px; }
+    </style>
+    <script>
+        function applyPageBackground(pageName) {
+            const pageBackgrounds = JSON.parse(localStorage.getItem('pageBackgrounds')) || {};
+            if (pageBackgrounds[pageName]) {
+                document.body.style.background = `url(${pageBackgrounds[pageName]}) center/cover no-repeat fixed`;
+            } else {
+                document.body.style.background = 'linear-gradient(180deg, #4AB8A0 0%, #000000 100%)';
+            }
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+            applyPageBackground('warehouse');
+        });
+    </script>
+</body>
+</html>

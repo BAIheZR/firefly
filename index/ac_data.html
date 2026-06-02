@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>战绩总和</title>
+    <link rel="icon" href="../img/handHap.png" type="image/png">
+    <link rel="stylesheet" href="../resource/font-awesome.css">
+    <script src="js/core/theme.js" type="text/javascript"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #4AB8A0 0%, #000000 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .stats-section {
+            margin-bottom: 40px;
+        }
+
+        .stats-title {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-icon {
+            font-size: 36px;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .battles-section {
+            margin-bottom: 40px;
+        }
+
+        .battles-title {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .battles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .battle-card {
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .battle-card:hover {
+            transform: scale(1.02);
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+        
+        .modal-emoji-left {
+            position: absolute;
+            top: -15px;
+            left: -15px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+        
+        .modal-emoji-right {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .modal-body {
+            margin-bottom: 20px;
+        }
+
+        .modal-footer {
+            text-align: center;
+        }
+
+        .close-modal-button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .close-modal-button:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .back-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            padding: 10px 20px;
+            background: #61c4ae;
+            color: white;
+            border: 2px solid gold;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            background: #53bea7;
+            color: rgb(0, 0, 0);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .battles-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .stat-value {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="inMaxNineUI.html" class="back-button">
+        <i class="fas fa-arrow-left" style="color: #D2B48C;"></i> 返回
+    </a>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-trophy" style="color: #D2B48C;"></i> 战绩总和</h1>
+            <p>查看您的游戏统计数据和最近战斗记录</p>
+        </div>
+
+        <div class="stats-section" style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <!-- 左侧统计数据 -->
+            <div style="flex: 1; min-width: 300px;">
+                <h2 class="stats-title"><i class="fas fa-chart-bar" style="color: #D2B48C;"></i> 统计数据</h2>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-gamepad" style="color: #D2B48C;"></i></div>
+                        <div class="stat-value" id="totalGames">0</div>
+                        <div class="stat-label">总场数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-clock" style="color: #D2B48C;"></i></div>
+                        <div class="stat-value" id="totalTime">0h 0m 0s</div>
+                        <div class="stat-label">存活时间</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-skull" style="color: #D2B48C;"></i></div>
+                        <div class="stat-value" id="totalKills">0</div>
+                        <div class="stat-label">总击杀</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-heartbeat" style="color: #D2B48C;"></i></div>
+                        <div class="stat-value" id="totalDamage">0</div>
+                        <div class="stat-label">总伤害</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon"><i class="fas fa-coins" style="color: #D2B48C;"></i></div>
+                        <div class="stat-value" id="totalCurrency">0</div>
+                        <div class="stat-label">总货币获取</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧胜率分布 -->
+            <div style="flex: 1; min-width: 300px;">
+                <h2 class="stats-title"><i class="fas fa-chart-pie" style="color: #D2B48C;"></i> 胜率分布</h2>
+                <div style="display: flex; justify-content: center; align-items: center; background: rgba(255, 255, 255, 0.8); border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); padding: 30px; height: 100%; min-height: 300px;">
+                    <div style="text-align: center;">
+                        <canvas id="winRateChart" width="200" height="200"></canvas>
+                        <div style="margin-top: 20px; display: flex; justify-content: center; gap: 20px;">
+                            <div style="display: flex; align-items: center;">
+                                <div style="width: 15px; height: 15px; background-color: #2b7c64; border-radius: 50%; margin-right: 5px;"></div>
+                                <span>胜利场次</span>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <div style="width: 15px; height: 15px; background-color: #c25b4a; border-radius: 50%; margin-right: 5px;"></div>
+                                <span>失败场次</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 单场最高记录 -->
+        <div class="max-records-section" style="margin-top: 50px;">
+            <h2 class="stats-title"><i class="fas fa-trophy" style="color: #D2B48C;"></i> 巅峰记录</h2>
+            <div style="background: rgba(255, 255, 255, 0.8); border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1); padding: 30px;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 24px; color: #D2B48C;"><i class="fas fa-crosshairs"></i></div>
+                        <div>
+                            <div style="font-size: 14px; color: #666;">单场最高击杀</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #333;" id="maxKills">0</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 24px; color: #D2B48C;"><i class="fas fa-clock"></i></div>
+                        <div>
+                            <div style="font-size: 14px; color: #666;">单场最高存活时间</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #333;" id="maxSurvivalTime">0</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 24px; color: #D2B48C;"><i class="fas fa-coins"></i></div>
+                        <div>
+                            <div style="font-size: 14px; color: #666;">单场最高货币获取</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #333;" id="maxCurrency">0</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <div style="font-size: 24px; color: #D2B48C;"><i class="fas fa-bolt"></i></div>
+                        <div>
+                            <div style="font-size: 14px; color: #666;">单场最高伤害</div>
+                            <div style="font-size: 18px; font-weight: bold; color: #333;" id="maxDamage">0</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="battles-section">
+            <h2 class="battles-title"><i class="fas fa-history" style="color: #D2B48C;"></i> 最近战斗</h2>
+            <div class="battles-grid" id="battlesGrid">
+                <!-- 战斗简报卡片将通过JavaScript动态添加 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 详细信息模态框 -->
+    <div class="modal" id="battleDetailModal">
+        <div class="modal-content">
+            <img src="../img/key/Mtk.webp" class="modal-emoji-left">
+            <img src="../img/key/dt.gif" class="modal-emoji-right">
+            <div class="modal-header">
+                <h2>战斗详情</h2>
+                <button class="close-button" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- 战斗详情将通过JavaScript动态添加 -->
+            </div>
+            <div class="modal-footer">
+                <button class="close-modal-button" onclick="closeModal()">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入战斗简报卡片组件 -->
+    <script src="js/component/win_lo.js"></script>
+
+    <script>
+        // 从localStorage获取战斗数据，如果没有则使用空数组
+        let battles = JSON.parse(localStorage.getItem('battleData')) || [];
+
+        // 保存战斗数据到localStorage
+        localStorage.setItem('battleData', JSON.stringify(battles));
+
+        // 计算统计数据
+        function calculateStats() {
+            let totalGames = battles.length;
+            let totalMinutes = 0;
+            let totalKills = 0;
+            let totalDamage = 0;
+            let totalCurrency = 0;
+            let maxKills = 0;
+            let maxSurvivalTime = 0;
+            let maxCurrency = 0;
+            let maxDamage = 0;
+            let totalSeconds = 0;
+
+            battles.forEach(battle => {
+                // 计算总时间（兼容新格式的survivalTime和旧格式的time）
+                let minutes = 0;
+                let seconds = 0;
+                if (battle.survivalTime !== undefined) {
+                    // 新格式：直接使用survivalTime（秒）
+                    seconds = battle.survivalTime;
+                    minutes = Math.floor(seconds / 60);
+                    seconds = seconds % 60;
+                } else {
+                    // 旧格式：解析time字符串
+                    const timeParts = battle.time.split('m');
+                    minutes = parseInt(timeParts[0]);
+                    seconds = parseInt(timeParts[1].replace('s', ''));
+                }
+                
+                totalMinutes += minutes;
+                totalSeconds += seconds;
+                const battleMinutes = minutes + seconds / 60;
+
+                // 计算最高存活时间
+                if (battleMinutes > maxSurvivalTime) {
+                    maxSurvivalTime = battleMinutes;
+                }
+
+                // 计算总击杀（兼容killCount和kills）
+                const killCount = battle.killCount || battle.kills || 0;
+                totalKills += killCount;
+                // 计算最高击杀
+                if (killCount > maxKills) {
+                    maxKills = killCount;
+                }
+
+                // 计算总伤害（兼容新数据）
+                const damage = battle.damage || 0;
+                totalDamage += damage;
+                // 计算最高伤害
+                if (damage > maxDamage) {
+                    maxDamage = damage;
+                }
+
+                // 计算总货币和最高货币（兼容新数据格式）
+                const battleCurrency = typeof battle.currency === 'number' ? battle.currency : parseInt(battle.currency.replace(',', '')) || 0;
+                totalCurrency += battleCurrency;
+                if (battleCurrency > maxCurrency) {
+                    maxCurrency = battleCurrency;
+                }
+            });
+
+            // 处理秒数进位
+            totalMinutes += Math.floor(totalSeconds / 60);
+            totalSeconds = totalSeconds % 60;
+
+            // 格式化时间
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = Math.floor(totalMinutes % 60);
+            const formattedTime = `${hours}h ${minutes}m ${totalSeconds}s`;
+
+            // 格式化货币
+            const formattedCurrency = totalCurrency.toLocaleString();
+
+            // 更新统计卡片
+            document.getElementById('totalGames').textContent = totalGames;
+            document.getElementById('totalTime').textContent = formattedTime;
+            document.getElementById('totalKills').textContent = totalKills;
+            document.getElementById('totalDamage').textContent = totalDamage;
+            document.getElementById('totalCurrency').textContent = formattedCurrency;
+            
+            // 更新单场最高记录
+            document.getElementById('maxKills').textContent = maxKills;
+            document.getElementById('maxSurvivalTime').textContent = `${Math.floor(maxSurvivalTime)}m ${Math.floor((maxSurvivalTime % 1) * 60)}s`;
+            document.getElementById('maxCurrency').textContent = maxCurrency.toLocaleString();
+            document.getElementById('maxDamage').textContent = maxDamage;
+            
+            // 绘制胜率分布图
+            drawWinRateChart();
+        }
+        
+        // 绘制胜率分布环形图
+        function drawWinRateChart() {
+            const canvas = document.getElementById('winRateChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 计算胜利和失败场次（只有玩家主动结束才算胜利）
+            // 兼容新格式'win'/'lose'和旧格式'胜利'/'失败'
+            const winCount = battles.filter(battle => 
+                battle.result === '胜利' || battle.result === 'win' || battle.isPlayerQuit
+            ).length;
+            const loseCount = battles.filter(battle => 
+                battle.result === '失败' || battle.result === 'lose' && !battle.isPlayerQuit
+            ).length;
+            const total = winCount + loseCount;
+            
+            if (total === 0) {
+                // 没有数据时显示提示
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#333';
+                ctx.textAlign = 'center';
+                ctx.fillText('暂无数据', canvas.width / 2, canvas.height / 2);
+                return;
+            }
+            
+            // 计算胜率
+            const winRate = (winCount / total) * 100;
+            
+            // 绘制环形图
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = 80;
+            const lineWidth = 20;
+            
+            // 绘制背景圆环
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+            ctx.lineWidth = lineWidth;
+            ctx.strokeStyle = '#e0e0e0';
+            ctx.stroke();
+            
+            // 绘制胜利部分
+            const winAngle = (winRate / 100) * 2 * Math.PI;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + winAngle);
+            ctx.lineWidth = lineWidth;
+            ctx.strokeStyle = '#2b7c64';
+            ctx.stroke();
+            
+            // 绘制失败部分
+            if (loseCount > 0) {
+                const loseAngle = ((100 - winRate) / 100) * 2 * Math.PI;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, -Math.PI / 2 + winAngle, -Math.PI / 2 + winAngle + loseAngle);
+                ctx.lineWidth = lineWidth;
+                ctx.strokeStyle = '#c25b4a';
+                ctx.stroke();
+            }
+            
+            // 绘制中心文字
+            ctx.font = '24px Arial';
+            ctx.fillStyle = '#333';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${winRate.toFixed(1)}%`, centerX, centerY + 8);
+            ctx.font = '14px Arial';
+            ctx.fillText('胜率', centerX, centerY + 30);
+        }
+
+        // 渲染战斗简报卡片
+        function renderBattleCards() {
+            const battlesGrid = document.getElementById('battlesGrid');
+            battlesGrid.innerHTML = '';
+
+            // 检查是否有战斗数据
+            if (battles.length === 0) {
+                // 显示无游玩记录提示
+                battlesGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; background: rgba(255, 255, 255, 0.8); border-radius: 15px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);">
+                        <h2 style="color: #333; font-size: 24px; margin-bottom: 10px;">当前还没有游玩记录</h2>
+                        <p style="color: #666; font-size: 16px;">开始游戏，创建您的第一条战斗记录吧！</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // 最多显示30场战斗
+            const recentBattles = battles.slice(0, 30);
+
+            recentBattles.forEach(battle => {
+                const battleCard = document.createElement('div');
+                battleCard.className = 'battle-card';
+                battleCard.onclick = () => showBattleDetail(battle);
+
+                // 将vehicles数组转换为载具名称列表字符串传递给组件
+                let vehiclesAttr = '';
+                if (battle.vehicles) {
+                    if (Array.isArray(battle.vehicles)) {
+                        // 新格式：提取载具名称列表
+                        vehiclesAttr = battle.vehicles.map(v => v.name || v.id).join(',');
+                    } else if (typeof battle.vehicles === 'string') {
+                        // 旧格式：直接使用字符串
+                        vehiclesAttr = battle.vehicles;
+                    }
+                }
+                
+                battleCard.innerHTML = `
+                    <win-lo-card 
+                        result="${battle.result}" 
+                        time="${battle.time}" 
+                        currency="${typeof battle.currency === 'number' ? battle.currency : battle.currency}" 
+                        mode="${battle.mode}"
+                        vehicles="${vehiclesAttr}"
+                    ></win-lo-card>
+                `;
+
+                battlesGrid.appendChild(battleCard);
+            });
+        }
+
+        // 显示战斗详情
+        function showBattleDetail(battle) {
+            const modal = document.getElementById('battleDetailModal');
+            const modalBody = document.getElementById('modalBody');
+
+            // 载具名称映射
+            const vehicleNames = {
+                'vehicle_1': 'T-80BVM',
+                'vehicle_2': 'T90M',
+                'vehicle_3': 'T-72B3A',
+                'vehicle_4': '豹2A7V',
+                'vehicle_5': 'M1A2',
+                'vehicle_6': 'M3A3布兰德利',
+                'vehicle_7': '挑战者2',
+                'vehicle_8': 'PzH2000',
+                'vehicle_9': 'PLZ-05',
+                'vehicle_10': 'EF2000',
+                'vehicle_11': 'F-15E',
+                'vehicle_12': 'Su-30SM',
+                'vehicle_13': 'J-15T',
+                'vehicle_14': 'J-11B',
+                'vehicle_15': 'J-10C',
+                'vehicle_16': 'JAS-39C',
+                'vehicle_17': '阵风',
+                'vehicle_18': 'F-16I',
+                'vehicle_19': 'A-10C',
+                'vehicle_20': 'AC-130'
+            };
+
+            // 载具图片路径映射
+            const vehicleImages = {
+                'vehicle_1': '../img/card_img/tank/t80bvm.png',
+                'vehicle_2': '../img/card_img/tank/t90m.png',
+                'vehicle_3': '../img/card_img/tank/t72b3a.png',
+                'vehicle_4': '../img/card_img/tank/l2a7v.png',
+                'vehicle_5': '../img/card_img/tank/m1a2.png',
+                'vehicle_6': '../img/card_img/tank/m3a3.png',
+                'vehicle_7': '../img/card_img/tank/tiao2.png',
+                'vehicle_8': '../img/card_img/tank/pzh2000.png',
+                'vehicle_9': '../img/card_img/tank/plz05.png',
+                'vehicle_10': '../img/card_img/plant/ef2000.png',
+                'vehicle_11': '../img/card_img/plant/f15e.png',
+                'vehicle_12': '../img/card_img/plant/su30sm.png',
+                'vehicle_13': '../img/card_img/plant/j15t.png',
+                'vehicle_14': '../img/card_img/plant/j11b.png',
+                'vehicle_15': '../img/card_img/plant/j10c.png',
+                'vehicle_16': '../img/card_img/plant/jas39c.png',
+                'vehicle_17': '../img/card_img/plant/rafale.png',
+                'vehicle_18': '../img/card_img/plant/f16i.png',
+                'vehicle_19': '../img/card_img/plant/a10c.png',
+                'vehicle_20': '../img/card_img/plant/ac130.png'
+            };
+
+            // 弹药名称映射
+            const ammoNames = {
+                'ammo_1': '钢针弹',
+                'ammo_2': '高爆弹',
+                'ammo_3': '钢针弹(低伤)',
+                'ammo_4': '导弹',
+                'ammo_5': '火炮高爆弹',
+                'ammo_6': 'SPACE250',
+                'ammo_7': 'GBU-39',
+                'ammo_8': '小牛导弹',
+                'ammo_9': 'KH-29',
+                'ammo_10': '雷石导弹',
+                'ammo_11': '铁锤导弹',
+                'ammo_12': '130专供包'
+            };
+
+            // 渲染载具队列（兼容新格式数组和旧格式字符串）
+            let vehiclesHtml = '<p><strong>载具队列：</strong></p>';
+            if (battle.vehicles) {
+                if (Array.isArray(battle.vehicles)) {
+                    // 新格式：数组包含详细信息
+                    vehiclesHtml += '<div style="margin-left: 10px;">';
+                    battle.vehicles.forEach((vehicle, index) => {
+                        // 获取图片路径
+                        const imagePath = vehicle.image || vehicleImages[vehicle.id] || '';
+                        const imgTag = imagePath ? `<img src="${imagePath}" style="width: 32px; height: 32px; border-radius: 4px; margin-right: 8px; vertical-align: middle;" />` : '';
+                        
+                        vehiclesHtml += `
+                            <div style="background: rgba(210, 180, 140, 0.2); padding: 8px; border-radius: 8px; margin-bottom: 5px;">
+                                <span style="font-weight: bold;">${index + 1}. ${imgTag}${vehicle.name}</span>
+                                <div style="margin-top: 4px; margin-left: 10px; font-size: 12px;">
+                                    <strong>弹药：</strong>
+                                    ${vehicle.ammo.map(a => `${a.name} (${a.count})`).join(', ')}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    vehiclesHtml += '</div>';
+                } else {
+                    // 旧格式：字符串
+                    const vehicleList = battle.vehicles.split(',');
+                    vehiclesHtml += '<div style="margin-left: 10px;">';
+                    vehicleList.forEach((v, index) => {
+                        const imagePath = vehicleImages[v] || '';
+                        const imgTag = imagePath ? `<img src="${imagePath}" style="width: 24px; height: 24px; border-radius: 4px; margin-right: 6px; vertical-align: middle;" />` : '';
+                        vehiclesHtml += `<div style="background: #D2B48C; padding: 4px 8px; border-radius: 8px; margin: 2px; display: inline-flex; align-items: center; font-size: 12px;">${index + 1}. ${imgTag}${vehicleNames[v] || v}</div>`;
+                    });
+                    vehiclesHtml += '</div>';
+                }
+            } else {
+                vehiclesHtml += '<p style="color: #999; margin-left: 10px;">未记录</p>';
+            }
+
+            // 渲染弹药使用（只显示实际使用过的弹药）
+            let ammoHtml = '<p><strong>弹药使用：</strong></p>';
+            if (battle.ammoUsed && Array.isArray(battle.ammoUsed) && battle.ammoUsed.length > 0) {
+                // 新格式：直接使用ammoUsed数组（实际使用的弹药）
+                ammoHtml += '<div style="margin-left: 10px;">';
+                battle.ammoUsed.forEach(ammo => {
+                    ammoHtml += `<span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 8px; margin: 2px; display: inline-block; font-size: 12px;">${ammo.name} x${ammo.count}</span>`;
+                });
+                ammoHtml += '</div>';
+            } else if (battle.ammo) {
+                // 旧格式：逗号分隔字符串
+                const ammoList = battle.ammo.split(',');
+                if (ammoList.length > 0 && ammoList[0] !== '') {
+                    ammoHtml += '<div style="margin-left: 10px;">';
+                    ammoList.forEach(a => {
+                        const [id, count] = a.split(':');
+                        ammoHtml += `<span style="background: #667eea; color: white; padding: 2px 8px; border-radius: 8px; margin: 2px; display: inline-block; font-size: 12px;">${ammoNames[id] || id} x${count}</span>`;
+                    });
+                    ammoHtml += '</div>';
+                } else {
+                    ammoHtml += '<p style="color: #999; margin-left: 10px;">没有</p>';
+                }
+            } else {
+                // 没有记录任何弹药使用
+                ammoHtml += '<p style="color: #999; margin-left: 10px;">没有</p>';
+            }
+
+            // 格式化日期
+            const date = battle.timestamp ? new Date(battle.timestamp) : new Date();
+            const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+            
+            // 兼容新格式和旧格式
+            const killCount = battle.killCount || battle.kills || 0;
+            const vehicleKills = battle.vehicleKillCount || 0;
+            const totalKills = killCount + vehicleKills;
+            
+            // 获取结果显示（兼容新格式'win'/'lose'和旧格式'胜利'/'失败'）
+            const displayResult = battle.result === 'win' || battle.isPlayerQuit ? '胜利' : (battle.result === 'lose' ? '失败' : battle.result);
+            const resultColor = displayResult === '胜利' ? '#2b7c64' : '#c25b4a';
+            
+            modalBody.innerHTML = `
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div>
+                        <h3>基本信息</h3>
+                        <p><strong>结果：</strong><span style="color: ${resultColor};">${displayResult}</span></p>
+                        <p><strong>时长：</strong>${battle.time}</p>
+                        <p><strong>模式：</strong>${battle.mode}</p>
+                        <p><strong>日期：</strong>${dateStr}</p>
+                    </div>
+                    <div>
+                        <h3>详细数据</h3>
+                        <p><strong>击杀：</strong>${totalKills} (玩家: ${killCount}, 载具: ${vehicleKills})</p>
+                        <p><strong>伤害：</strong>${battle.damage || 0}</p>
+                        <p><strong>货币获取：</strong>${typeof battle.currency === 'number' ? battle.currency : battle.currency || 0}</p>
+                        <p><strong>侵蚀等级：</strong>${battle.entropyLevel || 0}</p>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                    <h3>战斗配置</h3>
+                    ${vehiclesHtml}
+                    ${ammoHtml}
+                </div>
+            `;
+
+            modal.style.display = 'flex';
+        }
+
+        // 关闭模态框
+        function closeModal() {
+            document.getElementById('battleDetailModal').style.display = 'none';
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            calculateStats();
+            renderBattleCards();
+        };
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('battleDetailModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+
+        // 创建新的战斗记录
+        function createNewBattle() {
+            // 生成随机战斗数据
+            const results = ['胜利', '失败'];
+            const modes = ['排位赛', '休闲赛', '团队赛'];
+            const allVehicles = ['vehicle_1', 'vehicle_2', 'vehicle_3', 'vehicle_4', 'vehicle_5', 'vehicle_6', 'vehicle_7', 'vehicle_8', 'vehicle_9', 'vehicle_10', 'vehicle_11', 'vehicle_12', 'vehicle_13', 'vehicle_14', 'vehicle_15', 'vehicle_16', 'vehicle_17', 'vehicle_18', 'vehicle_19'];
+            const allAmmo = ['ammo_1', 'ammo_2', 'ammo_3', 'ammo_4', 'ammo_5', 'ammo_6', 'ammo_7', 'ammo_8', 'ammo_9', 'ammo_10', 'ammo_11'];
+            
+            // 随机选择2-5个载具（最多5辆）
+            const shuffledVehicles = allVehicles.sort(() => Math.random() - 0.5);
+            const vehicleCount = Math.floor(Math.random() * 4) + 2;
+            const selectedVehicles = shuffledVehicles.slice(0, vehicleCount).join(',');
+            
+            // 随机选择弹药及数量
+            const shuffledAmmo = allAmmo.sort(() => Math.random() - 0.5);
+            const ammoCount = Math.floor(Math.random() * 2) + 1;
+            const selectedAmmo = shuffledAmmo.slice(0, ammoCount).map(a => `${a}:${Math.floor(Math.random() * 50) + 10}`).join(',');
+            
+            const newBattle = {
+                id: battles.length + 1,
+                result: results[Math.floor(Math.random() * results.length)],
+                time: `${Math.floor(Math.random() * 30) + 10}m${Math.floor(Math.random() * 60)}s`,
+                currency: (Math.floor(Math.random() * 300000) + 200000).toLocaleString(),
+                mode: modes[Math.floor(Math.random() * modes.length)],
+                kills: Math.floor(Math.random() * 25) + 5,
+                damage: Math.floor(Math.random() * 15000) + 5000,
+                date: new Date().toLocaleString('zh-CN'),
+                vehicles: selectedVehicles,
+                ammo: selectedAmmo
+            };
+
+            // 添加到战斗数组
+            battles.unshift(newBattle);
+
+            // 保存到localStorage
+            localStorage.setItem('battleData', JSON.stringify(battles));
+
+            // 重新计算统计数据
+            calculateStats();
+
+            // 重新渲染战斗卡片
+            renderBattleCards();
+        }
+
+        function applyPageBackground(pageName) {
+            const pageBackgrounds = JSON.parse(localStorage.getItem('pageBackgrounds')) || {};
+            if (pageBackgrounds[pageName]) {
+                document.body.style.background = `url(${pageBackgrounds[pageName]}) center/cover no-repeat fixed`;
+            } else {
+                document.body.style.background = 'linear-gradient(180deg, #4AB8A0 0%, #000000 100%)';
+            }
+        }
+        window.addEventListener('DOMContentLoaded', function() {
+            applyPageBackground('ac_data');
+        });
+    </script>
+</body>
+</html>
