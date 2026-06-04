@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-height, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, orientation=landscape">
     <title>流萤·共生协议 | 精准时计·进化射击</title>
     <style>
         * {
@@ -32,6 +32,15 @@
             background: radial-gradient(circle at 20% 30%, #010101, #03050b);
         }
 
+        /* 横屏容器 */
+        .landscape-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         .game-wrapper {
             background: rgba(0, 5, 10, 0.7);
             backdrop-filter: blur(12px);
@@ -39,6 +48,42 @@
             padding: 1rem;
             box-shadow: 0 30px 45px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.1);
             border: 1px solid rgba(80, 210, 160, 0.7);
+        }
+
+        /* 移动端强制横屏 */
+        @media (max-width: 768px) and (orientation: portrait) {
+            body {
+                width: 100vh;
+                height: 100vw;
+                overflow: hidden;
+                padding: 0;
+            }
+
+            .landscape-container {
+                width: 100vh;
+                height: 100vw;
+                transform: rotate(90deg);
+                transform-origin: center center;
+                position: fixed;
+                top: 0;
+                left: 0;
+            }
+
+            .game-wrapper {
+                padding: 0.5rem;
+                border-radius: 1.5rem;
+            }
+        }
+
+        @media (max-width: 768px) and (orientation: landscape) {
+            body {
+                padding: 10px;
+            }
+
+            .game-wrapper {
+                padding: 0.5rem;
+                border-radius: 1rem;
+            }
         }
 
         canvas {
@@ -384,6 +429,200 @@
             }
         }
         
+        /* 移动端虚拟控制 */
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(180deg, transparent, rgba(0,5,15,0.9));
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: block;
+            }
+
+            .controls-tip {
+                display: none;
+            }
+        }
+
+        /* 虚拟摇杆 */
+        .joystick-container {
+            position: absolute;
+            left: 20px;
+            bottom: 20px;
+            width: 110px;
+            height: 110px;
+            pointer-events: auto;
+        }
+
+        .joystick-base {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(80, 210, 160, 0.3);
+            border-radius: 50%;
+            border: 2px solid rgba(80, 210, 160, 0.6);
+        }
+
+        .joystick-stick {
+            position: absolute;
+            width: 45px;
+            height: 45px;
+            background: rgba(80, 210, 160, 0.8);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px rgba(80, 210, 160, 0.5);
+            transition: background 0.2s;
+        }
+
+        .joystick-stick.active {
+            background: rgba(80, 210, 160, 1);
+        }
+
+        /* 移动端按钮 */
+        .mobile-buttons {
+            position: absolute;
+            right: 20px;
+            bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: auto;
+        }
+
+        .mobile-btn {
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .mobile-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .btn-shoot {
+            background: linear-gradient(145deg, #50d2a0, #2a9a7a);
+            width: 80px;
+            height: 80px;
+            font-size: 20px;
+        }
+
+        .btn-vehicle1 {
+            background: linear-gradient(145deg, #ff6b6b, #cc4444);
+        }
+
+        .btn-vehicle2 {
+            background: linear-gradient(145deg, #ffa502, #cc8400);
+        }
+
+        .btn-ammo {
+            background: linear-gradient(145deg, #a55eea, #8854d0);
+        }
+
+        .mobile-btn span {
+            font-size: 9px;
+            margin-top: 2px;
+        }
+
+        /* 移动端载具选择面板 */
+        .mobile-vehicle-panel {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 10, 18, 0.95);
+            backdrop-filter: blur(12px);
+            border-radius: 16px;
+            border: 2px solid #50d2a0;
+            padding: 20px;
+            z-index: 2000;
+            display: none;
+        }
+
+        .mobile-vehicle-panel.visible {
+            display: block;
+        }
+
+        .mobile-vehicle-title {
+            color: #50d2a0;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .mobile-vehicle-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .mobile-vehicle-item {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            background: rgba(80, 210, 160, 0.2);
+            border: 1px solid rgba(80, 210, 160, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .mobile-vehicle-item:hover,
+        .mobile-vehicle-item:active {
+            background: rgba(80, 210, 160, 0.4);
+            border-color: #50d2a0;
+        }
+
+        .mobile-vehicle-item.empty {
+            opacity: 0.4;
+        }
+
+        .mobile-vehicle-item.selected {
+            border-color: #ffdd77;
+            background: rgba(255, 220, 120, 0.2);
+        }
+
+        /* 屏幕触摸射击区域 */
+        .touch-shoot-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 900;
+        }
+
+        .touch-shoot-area.active {
+            pointer-events: auto;
+        }
+
         @keyframes skillEffectAnim {
             0% {
                 width: 0;
@@ -933,6 +1172,51 @@
     </style>
 </head>
 <body>
+<!-- 移动端虚拟控制 - 放在横屏容器外面，不被旋转 -->
+<div class="mobile-controls">
+    <!-- 虚拟摇杆 -->
+    <div class="joystick-container" id="joystick">
+        <div class="joystick-base"></div>
+        <div class="joystick-stick" id="joystickStick"></div>
+    </div>
+    
+    <!-- 移动端按钮 -->
+    <div class="mobile-buttons">
+        <button class="mobile-btn btn-shoot" id="mobileShoot">
+            🔫
+            <span>射击</span>
+        </button>
+        <button class="mobile-btn btn-vehicle1" id="mobileVehicle1">
+            🚙
+            <span>载具1</span>
+        </button>
+        <button class="mobile-btn btn-vehicle2" id="mobileVehicle2">
+            ✈️
+            <span>载具2</span>
+        </button>
+        <button class="mobile-btn btn-ammo" id="mobileAmmo">
+            💣
+            <span>弹药</span>
+        </button>
+    </div>
+</div>
+
+<!-- 移动端载具选择面板 -->
+<div class="mobile-vehicle-panel" id="mobileVehiclePanel">
+    <div class="mobile-vehicle-title">选择载具</div>
+    <div class="mobile-vehicle-grid" id="mobileVehicleGrid">
+        <div class="mobile-vehicle-item empty" data-slot="0">⬜</div>
+        <div class="mobile-vehicle-item empty" data-slot="1">⬜</div>
+        <div class="mobile-vehicle-item empty" data-slot="2">⬜</div>
+        <div class="mobile-vehicle-item empty" data-slot="3">⬜</div>
+    </div>
+</div>
+
+<!-- 触摸射击区域 -->
+<div class="touch-shoot-area" id="touchShootArea"></div>
+
+<!-- 横屏容器 -->
+<div class="landscape-container">
 <div class="user-info-panel disabled" id="userInfoPanel">
     <div class="user-avatar-container">
         <img src="" alt="用户头像" id="gameUserAvatar" class="user-avatar-img">
@@ -3336,6 +3620,114 @@
             window.addEventListener('mouseup',e=>{
                 let attackBtn = getAttackButton(coopKeys.attackKey);
                 if(e.button === attackBtn) mouseDown=false;
+            });
+
+            // ------------------- 移动端触摸控制 -------------------
+            let joystickActive = false;
+            let joystickStartX = 0;
+            let joystickStartY = 0;
+            let stickElement = document.getElementById('joystickStick');
+            let joystickContainer = document.getElementById('joystick');
+
+            // 虚拟摇杆触摸事件
+            if(stickElement) {
+                stickElement.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    joystickActive = true;
+                    stickElement.classList.add('active');
+                    const touch = e.touches[0];
+                    joystickStartX = touch.clientX;
+                    joystickStartY = touch.clientY;
+                });
+
+                document.addEventListener('touchmove', (e) => {
+                    if(!joystickActive) return;
+                    
+                    const touch = e.touches[0];
+                    const deltaX = touch.clientX - joystickStartX;
+                    const deltaY = touch.clientY - joystickStartY;
+                    const maxDist = 55;
+                    
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    const normalizedDistance = Math.min(distance, maxDist);
+                    
+                    if(normalizedDistance > 0) {
+                        const angle = Math.atan2(deltaY, deltaX);
+                        const moveX = Math.cos(angle) * normalizedDistance;
+                        const moveY = Math.sin(angle) * normalizedDistance;
+                        
+                        stickElement.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+                        
+                        // 更新按键状态
+                        const threshold = 12;
+                        keys.w = deltaY < -threshold;
+                        keys.s = deltaY > threshold;
+                        keys.a = deltaX < -threshold;
+                        keys.d = deltaX > threshold;
+                    }
+                });
+
+                document.addEventListener('touchend', () => {
+                    if(joystickActive) {
+                        joystickActive = false;
+                        stickElement.classList.remove('active');
+                        stickElement.style.transform = 'translate(-50%, -50%)';
+                        keys.w = false;
+                        keys.s = false;
+                        keys.a = false;
+                        keys.d = false;
+                    }
+                });
+            }
+
+            // 移动端按钮点击事件
+            document.getElementById('mobileShoot')?.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if(gameActive) {
+                    shootOnce();
+                }
+            });
+
+            document.getElementById('mobileVehicle1')?.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                selectVehicle(0);
+            });
+
+            document.getElementById('mobileVehicle2')?.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                selectVehicle(1);
+            });
+
+            document.getElementById('mobileAmmo')?.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                // 切换弹药面板显示
+                const ammoDialog = document.getElementById('ammoDialog');
+                if(ammoDialog) {
+                    ammoDialog.classList.toggle('visible');
+                }
+            });
+
+            // 触摸射击区域（屏幕点击射击）
+            const touchShootArea = document.getElementById('touchShootArea');
+            touchShootArea?.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if(gameActive) {
+                    const touch = e.touches[0];
+                    const touchX = touch.clientX;
+                    const joystickRect = joystickContainer?.getBoundingClientRect();
+                    
+                    // 检查是否点击在摇杆区域外
+                    if(joystickRect) {
+                        const isInJoystick = touchX >= joystickRect.left && touchX <= joystickRect.right &&
+                                            touch.clientY >= joystickRect.top && touch.clientY <= joystickRect.bottom;
+                        
+                        if(!isInJoystick) {
+                            shootOnce();
+                        }
+                    } else {
+                        shootOnce();
+                    }
+                }
             });
             
             canvas.addEventListener('contextmenu',e=>e.preventDefault());

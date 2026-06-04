@@ -579,4 +579,51 @@ let chatApp;
 // 页面加载完成后初始化
 window.addEventListener('DOMContentLoaded', () => {
     chatApp = new ChatApp();
+    initMobileMenu();
 });
+
+// 移动端功能菜单
+function initMobileMenu() {
+    const avatarBtn = document.getElementById('mobileAvatarBtn');
+    const menu = document.getElementById('mobileFunctionMenu');
+    const overlay = document.getElementById('mobileMenuOverlay');
+    const closeBtn = document.getElementById('menuCloseBtn');
+
+    // 点击头像打开菜单
+    avatarBtn?.addEventListener('click', (e) => {
+        // 只在移动端显示菜单
+        if (window.innerWidth < 900) {
+            e.stopPropagation();
+            openMobileMenu();
+        }
+    });
+
+    // 点击遮罩关闭菜单
+    overlay?.addEventListener('click', closeMobileMenu);
+
+    // 点击关闭按钮关闭菜单
+    closeBtn?.addEventListener('click', closeMobileMenu);
+
+    // ESC键关闭菜单
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            closeMobileMenu();
+        }
+    });
+}
+
+function openMobileMenu() {
+    const menu = document.getElementById('mobileFunctionMenu');
+    if (menu) {
+        menu.classList.add('show');
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeMobileMenu() {
+    const menu = document.getElementById('mobileFunctionMenu');
+    if (menu) {
+        menu.classList.remove('show');
+        document.body.style.overflow = '';
+    }
+}

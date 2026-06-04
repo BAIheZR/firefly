@@ -306,7 +306,11 @@ function loadUpdateConfig() {
 
 function fetchJsonFromUrl(url) {
     return new Promise((resolve, reject) => {
-        const request = https.get(url, res => {
+        // 忽略 SSL 证书验证错误（解决 "unable to verify the first certificate" 问题）
+        const request = https.get(url, {
+            rejectUnauthorized: false,
+            requestCert: false
+        }, res => {
             let body = '';
             res.on('data', chunk => {
                 body += chunk.toString();

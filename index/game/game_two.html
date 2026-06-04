@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-height, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, orientation=landscape">
     <title>像素远征·黄昏潮汐</title>
     <style>
         * {
@@ -25,6 +25,15 @@
             height: 100vh;
         }
 
+        /* 横屏容器 */
+        .landscape-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         .game-wrapper {
             display: flex;
             flex-direction: column;
@@ -38,6 +47,32 @@
             width: 90%;
             height: 90%;
             margin: 0 auto;
+        }
+
+        /* 移动端强制横屏 */
+        @media (max-width: 768px) and (orientation: portrait) {
+            body {
+                width: 100vh;
+                height: 100vw;
+                overflow: hidden;
+            }
+
+            .landscape-container {
+                width: 100vh;
+                height: 100vw;
+                transform: rotate(90deg);
+                transform-origin: center center;
+                position: fixed;
+                top: 0;
+                left: 0;
+            }
+        }
+
+        @media (max-width: 768px) and (orientation: landscape) {
+            .game-wrapper {
+                width: 95%;
+                height: 95%;
+            }
         }
 
         canvas {
@@ -158,11 +193,171 @@
             border-radius: 4px;
             transition: width 0.2s ease;
         }
+
+        /* 移动端虚拟控制 */
+        .mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 20px;
+            background: linear-gradient(180deg, transparent, rgba(0,0,0,0.8));
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: block;
+            }
+
+            .controls-info {
+                display: none;
+            }
+        }
+
+        /* 虚拟摇杆 */
+        .joystick-container {
+            position: absolute;
+            left: 30px;
+            bottom: 30px;
+            width: 120px;
+            height: 120px;
+            pointer-events: auto;
+        }
+
+        .joystick-base {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 200, 150, 0.3);
+            border-radius: 50%;
+            border: 2px solid rgba(255, 200, 150, 0.6);
+        }
+
+        .joystick-stick {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 200, 150, 0.8);
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px rgba(255, 200, 150, 0.5);
+            transition: background 0.2s;
+        }
+
+        .joystick-stick.active {
+            background: rgba(255, 200, 150, 1);
+        }
+
+        /* 移动端按钮 */
+        .mobile-buttons {
+            position: absolute;
+            right: 30px;
+            bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            pointer-events: auto;
+        }
+
+        .mobile-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: all 0.15s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .mobile-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .btn-attack {
+            background: linear-gradient(145deg, #ff6b6b, #cc4444);
+        }
+
+        .btn-fireball {
+            background: linear-gradient(145deg, #ffa502, #cc8400);
+        }
+
+        .btn-storm {
+            background: linear-gradient(145deg, #ff4757, #b33939);
+        }
+
+        .btn-restart {
+            background: linear-gradient(145deg, #7bed9f, #2ed573);
+            font-size: 14px;
+        }
+
+        .mobile-btn span {
+            font-size: 10px;
+            margin-top: 2px;
+        }
+
+        /* 屏幕触摸攻击区域 */
+        .touch-attack-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 90;
+        }
+
+        .touch-attack-area.active {
+            pointer-events: auto;
+        }
     </style>
 </head>
 <body>
-<div class="game-wrapper">
-    <canvas id="gameCanvas" width="1000" height="520"></canvas>
+<!-- 移动端虚拟控制 - 放在横屏容器外面，不被旋转 -->
+<div class="mobile-controls">
+    <!-- 虚拟摇杆 -->
+    <div class="joystick-container" id="joystick">
+        <div class="joystick-base"></div>
+        <div class="joystick-stick" id="joystickStick"></div>
+    </div>
+    
+    <!-- 移动端按钮 -->
+    <div class="mobile-buttons">
+        <button class="mobile-btn btn-attack" id="mobileAttack">
+            <span>烈焰斩</span>
+        </button>
+        <button class="mobile-btn btn-fireball" id="mobileFireball">
+            <span>火球</span>
+        </button>
+        <button class="mobile-btn btn-storm" id="mobileStorm">
+            <span>风暴</span>
+        </button>
+        <button class="mobile-btn btn-restart" id="mobileRestart">
+            <span>重生</span>
+        </button>
+    </div>
+</div>
+
+<!-- 触摸攻击区域 -->
+<div class="touch-attack-area" id="touchAttackArea"></div>
+
+<!-- 横屏容器 -->
+<div class="landscape-container">
+    <div class="game-wrapper">
+        <canvas id="gameCanvas" width="1000" height="520"></canvas>
     <div class="info-panel">
         <button id="backBtn">返回主页</button>
         <div class="timer-box">
@@ -178,6 +373,7 @@
         <button id="pauseBtn" style="display: none;">暂停</button>
         <button id="resetBtn" style="display: none;">重铸黎明</button>
     </div>
+</div>
 </div>
 
 <script>
@@ -1078,6 +1274,120 @@
         document.getElementById('backBtn').addEventListener('click',()=>{
             window.location.href = '../inMaxNineUI.html';
         });
+
+        // ------------------- 移动端触摸控制 -------------------
+        let joystickActive = false;
+        let joystickStartX = 0;
+        let joystickStartY = 0;
+        let stickElement = document.getElementById('joystickStick');
+        let joystickContainer = document.getElementById('joystick');
+
+        // 虚拟摇杆触摸事件
+        if(stickElement) {
+            stickElement.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                joystickActive = true;
+                stickElement.classList.add('active');
+                const touch = e.touches[0];
+                joystickStartX = touch.clientX;
+                joystickStartY = touch.clientY;
+            });
+
+            document.addEventListener('touchmove', (e) => {
+                if(!joystickActive) return;
+                
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - joystickStartX;
+                const deltaY = touch.clientY - joystickStartY;
+                const maxDist = 60;
+                
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const normalizedDistance = Math.min(distance, maxDist);
+                
+                if(normalizedDistance > 0) {
+                    const angle = Math.atan2(deltaY, deltaX);
+                    const moveX = Math.cos(angle) * normalizedDistance;
+                    const moveY = Math.sin(angle) * normalizedDistance;
+                    
+                    stickElement.style.transform = `translate(calc(-50% + ${moveX}px), calc(-50% + ${moveY}px))`;
+                    
+                    // 更新按键状态
+                    const threshold = 15;
+                    keys.w = deltaY < -threshold;
+                    keys.s = deltaY > threshold;
+                    keys.a = deltaX < -threshold;
+                    keys.d = deltaX > threshold;
+                }
+            });
+
+            document.addEventListener('touchend', () => {
+                if(joystickActive) {
+                    joystickActive = false;
+                    stickElement.classList.remove('active');
+                    stickElement.style.transform = 'translate(-50%, -50%)';
+                    keys.w = false;
+                    keys.s = false;
+                    keys.a = false;
+                    keys.d = false;
+                }
+            });
+        }
+
+        // 移动端按钮点击事件
+        document.getElementById('mobileAttack')?.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if(gameActive && !gamePaused) {
+                // 触发烈焰斩（鼠标左键攻击）
+                player.attacking = true;
+                attackStartTime = Date.now();
+                player.vx = player.facingRight ? 6 : -6;
+                addSlashEffect();
+            }
+        });
+
+        document.getElementById('mobileFireball')?.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if(gameActive && !gamePaused) {
+                skillFireball();
+            }
+        });
+
+        document.getElementById('mobileStorm')?.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if(gameActive && !gamePaused) {
+                skillFirestorm();
+            }
+        });
+
+        document.getElementById('mobileRestart')?.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            resetGame();
+        });
+
+        // 触摸攻击区域（屏幕点击攻击）
+        const touchAttackArea = document.getElementById('touchAttackArea');
+        touchAttackArea?.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if(gameActive && !gamePaused) {
+                const touch = e.touches[0];
+                const touchX = touch.clientX;
+                const joystickRect = joystickContainer?.getBoundingClientRect();
+                
+                // 检查是否点击在摇杆区域外
+                if(joystickRect) {
+                    const isInJoystick = touchX >= joystickRect.left && touchX <= joystickRect.right &&
+                                        touch.clientY >= joystickRect.top && touch.clientY <= joystickRect.bottom;
+                    
+                    if(!isInJoystick) {
+                        // 触发烈焰斩
+                        player.attacking = true;
+                        attackStartTime = Date.now();
+                        player.vx = player.facingRight ? 6 : -6;
+                        addSlashEffect();
+                    }
+                }
+            }
+        });
         
         // 切换暂停状态
         function togglePause() {
@@ -1292,14 +1602,76 @@
                 newAchievements.push('medal_pixel_legend');
             }
             
+            // 像素新手 - 在像素斗中完成第一场战斗
+            if (!unlocked.includes('medal_pixel_beginner') && battle.mode === '像素远征' && gameCount >= 1) {
+                // 检查是否是像素斗的第一场战斗
+                const pixelBattles = JSON.parse(localStorage.getItem('battleData')) || [];
+                const pixelBattleCount = pixelBattles.filter(b => b.mode === '像素远征').length;
+                if (pixelBattleCount === 1) {
+                    newAchievements.push('medal_pixel_beginner');
+                }
+            }
+            
+            // 像素幸存者 - 在像素斗中生存超过1分钟
+            if (!unlocked.includes('medal_pixel_survivor') && battle.survivalTime >= 60) {
+                newAchievements.push('medal_pixel_survivor');
+            }
+            
+            // 像素老兵 - 在像素斗中生存超过3分钟
+            if (!unlocked.includes('medal_pixel_veteran') && battle.survivalTime >= 180) {
+                newAchievements.push('medal_pixel_veteran');
+            }
+            
+            // 像素不朽 - 在像素斗中生存超过10分钟
+            if (!unlocked.includes('medal_pixel_immortal') && battle.survivalTime >= 600) {
+                newAchievements.push('medal_pixel_immortal');
+            }
+            
+            // 像素屠夫 - 在像素斗中击杀50个敌人
+            if (!unlocked.includes('medal_pixel_slayer') && battle.killCount >= 50) {
+                newAchievements.push('medal_pixel_slayer');
+            }
+            
+            // 像素毁灭者 - 在像素斗中击杀200个敌人
+            if (!unlocked.includes('medal_pixel_destroyer') && battle.killCount >= 200) {
+                newAchievements.push('medal_pixel_destroyer');
+            }
+            
             // 如果有新成就，保存并更新
             if (newAchievements.length > 0) {
                 const allUnlocked = [...unlocked, ...newAchievements];
                 saveUnlockedAchievements(allUnlocked);
                 
+                // 计算成就奖励货币
+                let totalReward = 0;
+                newAchievements.forEach(achievementId => {
+                    const achievement = getAchievementById(achievementId);
+                    if (achievement && achievement.reward) {
+                        totalReward += achievement.reward;
+                    }
+                });
+                
+                // 如果有奖励，添加到用户货币
+                if (totalReward > 0) {
+                    const gold = BigInt(localStorage.getItem('gold') || '0');
+                    localStorage.setItem('gold', (gold + BigInt(totalReward)).toString());
+                    localStorage.setItem('pendingAchievementReward', totalReward.toString());
+                }
+                
                 // 保存待显示的成就队列
                 localStorage.setItem('pendingAchievements', JSON.stringify(newAchievements));
             }
+        }
+        
+        // 根据ID获取成就信息
+        function getAchievementById(achievementId) {
+            for (const group of Object.values(achievementData.achievementGroups)) {
+                const achievement = group.achievements.find(a => a.id === achievementId);
+                if (achievement) {
+                    return achievement;
+                }
+            }
+            return null;
         }
         
         // 获取已解锁的成就

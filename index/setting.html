@@ -12,6 +12,11 @@
     <script src="js/component/custom-modal.js" type="text/javascript"></script>
 </head>
 <body>
+    <!-- 悬浮返回按钮 -->
+    <button class="floating-back-btn" onclick="goBack()">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+
     <div class="settings-container">
         <!-- 侧边栏导航 -->
         <div class="settings-sidebar">
@@ -19,7 +24,7 @@
             <a href="#" class="nav-item" onclick="goBack(); return false;"><i class="fas fa-arrow-left" style="color: #D2B48C;"></i> 返回</a>
             <a href="#account" class="nav-item active"><i class="fas fa-user" style="color: #D2B48C;"></i> 账户设置</a>
             <a href="#game" class="nav-item"><i class="fas fa-gamepad" style="color: #D2B48C;"></i> 游戏设置</a>
-            <a href="#notification" class="nav-item"><i class="fas fa-bell" style="color: #D2B48C;"></i> 通知设置</a>
+
             <a href="#about" class="nav-item"><i class="fas fa-info-circle" style="color: #D2B48C;"></i> 关于</a>
             <a href="#" class="nav-item" onclick="openThanksModal(); return false;"><img src="../img/pro.webp" style="width:16px;height:16px;vertical-align:middle;margin-right:8px;">感谢墙</a>
             <div class="save-settings-btn" onclick="saveSettings()">
@@ -89,6 +94,13 @@
                         <button class="custom-keyboard-button" onclick="document.getElementById('importFileInput').click()">选择存档文件</button>
                     </div>
                 </div>
+                <div class="setting-item">
+                    <div>
+                        <div class="setting-label">清空所有数据</div>
+                        <div class="setting-description">清除所有游戏进度、成就、统计数据、账户设置和头像。此操作不可撤销！</div>
+                    </div>
+                    <button class="custom-keyboard-button" style="background-color: #e74c3c; color: white;" onclick="clearGameProgress()">清空所有数据</button>
+                </div>
             </div>
 
             <div class="settings-section" id="game">
@@ -136,13 +148,6 @@
                 </div>
                 <div class="setting-item">
                     <div>
-                        <div class="setting-label">AI聊天API</div>
-                        <div class="setting-description">设置AI聊天的API密钥</div>
-                    </div>
-                    <input type="text" class="setting-input" id="aiApiKeyInput" placeholder="输入API密钥" style="width: 280px;">
-                </div>
-                <div class="setting-item">
-                    <div>
                         <div class="setting-label">在线更新</div>
                         <div class="setting-description">检查 GitHub 上的最新版本并打开下载页面</div>
                     </div>
@@ -154,29 +159,7 @@
                 </div>
             </div>
 
-            <div class="settings-section" id="notification">
-                <h2><i class="fas fa-bell"></i> 通知设置</h2>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">推送通知</div>
-                        <div class="setting-description">接收游戏更新和活动通知</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="notificationToggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="setting-item">
-                    <div>
-                        <div class="setting-label">声音提醒</div>
-                        <div class="setting-description">收到通知时播放声音</div>
-                    </div>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="soundNotificationToggle" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
+
 
             <div class="settings-section" id="about">
                 <h2><i class="fas fa-info-circle"></i> 关于</h2>
@@ -213,9 +196,7 @@
                         <div class="setting-label">制作人员 | 致谢名单</div>
                         <div class="setting-description">参与游戏开发和支持的人员</div>
                     </div>
-                    <div class="people-list">
-                        <a href="https://space.bilibili.com/506636037?spm_id_from" class="person-link">百貉訾</a>
-                    </div>
+                    <button class="custom-keyboard-button" onclick="openThanksModal()">查看名单</button>
                 </div>
                 <div class="setting-item">
                     <div>
@@ -265,21 +246,8 @@
                 document.getElementById('musicVolumeValue').textContent = settings.musicVolume + '%';
             }
             
-            // 加载通知设置
-            if (typeof settings.notification !== 'undefined') {
-                document.getElementById('notificationToggle').checked = settings.notification;
-            }
-            
-            // 加载声音提醒设置
-            if (typeof settings.soundNotification !== 'undefined') {
-                document.getElementById('soundNotificationToggle').checked = settings.soundNotification;
-            }
-            
-            // 加载AI API密钥
-            if (settings.aiApiKey) {
-                document.getElementById('aiApiKeyInput').value = settings.aiApiKey;
-            }
 
+            
             // 加载启动视频设置
             if (typeof settings.splashVideoEnabled !== 'undefined') {
                 document.getElementById('splashVideoToggle').checked = settings.splashVideoEnabled;
@@ -294,9 +262,6 @@
                 username: document.getElementById('usernameInput').value,
                 soundVolume: parseInt(document.getElementById('soundVolume').value),
                 musicVolume: parseInt(document.getElementById('musicVolume').value),
-                notification: document.getElementById('notificationToggle').checked,
-                soundNotification: document.getElementById('soundNotificationToggle').checked,
-                aiApiKey: document.getElementById('aiApiKeyInput').value,
                 splashVideoEnabled: document.getElementById('splashVideoToggle') ? document.getElementById('splashVideoToggle').checked : true
             };
             
@@ -2475,4 +2440,17 @@
                 showCustomAlert('导入存档失败: ' + error.message, 'error');
             }
         });
+
+        // 清空所有游戏数据
+        function clearGameProgress() {
+            const confirmResult = confirm('确定要清空所有数据吗？这将删除所有游戏进度、成就、统计数据、账户设置和头像。此操作不可撤销！');
+            
+            if (confirmResult) {
+                // 清除所有 localStorage 数据
+                localStorage.clear();
+                
+                // 显示成功提示
+                alert('所有数据已清空！请刷新页面以应用更改。');
+            }
+        }
     </script>
