@@ -1,5 +1,5 @@
 {
-  "version": "0.0.2",
-  "notes": "当前版本为 0.0.2，已启用 GitHub 在线更新检查功能。",
+  "version": "0.0.3",
+  "notes": "当前版本为 0.0.3，优化移动端适配，添加游戏触屏控制功能。",
   "releaseUrl": "https://github.com/BAIheZR/firefly/releases/latest"
 }
