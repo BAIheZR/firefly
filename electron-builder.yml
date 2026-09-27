@@ -1,0 +1,59 @@
+# electron-builder 打包配置（与 package.json 分离，避免 schema 过严）
+# 文档：https://www.electron.build/configuration/configuration
+
+appId: com.cas.nodeitem
+productName: 萤光纪游
+copyright: Copyright © 2026
+
+directories:
+  # 用户要求：把安装包 exe 和 Vite 前端产物统一放 dist，不再出 release 文件夹
+  output: dist
+
+# 打进 app.asar 的文件
+files:
+  - dist/**/*
+  - dist-electron/**/*
+  - package.json
+  - favicon.ico
+
+# 额外放到安装根目录（app.asar 外部）的资源
+extraFiles:
+  - from: favicon.ico
+    to: favicon.ico
+
+asar: true
+compression: maximum
+removePackageScripts: true
+removePackageKeywords: true
+electronLanguages:
+  - zh-CN
+
+# Windows
+# 用户要求"只出一个安装版 exe"，所以这里只保留 NSIS target，去掉 portable
+win:
+  icon: favicon.ico
+  artifactName: ${productName}-${version}-${arch}-安装版.${ext}
+  target:
+    - target: nsis
+      arch:
+        - x64
+  verifyUpdateCodeSignature: false
+
+# 注：NSIS 默认就是 LZMA 压缩，不需要手动指定；顶层的 compression: maximum 已控制 app.asar 最高压缩
+nsis:
+  oneClick: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 萤光纪游
+  installerIcon: favicon.ico
+  uninstallerIcon: favicon.ico
+  installerHeaderIcon: favicon.ico
+  # 自定义卸载页：是否保留用户游玩数据（见 electron/installer.nsh）
+  # deleteAppDataOnUninstall 保持 false，由自定义脚本按用户勾选决定是否删除
+  deleteAppDataOnUninstall: false
+  include: electron/installer.nsh
+  unicode: true
+  differentialPackage: false
+  warningsAsErrors: false

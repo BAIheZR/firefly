@@ -1,0 +1,537 @@
+/* ====== 棋子对决（五子棋） ====== */
+.chess-page {
+  min-height: 100vh;
+  width: 100%;
+  padding: 20px 0 60px;
+  box-sizing: border-box;
+}
+.chess-body {
+  width: min(920px, 95vw);
+  margin: 10px auto 0;
+}
+.chess-card {
+  background: var(--page-content-bg);
+  backdrop-filter: blur(var(--page-blur, 16px));
+  -webkit-backdrop-filter: blur(var(--page-blur, 16px));
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  border-radius: 20px;
+  padding: 22px 28px 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  transition: opacity 0.3s ease;
+  opacity: var(--page-content-opacity, 1);
+}
+
+/* 顶部标题区 */
+.chess-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.chess-title {
+  margin: 0;
+  font-size: 20px;
+  color: #3FA98A;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.chess-earned {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #DAA520;
+  background: rgba(218, 165, 32, 0.1);
+  color: #DAA520;
+  font-weight: 600;
+  font-size: 13px;
+}
+.chess-earned i { font-size: 14px; }
+
+/* 人物对话（左图右话气泡） */
+.chess-speech {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 6px 0 14px;
+  padding: 6px 8px 6px 2px;
+}
+.speech-img {
+  width: 110px;
+  height: 110px;
+  object-fit: contain;
+  object-position: bottom center;
+  border-radius: 12px;
+  padding: 4px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(63, 169, 138, 0.5);
+  flex-shrink: 0;
+}
+.speech-bubble {
+  position: relative;
+  flex: 1 1 auto;
+  padding: 14px 18px;
+  background: rgba(255, 255, 255, 0.88);
+  border: 1px solid #3FA98A;
+  border-radius: 14px;
+  color: #4a3a10;
+  font-size: 14.5px;
+  line-height: 1.6;
+  font-weight: 500;
+  box-shadow: 0 4px 14px rgba(63, 169, 138, 0.15);
+  min-height: 58px;
+}
+.speech-bubble::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  bottom: 30px;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  border-right-color: #3FA98A;
+}
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  left: -12px;
+  bottom: 30px;
+  width: 0;
+  height: 0;
+  border: 8px solid transparent;
+  border-right-color: rgba(255, 255, 255, 0.88);
+}
+
+.bubble-fade-enter-active, .bubble-fade-leave-active {
+  transition: all 0.35s ease;
+}
+.bubble-fade-enter-from, .bubble-fade-leave-to {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+@media (max-width: 680px) {
+  .speech-img { width: 84px; height: 84px; }
+  .speech-bubble { font-size: 13.5px; padding: 10px 14px; }
+}
+
+/* 控制栏 */
+.chess-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 12px 16px;
+  margin-bottom: 10px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  border: 1px solid rgba(63, 169, 138, 0.25);
+}
+@media (max-width: 820px) {
+  .chess-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.ctrl-label { color: #333; font-size: 13px; font-weight: 600; }
+.difficulty-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.diff-btn {
+  padding: 5px 13px;
+  font-size: 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(63, 169, 138, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+  color: #4a3a10;
+  cursor: pointer;
+  transition: all 0.25s;
+  font-weight: 600;
+}
+.diff-btn:hover:not(:disabled) {
+  border-color: #3FA98A;
+  color: #3FA98A;
+  transform: translateY(-1px);
+}
+.diff-btn.active {
+  background: #3FA98A;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(63, 169, 138, 0.35);
+}
+.diff-btn:disabled,
+.diff-btn.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.status-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 999px;
+  justify-self: start;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(0,0,0,0.08);
+  color: #444;
+}
+.status-line.is-player { color: #1a1a1a; border-color: #333; }
+.status-line.is-ai     { color: #c97d1e; border-color: rgba(63,169,138,0.5); }
+
+.btn-primary,
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s;
+  border: 1px solid transparent;
+}
+.btn-primary {
+  background: #3FA98A;
+  color: #fff;
+  border-color: #3FA98A;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #5BC9A0;
+  border-color: #5BC9A0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(63, 169, 138, 0.4);
+}
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.6);
+  color: #4a3a10;
+  border-color: rgba(63, 169, 138, 0.5);
+}
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(63, 169, 138, 0.1);
+  border-color: #3FA98A;
+  color: #3FA98A;
+  transform: translateY(-1px);
+}
+.btn-primary:disabled,
+.btn-secondary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* 信息条 */
+.chess-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.35);
+  border-radius: 10px;
+  margin-bottom: 18px;
+  border: 1px solid rgba(63,169,138,0.2);
+  font-size: 13px;
+  color: #333;
+}
+.chess-info .info-item i { color: #3FA98A; margin-right: 4px; }
+.chess-info .info-item b { color: #1a1a1a; font-weight: 700; font-variant-numeric: tabular-nums; }
+.chess-info .tip { color: #888; font-size: 12px; margin-left: auto; }
+
+/* 棋盘 */
+.board-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 14px;
+}
+.board {
+  position: relative;
+  width: calc(var(--cell) * (var(--size) - 1) + 48px);
+  height: calc(var(--cell) * (var(--size) - 1) + 48px);
+  padding: 24px;
+  border-radius: 14px;
+  background:
+    radial-gradient(circle at 30% 20%, #f5d894 0%, #e8bb66 45%, #c68a35 100%);
+  box-shadow:
+    0 0 0 2px rgba(120, 75, 20, 0.6) inset,
+    0 10px 24px rgba(120, 75, 20, 0.25);
+  cursor: pointer;
+  user-select: none;
+}
+.grid-lines { position: absolute; left: 24px; top: 24px; width: calc(var(--cell) * (var(--size) - 1)); height: calc(var(--cell) * (var(--size) - 1)); pointer-events: none; }
+.h-line, .v-line { position: absolute; background: rgba(80, 45, 10, 0.75); }
+.h-line { left: 0; right: 0; height: 1px; }
+.v-line { top: 0; bottom: 0; width: 1px; }
+
+.star-dot {
+  position: absolute;
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #5a3710;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.15);
+}
+
+/* 棋子槽 */
+.stone-slot {
+  position: absolute;
+  width: calc(var(--cell));
+  height: calc(var(--cell));
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.stone {
+  width: calc(var(--cell) * 0.9);
+  height: calc(var(--cell) * 0.9);
+  border-radius: 50%;
+  box-shadow: 2px 3px 6px rgba(0,0,0,0.35), inset -2px -3px 6px rgba(0,0,0,0.25);
+  position: relative;
+}
+.stone.stone-black {
+  background: radial-gradient(circle at 30% 28%, #5a5a5a 0%, #0c0c0c 60%, #000 100%);
+}
+.stone.stone-white {
+  background: radial-gradient(circle at 30% 28%, #ffffff 0%, #ebebeb 60%, #c8c8c8 100%);
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.stone-preview { opacity: 0.35; }
+.stone.justmoved::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 8px; height: 8px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #e74c3c;
+  box-shadow: 0 0 8px rgba(231,76,60,0.6);
+}
+.stone-white.justmoved::after { background: #e74c3c; }
+
+/* 结束弹层 */
+.result-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 20px;
+  backdrop-filter: blur(6px);
+}
+.result-card {
+  width: min(420px, 92vw);
+  background: rgba(255,255,255,0.95);
+  border: 1px solid #3FA98A;
+  border-radius: 18px;
+  padding: 28px 26px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+}
+.result-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.result-title.is-win   { color: #d18b00; }
+.result-title.is-lose  { color: #9a4b4b; }
+.result-title.is-draw  { color: #4a5c70; }
+.result-sub {
+  color: #555;
+  font-size: 14px;
+  margin-bottom: 22px;
+}
+.result-btns {
+  display: inline-flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
+
+@media (max-width: 680px) {
+  .chess-card { padding: 16px 12px 20px; }
+  .chess-title { font-size: 18px; }
+  /* 原来用 98vw：vw 含经典滚动条宽度，在带滚动条的窄窗口下会比 clientWidth 宽出十几 px，
+     把整页顶出横向滚动。改成 100% 并把左右留白交给 .chess-page 的 padding。 */
+  .chess-page  { padding-left: 10px; padding-right: 10px; }
+  .chess-body  { width: 100%; }
+  .board-wrap   { overflow-x: auto; }
+}
+
+/* ====== 联机相关（五子棋 / 猜字游戏共用） ====== */
+
+/* 标题右侧的联机标记 */
+.mp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  color: #0f6e56;
+  background: rgba(63, 169, 138, 0.14);
+  border: 1px solid rgba(63, 169, 138, 0.5);
+}
+
+/* 身份 / 对手信息条 */
+.mp-role-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  margin: 4px 0 12px;
+}
+.mp-role-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(63, 169, 138, 0.45);
+  color: #4a3a10;
+}
+.mp-role-tag.is-black i { color: #111; }
+.mp-role-tag.is-white i { color: #b9b9b9; }
+.mp-role-tag.is-opponent i { color: #3FA98A; }
+
+/* 联机控制栏：难度组隐藏后只剩状态 + 两个按钮 */
+.chess-controls.is-mp {
+  grid-template-columns: 1fr auto auto;
+}
+@media (max-width: 820px) {
+  .chess-controls.is-mp { grid-template-columns: 1fr 1fr; }
+}
+
+/* 联机大棋盘（32 路）：格宽固定，容器可横向纵向滚动拖动 */
+.board-wrap.is-mp {
+  justify-content: flex-start;
+  overflow: auto;
+  max-height: 72vh;
+  padding: 12px 4px 16px;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.04);
+}
+.board-wrap.is-mp .board {
+  cursor: crosshair;
+  flex-shrink: 0;
+}
+
+/* 结算弹层里的等待提示 */
+.mp-wait-restart {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a6d1f;
+  background: rgba(218, 165, 32, 0.12);
+  border: 1px dashed rgba(218, 165, 32, 0.6);
+  border-radius: 10px;
+}
+
+/* 猜字竞速：本题已分出胜负的提示条 */
+.mp-round-over {
+  margin-top: 12px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #8a6d1f;
+  background: rgba(218, 165, 32, 0.12);
+  border: 1px solid rgba(218, 165, 32, 0.45);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 大厅页：非房主的提示文字 */
+.mp-section-hint {
+  font-size: 12px;
+  font-style: normal;
+  color: #999;
+  margin-left: 6px;
+}
+
+/* ==========================================================================
+   移动端（窄视口）—— 本文件被 Chess.vue 与 GuessWord.vue 共用
+   内部布局（控制栏两列、卡片内边距等）已有 680/820 断点覆盖，
+   这里只补「全局容器」层面的两件事：视口高度与底部导航占位。
+   ========================================================================== */
+@media (max-width: 768px) {
+  .chess-page {
+    min-height: var(--app-vh, 100vh);
+    /* 左右留白交给这里，.chess-body 才能安全地用 100%（见下方注释） */
+    padding: 12px 10px;
+    /* 底部导航占位：不加的话棋盘下方的按钮会被 TabBar 压住 */
+    padding-bottom: calc(var(--tabbar-h, 56px) + 6px);
+  }
+
+  /* 原为 96vw：vw 把经典滚动条宽度也算进去，窄窗口下会比 clientWidth 大 ~2px，
+     造成整页 2px 横向滚动（/chess 与共用本文件的 /guess-word 都受影响）。 */
+  .chess-body {
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  .chess-card {
+    border-radius: 14px;
+  }
+
+  /* 联机 32 路棋盘：max-height 原为 72vh，地址栏伸缩时高度会跳变，
+     换成 dvh 后稳定；同时下调上限，给底部导航留出空间 */
+  .board-wrap.is-mp {
+    max-height: 60dvh;
+  }
+
+  /* 控制栏在 ≤820px 是 '1fr 1fr' 两列，320px 下第二列只剩 ~107px：
+     状态栏被挤成 107×99 的窄柱，文字折成 5 行，加上 border-radius:999px
+     直接变成一颗怪异的气泡。窄屏改单列，每项独占一行。 */
+  .chess-controls,
+  .chess-controls.is-mp {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .status-line {
+    justify-self: stretch;
+    justify-content: center;
+    text-align: center;
+    border-radius: 12px;
+  }
+
+  .chess-controls .btn-primary,
+  .chess-controls .btn-secondary {
+    justify-content: center;
+    min-height: var(--tap-min, 44px);
+  }
+
+  /* 难度按钮同样提到可点面积下限 */
+  .diff-btn {
+    min-height: 36px;
+    padding: 6px 16px;
+  }
+}
+

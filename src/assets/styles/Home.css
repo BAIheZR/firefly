@@ -1,0 +1,721 @@
+.home {
+  min-height: var(--app-vh, 100vh);
+  background-image: url('@/images/bg2.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* 首页专属背景层：固定铺满，位于内容之下，仅透明度受设置面板控制 */
+.home-bg-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: var(--app-vh, 100vh);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  z-index: 0;
+  pointer-events: none;
+  transition: opacity 0.4s ease;
+}
+
+/* 启用首页专属背景时，移除默认背景，避免两层叠加 */
+.home.home-bg-active {
+  background-image: none;
+}
+
+/* NavBar 为静态定位，需提升至背景层之上；其余直接子元素已为 position:fixed 且 z-index>0 */
+.home .nav-bar {
+  position: relative;
+  z-index: 1;
+}
+
+/* ====== 左下角按钮组：挂机时间 + AI 聊天 ====== */
+.home-fab-group {
+  position: fixed;
+  left: 32px;
+  bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 1000;
+}
+
+.idle-fab,
+.chat-fab,
+.adjust-fab {
+  padding: 14px 28px;
+  border-radius: 999px;
+  border: 2px solid #3FA98A;
+  background: rgba(63, 169, 138, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, background 0.3s ease, color 0.3s ease;
+}
+
+.idle-fab:hover,
+.chat-fab:hover,
+.adjust-fab:hover {
+  transform: translateY(-4px) scale(1.04);
+  border-color: #5BC9A0;
+  background: rgba(91, 201, 160, 0.25);
+  color: #5BC9A0;
+  box-shadow: 0 10px 30px rgba(91, 201, 160, 0.4), 0 0 0 6px rgba(63, 169, 138, 0.15);
+}
+
+.chat-fab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chat-fab i {
+  font-size: 18px;
+  color: #3FA98A;
+  transition: color 0.3s ease;
+}
+
+.chat-fab:hover i {
+  color: #5BC9A0;
+}
+
+/* ====== 模型调整按钮激活态 + 调整面板 ====== */
+.adjust-fab.active {
+  border-color: #5BC9A0;
+  background: rgba(91, 201, 160, 0.32);
+  color: #5BC9A0;
+}
+
+.model-adjust-panel {
+  position: fixed;
+  top: 84px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px;
+  min-width: 340px;
+  border-radius: 14px;
+  border: 2px solid #3FA98A;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+}
+
+.adjust-tip {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  text-align: center;
+}
+
+.adjust-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adjust-label {
+  font-size: 13px;
+  color: #5BC9A0;
+  font-weight: 600;
+}
+
+.adjust-slider {
+  flex: 1;
+}
+
+.adjust-value {
+  min-width: 48px;
+  text-align: right;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.adjust-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.adjust-btn {
+  padding: 6px 18px;
+  border-radius: 999px;
+  border: 1.5px solid #3FA98A;
+  background: transparent;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.adjust-btn:hover {
+  border-color: #5BC9A0;
+  color: #5BC9A0;
+}
+
+.adjust-btn.primary {
+  background: rgba(63, 169, 138, 0.25);
+}
+
+.adjust-panel-enter-active,
+.adjust-panel-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.adjust-panel-enter-from,
+.adjust-panel-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
+}
+
+/* ====== 悬浮启动官方游戏按钮 ====== */
+.launch-fab {
+  position: fixed;
+  right: 32px;
+  bottom: 32px;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+  z-index: 1000;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+}
+
+.launch-fab .fab-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+}
+
+/* 未配置路径时：金色脉冲提示 */
+.launch-fab:not(.configured) {
+  border-color: #3FA98A;
+  animation: fab-pulse 2s ease-in-out infinite;
+}
+
+.launch-fab:not(.configured) .fab-img {
+  opacity: 0.85;
+}
+
+/* 已配置路径时：橙色发光 */
+.launch-fab.configured {
+  border-color: #5BC9A0;
+  box-shadow: 0 6px 24px rgba(91, 201, 160, 0.5), 0 0 0 4px rgba(91, 201, 160, 0.15);
+}
+
+/* 悬停：上浮 + 放大 + 金色光环 */
+.launch-fab:hover {
+  transform: translateY(-6px) scale(1.08);
+  border-color: #5BC9A0;
+  box-shadow: 0 10px 30px rgba(91, 201, 160, 0.55), 0 0 0 6px rgba(63, 169, 138, 0.2);
+}
+
+.launch-fab:hover .fab-img {
+  transform: scale(1.05);
+}
+
+.launch-fab:active {
+  transform: translateY(-2px) scale(1.03);
+}
+
+/* tooltip 文字提示 */
+.launch-fab .fab-tooltip {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) translateX(8px);
+  padding: 6px 12px;
+  background: rgba(42, 42, 42, 0.92);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.launch-fab .fab-tooltip::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: rgba(42, 42, 42, 0.92);
+}
+
+.launch-fab:hover .fab-tooltip {
+  opacity: 1;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* 脉冲动画：未配置路径时呼吸提示 */
+@keyframes fab-pulse {
+  0%, 100% {
+    box-shadow: 0 6px 20px rgba(63, 169, 138, 0.3), 0 0 0 0 rgba(63, 169, 138, 0.5);
+  }
+  50% {
+    box-shadow: 0 6px 20px rgba(63, 169, 138, 0.4), 0 0 0 10px rgba(63, 169, 138, 0);
+  }
+}
+
+/*  主页人物（固定居中）  */
+.home-character {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 20;
+  user-select: none;
+  -webkit-user-select: none;
+  /* 铺满整个视口，避免模型被容器尺寸裁剪；canvas 透明且 pointer-events:none 不挡 UI */
+  width: 100vw;
+  height: 100vh;
+  /* 让鼠标穿透到下层 UI；左键呼出聊天由 window 监听按坐标范围判断 */
+  pointer-events: none;
+}
+
+/*  主页人物：2D 立绘图片模式（穿戴服装时）  */
+.home-character-img {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  height: 88vh;
+  max-width: 92vw;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 10px 24px rgba(0, 0, 0, 0.25));
+}
+
+/*  屏幕右上角：好感度 / 行动点  */
+.character-stats {
+  position: fixed;
+  right: 16px;
+  top: 100px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px;
+  min-width: 130px;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(63, 169, 138, 0.5);
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1;
+  color: #fff;
+  pointer-events: none;
+  z-index: 21;
+  white-space: nowrap;
+}
+
+.stats-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-label {
+  margin-right: auto;
+  opacity: 0.75;
+}
+
+.stats-value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #3FA98A;
+}
+
+/* 好感度/行动点面板：按住右键显隐的过渡动画 */
+.stats-pop-enter-active,
+.stats-pop-leave-active {
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.stats-pop-enter-from,
+.stats-pop-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.96);
+}
+
+/* ====== 人物头上问候气泡 ====== */
+.character-bubble {
+  position: absolute;
+  /* left/top 由 JS 动态设置（跟随模型头部屏幕坐标） */
+  transform: translate(-50%, -100%); /* 底部中心对准头部位置，气泡整体在上方 */
+  max-width: 280px;
+  padding: 10px 18px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid #3FA98A;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4a3a10;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+  white-space: pre-wrap;
+  pointer-events: none;
+  z-index: 5;
+}
+/* 气泡小尾巴（指向下方人物头部） */
+.character-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%) rotate(45deg);
+  width: 14px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.88);
+  border-right: 1px solid #3FA98A;
+  border-bottom: 1px solid #3FA98A;
+}
+/* 打字机光标：闪烁竖线 */
+.typing-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 2px;
+  background: #3FA98A;
+  animation: blink 0.7s infinite;
+  vertical-align: text-bottom;
+}
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+/* 淡入淡出 */
+.bubble-enter-active,
+.bubble-leave-active {
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.bubble-enter-from,
+.bubble-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-8px);
+}
+
+/* ====== 给木：游戏入口（左上角） ====== */
+.game-fab-wrap {
+  position: fixed;
+  top: 120px;
+  left: 28px;
+  z-index: 1000;
+}
+
+.game-fab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 2px solid #3FA98A;
+  background: rgba(63, 169, 138, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.game-fab i {
+  font-size: 18px;
+  color: #3FA98A;
+  transition: color 0.3s ease;
+}
+
+.game-fab:hover,
+.game-fab.open {
+  transform: translateY(-4px) scale(1.04);
+  border-color: #5BC9A0;
+  background: rgba(91, 201, 160, 0.25);
+  color: #5BC9A0;
+  box-shadow: 0 10px 30px rgba(91, 201, 160, 0.4), 0 0 0 6px rgba(63, 169, 138, 0.15);
+}
+
+.game-fab:hover i,
+.game-fab.open i {
+  color: #5BC9A0;
+}
+
+/* 弹出菜单 */
+.game-menu {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #3FA98A;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  min-width: 170px;
+}
+
+.game-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #4a3a10;
+  transition: all 0.25s ease;
+}
+
+.game-menu-item:hover {
+  border-color: #5BC9A0;
+  background: rgba(91, 201, 160, 0.12);
+  color: #2E8B6F;
+  transform: translateX(4px);
+}
+
+.menu-item-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.menu-item-icon-text {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid #3FA98A;
+  background: rgba(63, 169, 138, 0.12);
+  font-size: 20px;
+  font-weight: 700;
+  color: #3FA98A;
+}
+
+/* 菜单过渡 */
+.game-menu-enter-active,
+.game-menu-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  transform-origin: top left;
+}
+.game-menu-enter-from,
+.game-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
+}
+
+/* ==========================================================================
+   移动端布局
+   核心约束：底部要留出 MobileTabBar（--tabbar-h）的高度，
+   主页原有的四个固定悬浮角标（左下三个按钮 + 右下启动键）必须整体上移，
+   并排成「一行」——竖屏宽度放不下两组错落的悬浮块。
+   ========================================================================== */
+@media (max-width: 768px) {
+  /* 3D canvas 容器跟随实际可视高度（而非地址栏收起时的 100vh） */
+  .home-character {
+    height: var(--app-vh, 100vh);
+  }
+
+  /* 2D 立绘：竖屏下原来 88vh 会顶到顶部条又压到按钮组，
+     收到 58vh 并整体上移到偏上位置，给底部操作区让出空间 */
+  .home-character-img {
+    height: 58dvh;
+    max-height: 460px;
+    max-width: 86vw;
+    top: 42%;
+  }
+
+  /* 左下按钮组：改为「撑满 TabBar 之上、右侧给启动键留 66px」的一行 */
+  .home-fab-group {
+    left: 10px;
+    right: 74px;
+    bottom: calc(var(--tabbar-h, 56px) + 10px);
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .idle-fab,
+  .chat-fab,
+  .adjust-fab {
+    flex: 1 1 0;
+    min-width: 0;
+    /* 原有 14px 28px 内边距在三等分里会挤爆，收到 10px 6px */
+    padding: 10px 6px;
+    font-size: 13px;
+    gap: 5px;
+    justify-content: center;
+    white-space: nowrap;
+    /* 触控目标不低于 44px */
+    min-height: var(--tap-min, 44px);
+  }
+
+  .chat-fab i {
+    font-size: 15px;
+  }
+
+  /* 右下启动键：缩小并坐在 TabBar 之上，与按钮组同一行 */
+  .launch-fab {
+    right: 12px;
+    bottom: calc(var(--tabbar-h, 56px) + 8px);
+    width: 56px;
+    height: 56px;
+  }
+
+  /* 无悬停设备上 tooltip 永远不会消失，直接不显示（信息在按钮本身） */
+  .launch-fab .fab-tooltip {
+    display: none;
+  }
+
+  /* 「给木」入口：下移到顶部导航条之下。顶部条高度约 58px（含安全区） */
+  .game-fab-wrap {
+    top: calc(var(--safe-top, 0px) + 66px);
+    left: 12px;
+  }
+
+  .game-fab {
+    padding: 10px 16px;
+    font-size: 14px;
+    gap: 6px;
+  }
+
+  .game-fab i {
+    font-size: 16px;
+  }
+
+  .game-menu {
+    min-width: 150px;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .game-menu-item {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  /* 好感度/行动点：原来固定 top:100px，会被缩矮的顶部条压住 */
+  .character-stats {
+    top: calc(var(--safe-top, 0px) + 66px);
+    right: 10px;
+    min-width: 108px;
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  /* 头顶气泡：280px 在 360px 宽屏上会顶到边，限制为视口宽度百分比 */
+  .character-bubble {
+    max-width: min(280px, 76vw);
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  /* 调整面板：原来 min-width 340px 在窄屏溢出，改为跟随视口 */
+  .model-adjust-panel {
+    top: calc(var(--safe-top, 0px) + 62px);
+    left: 10px;
+    right: 10px;
+    transform: none;
+    min-width: 0;
+    width: auto;
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  /* transform 已被上面置为 none，过渡的位移量同步取消 */
+  .adjust-panel-enter-from,
+  .adjust-panel-leave-to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  .adjust-value {
+    min-width: 42px;
+  }
+
+  .adjust-btn {
+    /* 触控目标加大 */
+    padding: 9px 20px;
+    font-size: 14px;
+  }
+
+  /* 毛玻璃降级后的可读性兜底。
+     main.css 的 html.is-mobile 会关掉全站 backdrop-filter（移动端最大掉帧源），
+     但这几个按钮原本是 rgba(63,169,138,0.18) + blur 撑起来的，白色文字全靠模糊压住背景。
+     模糊一关，18% 的绿底直接飘在人物立绘上，白字基本看不清 —— 这里补成实色。
+     色值取主题绿加深，与 2px 边框同色系，视觉上仍是「半透明胶囊」的观感。 */
+  .idle-fab,
+  .chat-fab,
+  .adjust-fab,
+  .game-fab {
+    background: rgba(45, 122, 95, 0.82);
+  }
+
+  /* 未配置游戏路径时的脉冲提示：fab-pulse 动的是 box-shadow，
+     而 box-shadow 无法走合成层，每一帧都要重绘按钮及其外扩的阴影范围 ——
+     2s 一次、永不停止，是移动端上持续时间最长的重绘源。这里换成静态高亮。 */
+  .launch-fab:not(.configured) {
+    animation: none;
+    border-color: #e6b43c;
+    box-shadow: 0 6px 20px rgba(230, 180, 60, 0.45);
+  }
+}
+
+/* 横屏（矮视口）：底部操作区压缩，立绘改按高度自适应 */
+@media (max-width: 768px) and (max-height: 460px) {
+  .home-character-img {
+    height: 52dvh;
+    top: 50%;
+  }
+
+  .home-fab-group {
+    bottom: calc(var(--tabbar-h, 56px) + 4px);
+    gap: 6px;
+  }
+
+  .game-fab-wrap {
+    top: calc(var(--safe-top, 0px) + 52px);
+  }
+
+  .launch-fab {
+    width: 48px;
+    height: 48px;
+    bottom: calc(var(--tabbar-h, 56px) + 4px);
+  }
+}

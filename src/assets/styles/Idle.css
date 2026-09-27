@@ -1,0 +1,300 @@
+.idle-page {
+  min-height: 100vh;
+  background-image: url('@/images/bg2.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #fff;
+}
+
+.idle-body {
+  padding: 32px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.idle-card {
+  position: relative;
+  width: min(960px, 95vw);
+  padding: 32px 40px;
+  background: rgba(255, 255, 255, var(--page-content-opacity, 0.6));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  border-radius: 18px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+  transition: background 0.3s ease;
+}
+
+/* 右上角关闭按钮 */
+.idle-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(63, 169, 138, 0.5);
+  background: rgba(255, 255, 255, 0.5);
+  color: #3a2d0f;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.idle-close:hover {
+  transform: scale(1.1);
+  border-color: #5BC9A0;
+  background: rgba(91, 201, 160, 0.2);
+  box-shadow: 0 0 0 4px rgba(91, 201, 160, 0.18);
+}
+
+.idle-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  color: #3a2d0f;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-right: 40px;
+}
+
+.idle-title i {
+  color: #3FA98A;
+}
+
+.idle-desc {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: rgba(50, 36, 10, 0.75);
+  line-height: 1.6;
+}
+
+/* 计时大字 */
+.idle-timer {
+  text-align: center;
+  padding: 22px 16px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(63, 169, 138, 0.18), rgba(91, 201, 160, 0.12));
+  border: 1px solid rgba(63, 169, 138, 0.4);
+  margin-bottom: 18px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+.idle-timer.running {
+  border-color: rgba(91, 201, 160, 0.7);
+  box-shadow: 0 0 0 4px rgba(91, 201, 160, 0.12), 0 4px 20px rgba(91, 201, 160, 0.18);
+}
+/* 小位置时间显示（顶部中间） */
+.timer-mini {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: rgba(50, 36, 10, 0.75);
+  font-variant-numeric: tabular-nums;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.timer-mini i {
+  color: #3FA98A;
+  font-size: 11px;
+}
+
+/* 跳动图片（5 张同排） */
+.timer-img-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 4px 0 8px;
+}
+.idle-img {
+  height: 130px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.45;
+  transform: scale(0.9);
+  transition: opacity 0.2s ease;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
+}
+.idle-img.active {
+  opacity: 1;
+}
+/* 1~4.png：跳动 */
+.idle-img.bouncing {
+  animation: idle-bounce 0.6s ease-in-out infinite;
+}
+/* 5.png：放大 */
+.idle-img.scaling {
+  animation: idle-scale 0.6s ease-in-out infinite;
+}
+@keyframes idle-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50%      { transform: translateY(-12px) scale(1); }
+}
+@keyframes idle-scale {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+.timer-sub {
+  margin-top: 6px;
+  font-size: 13px;
+  color: rgba(50, 36, 10, 0.75);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.timer-sub i {
+  font-size: 8px;
+}
+.timer-sub .play-dot {
+  color: #52c41a;
+}
+.timer-sub .pause-dot {
+  color: #bfa14a;
+}
+
+/* 奖励区（中间为领取按钮：1fr 按钮 1fr 左右对称） */
+.idle-rewards {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: stretch;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+.reward-item {
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(218, 165, 32, 0.25);
+  text-align: center;
+}
+.reward-item.highlight {
+  background: linear-gradient(135deg, rgba(255, 205, 100, 0.35), rgba(255, 165, 0, 0.25));
+  border-color: rgba(218, 165, 32, 0.6);
+}
+.reward-label {
+  display: block;
+  font-size: 12px;
+  color: rgba(50, 36, 10, 0.7);
+  margin-bottom: 6px;
+}
+.reward-value {
+  display: block;
+  font-size: 18px;
+  font-weight: 700;
+  color: #3a2d0f;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 按钮 */
+.idle-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+.btn {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: inherit;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  transform: none !important;
+}
+.btn-start {
+  background: linear-gradient(135deg, #52c41a, #7ed957);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(82, 196, 26, 0.4);
+}
+.btn-start:hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 8px 24px rgba(82, 196, 26, 0.55);
+}
+.btn-collect {
+  background: linear-gradient(135deg, #3FA98A, #5BC9A0);
+  color: #fff;
+  box-shadow: 0 6px 18px rgba(63, 169, 138, 0.4);
+}
+.btn-collect:not(:disabled):hover {
+  transform: translateY(-2px) scale(1.03);
+  border-color: #5BC9A0;
+  box-shadow: 0 8px 24px rgba(91, 201, 160, 0.55);
+}
+
+/* 提示 */
+.idle-tip {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: rgba(255, 205, 100, 0.25);
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  color: #3a2d0f;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.idle-tip i {
+  color: #3FA98A;
+}
+
+@media (max-width: 560px) {
+  .idle-rewards {
+    grid-template-columns: 1fr;
+  }
+  .idle-img {
+    height: 90px;
+  }
+  .idle-actions {
+    flex-direction: column;
+  }
+}
+
+/* ====== 移动端（窄视口）：容器层面 ======
+   本页顶部有 NavBar（窄屏下变为精简条），底部有 MobileTabBar，两端都要留白 */
+@media (max-width: 768px) {
+  .idle-page {
+    min-height: var(--app-vh, 100vh);
+  }
+
+  .idle-body {
+    padding: 12px 12px 0;
+    padding-bottom: var(--tabbar-h, 56px);
+  }
+
+  /* 卡片内边距 32px 40px 在 375px 屏上要吃掉 80px，把宽度还回来 */
+  .idle-card {
+    padding: 20px 14px;
+  }
+
+  /* 5 张动图原本是「同排展示、当前帧高亮」的胶片条（每张 height 90px → 宽约 92px），
+     加上间隙一共需要 ~490px，而这里容器只有 ~255px —— 整排直接甩出屏幕，
+     把 document.scrollWidth 撑到 426（实测）/ 可视 375。
+     对策两步：① 缩小到 48px，② 加 flex-wrap 兜底。
+     只缩不换行在更窄的屏（320px）上仍会溢出，换行后最差也只是分两行，不会再横向出去。 */
+  .timer-img-wrap {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .idle-img {
+    height: 48px;
+  }
+}

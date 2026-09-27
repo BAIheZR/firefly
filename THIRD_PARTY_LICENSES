@@ -1,0 +1,619 @@
+本软件使用的第三方开源依赖及其许可证清单
+============================================================
+共 104 个依赖
+
+【许可证分布统计】
+  BSD-2-Clause: 1 个
+  BSD-3-Clause: 2 个
+  ISC: 6 个
+  MIT: 94 个
+  UNLICENSED: 1 个
+
+============================================================
+【详细清单】
+
+--- @babel/helper-string-parser@7.29.7 ---
+  许可证: MIT
+  仓库: https://github.com/babel/babel
+  作者: The Babel Team
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@babel/helper-string-parser/LICENSE
+
+--- @babel/helper-validator-identifier@7.29.7 ---
+  许可证: MIT
+  仓库: https://github.com/babel/babel
+  作者: The Babel Team
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@babel/helper-validator-identifier/LICENSE
+
+--- @babel/parser@7.29.7 ---
+  许可证: MIT
+  仓库: https://github.com/babel/babel
+  作者: The Babel Team
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@babel/parser/LICENSE
+
+--- @babel/types@7.29.7 ---
+  许可证: MIT
+  仓库: https://github.com/babel/babel
+  作者: The Babel Team
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@babel/types/LICENSE
+
+--- @ctrl/tinycolor@4.2.0 ---
+  许可证: MIT
+  仓库: https://github.com/scttcper/tinycolor
+  作者: Scott Cooper
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@ctrl/tinycolor/LICENSE
+
+--- @element-plus/icons-vue@2.3.2 ---
+  许可证: MIT
+  仓库: https://github.com/element-plus/element-plus-icons
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@element-plus/icons-vue/LICENSE
+
+--- @floating-ui/core@1.8.0 ---
+  许可证: MIT
+  仓库: https://github.com/floating-ui/floating-ui
+  作者: atomiks
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@floating-ui/core/LICENSE
+
+--- @floating-ui/dom@1.8.0 ---
+  许可证: MIT
+  仓库: https://github.com/floating-ui/floating-ui
+  作者: atomiks
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@floating-ui/dom/LICENSE
+
+--- @floating-ui/utils@0.2.12 ---
+  许可证: MIT
+  仓库: https://github.com/floating-ui/floating-ui
+  作者: atomiks
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@floating-ui/utils/LICENSE
+
+--- @jridgewell/sourcemap-codec@1.5.5 ---
+  许可证: MIT
+  仓库: https://github.com/jridgewell/sourcemaps
+  作者: Justin Ridgewell
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@jridgewell/sourcemap-codec/LICENSE
+
+--- @sxzz/popperjs-es@2.11.8 ---
+  许可证: MIT
+  仓库: https://github.com/popperjs/popper-core
+  作者: Federico Zivolo
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@popperjs/core/LICENSE.md
+
+--- @types/lodash-es@4.17.12 ---
+  许可证: MIT
+  仓库: https://github.com/DefinitelyTyped/DefinitelyTyped
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@types/lodash-es/LICENSE
+
+--- @types/lodash@4.17.25 ---
+  许可证: MIT
+  仓库: https://github.com/DefinitelyTyped/DefinitelyTyped
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@types/lodash/LICENSE
+
+--- @types/web-bluetooth@0.0.21 ---
+  许可证: MIT
+  仓库: https://github.com/DefinitelyTyped/DefinitelyTyped
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@types/web-bluetooth/LICENSE
+
+--- @vue/compiler-core@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/compiler-core/LICENSE
+
+--- @vue/compiler-dom@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/compiler-dom/LICENSE
+
+--- @vue/compiler-sfc@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/compiler-sfc/LICENSE
+
+--- @vue/compiler-ssr@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/compiler-ssr/LICENSE
+
+--- @vue/devtools-api@8.2.1 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/devtools
+  作者: webfansplz
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/devtools-api/LICENSE
+
+--- @vue/devtools-kit@8.2.1 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/devtools
+  作者: webfansplz
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/devtools-kit/LICENSE
+
+--- @vue/devtools-shared@8.2.1 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/devtools
+  作者: webfansplz
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/devtools-shared/LICENSE
+
+--- @vue/reactivity@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/reactivity/LICENSE
+
+--- @vue/runtime-core@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/runtime-core/LICENSE
+
+--- @vue/runtime-dom@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/runtime-dom/LICENSE
+
+--- @vue/server-renderer@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/server-renderer/LICENSE
+
+--- @vue/shared@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vue/shared/LICENSE
+
+--- @vueuse/core@14.4.0 ---
+  许可证: MIT
+  仓库: https://github.com/vueuse/vueuse
+  作者: Anthony Fu
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vueuse/core/LICENSE
+
+--- @vueuse/metadata@14.4.0 ---
+  许可证: MIT
+  仓库: https://github.com/vueuse/vueuse
+  作者: Anthony Fu
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vueuse/metadata/LICENSE
+
+--- @vueuse/shared@14.4.0 ---
+  许可证: MIT
+  仓库: https://github.com/vueuse/vueuse
+  作者: Anthony Fu
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/@vueuse/shared/LICENSE
+
+--- agent-base@6.0.2 ---
+  许可证: MIT
+  仓库: https://github.com/TooTallNate/node-agent-base
+  作者: Nathan Rajlich
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/agent-base/README.md
+
+--- ansi-regex@5.0.1 ---
+  许可证: MIT
+  仓库: https://github.com/chalk/ansi-regex
+  作者: Sindre Sorhus
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/ansi-regex/license
+
+--- ansi-styles@4.3.0 ---
+  许可证: MIT
+  仓库: https://github.com/chalk/ansi-styles
+  作者: Sindre Sorhus
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/ansi-styles/license
+
+--- async-validator@4.2.5 ---
+  许可证: MIT
+  仓库: https://github.com/yiminghe/async-validator
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/async-validator/LICENSE.md
+
+--- asynckit@0.4.0 ---
+  许可证: MIT
+  仓库: https://github.com/alexindigo/asynckit
+  作者: Alex Indigo
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/asynckit/LICENSE
+
+--- axios@1.19.0 ---
+  许可证: MIT
+  仓库: https://github.com/axios/axios
+  作者: Matt Zabriskie
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/axios/LICENSE
+
+--- birpc@2.9.0 ---
+  许可证: MIT
+  仓库: https://github.com/antfu-collective/birpc
+  作者: Anthony Fu
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/birpc/LICENSE
+
+--- call-bind-apply-helpers@1.0.2 ---
+  许可证: MIT
+  仓库: https://github.com/ljharb/call-bind-apply-helpers
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/call-bind-apply-helpers/LICENSE
+
+--- cliui@8.0.1 ---
+  许可证: ISC
+  仓库: https://github.com/yargs/cliui
+  作者: Ben Coe
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/cliui/LICENSE.txt
+
+--- color-convert@2.0.1 ---
+  许可证: MIT
+  仓库: https://github.com/Qix-/color-convert
+  作者: Heather Arthur
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/color-convert/LICENSE
+
+--- color-name@1.1.4 ---
+  许可证: MIT
+  仓库: https://github.com/colorjs/color-name
+  作者: DY
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/color-name/LICENSE
+
+--- combined-stream@1.0.8 ---
+  许可证: MIT
+  仓库: https://github.com/felixge/node-combined-stream
+  作者: Felix Geisendörfer
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/combined-stream/License
+
+--- csstype@3.2.3 ---
+  许可证: MIT
+  仓库: https://github.com/frenic/csstype
+  作者: Fredrik Nicol
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/csstype/LICENSE
+
+--- dayjs@1.11.21 ---
+  许可证: MIT
+  仓库: https://github.com/iamkun/dayjs
+  作者: iamkun
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/dayjs/LICENSE
+
+--- debug@4.4.3 ---
+  许可证: MIT
+  仓库: https://github.com/debug-js/debug
+  作者: Josh Junon
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/debug/LICENSE
+
+--- delayed-stream@1.0.0 ---
+  许可证: MIT
+  仓库: https://github.com/felixge/node-delayed-stream
+  作者: Felix Geisendörfer
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/delayed-stream/License
+
+--- dijkstrajs@1.0.3 ---
+  许可证: MIT
+  仓库: https://github.com/tcort/dijkstrajs
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/dijkstrajs/LICENSE.md
+
+--- dunder-proto@1.0.1 ---
+  许可证: MIT
+  仓库: https://github.com/es-shims/dunder-proto
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/dunder-proto/LICENSE
+
+--- element-plus@2.14.3 ---
+  许可证: MIT
+  仓库: https://github.com/element-plus/element-plus
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/element-plus/LICENSE
+
+--- emoji-regex@8.0.0 ---
+  许可证: MIT
+  仓库: https://github.com/mathiasbynens/emoji-regex
+  作者: Mathias Bynens
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/emoji-regex/LICENSE-MIT.txt
+
+--- entities@7.0.1 ---
+  许可证: BSD-2-Clause
+  仓库: https://github.com/fb55/entities
+  作者: Felix Boehm
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/entities/LICENSE
+
+--- es-define-property@1.0.1 ---
+  许可证: MIT
+  仓库: https://github.com/ljharb/es-define-property
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/es-define-property/LICENSE
+
+--- es-errors@1.3.0 ---
+  许可证: MIT
+  仓库: https://github.com/ljharb/es-errors
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/es-errors/LICENSE
+
+--- es-object-atoms@1.1.2 ---
+  许可证: MIT
+  仓库: https://github.com/ljharb/es-object-atoms
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/es-object-atoms/LICENSE
+
+--- es-set-tostringtag@2.1.0 ---
+  许可证: MIT
+  仓库: https://github.com/es-shims/es-set-tostringtag
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/es-set-tostringtag/LICENSE
+
+--- escalade@3.2.0 ---
+  许可证: MIT
+  仓库: https://github.com/lukeed/escalade
+  作者: Luke Edwards
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/escalade/license
+
+--- estree-walker@2.0.2 ---
+  许可证: MIT
+  仓库: https://github.com/Rich-Harris/estree-walker
+  作者: Rich Harris
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/estree-walker/LICENSE
+
+--- follow-redirects@1.16.0 ---
+  许可证: MIT
+  仓库: https://github.com/follow-redirects/follow-redirects
+  作者: Ruben Verborgh
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/follow-redirects/LICENSE
+
+--- form-data@4.0.6 ---
+  许可证: MIT
+  仓库: https://github.com/form-data/form-data
+  作者: Felix Geisendörfer
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/form-data/License
+
+--- function-bind@1.1.2 ---
+  许可证: MIT
+  仓库: https://github.com/Raynos/function-bind
+  作者: Raynos
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/function-bind/LICENSE
+
+--- get-caller-file@2.0.5 ---
+  许可证: ISC
+  仓库: https://github.com/stefanpenner/get-caller-file
+  作者: Stefan Penner
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/get-caller-file/LICENSE.md
+
+--- get-intrinsic@1.3.0 ---
+  许可证: MIT
+  仓库: https://github.com/ljharb/get-intrinsic
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/get-intrinsic/LICENSE
+
+--- get-proto@1.0.1 ---
+  许可证: MIT
+  仓库: https://github.com/ljharb/get-proto
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/get-proto/LICENSE
+
+--- gopd@1.2.0 ---
+  许可证: MIT
+  仓库: https://github.com/ljharb/gopd
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/gopd/LICENSE
+
+--- has-symbols@1.1.0 ---
+  许可证: MIT
+  仓库: https://github.com/inspect-js/has-symbols
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/has-symbols/LICENSE
+
+--- has-tostringtag@1.0.2 ---
+  许可证: MIT
+  仓库: https://github.com/inspect-js/has-tostringtag
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/has-tostringtag/LICENSE
+
+--- hasown@2.0.4 ---
+  许可证: MIT
+  仓库: https://github.com/inspect-js/hasOwn
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/hasown/LICENSE
+
+--- hookable@5.5.3 ---
+  许可证: MIT
+  仓库: https://github.com/unjs/hookable
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/hookable/LICENSE.md
+
+--- https-proxy-agent@5.0.1 ---
+  许可证: MIT
+  仓库: https://github.com/TooTallNate/node-https-proxy-agent
+  作者: Nathan Rajlich
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/https-proxy-agent/README.md
+
+--- is-fullwidth-code-point@3.0.0 ---
+  许可证: MIT
+  仓库: https://github.com/sindresorhus/is-fullwidth-code-point
+  作者: Sindre Sorhus
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/is-fullwidth-code-point/license
+
+--- lodash-es@4.18.1 ---
+  许可证: MIT
+  仓库: https://github.com/lodash/lodash
+  作者: John-David Dalton
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/lodash-es/LICENSE
+
+--- lodash-unified@1.0.3 ---
+  许可证: MIT
+  作者: Jack Works
+
+--- lodash@4.18.1 ---
+  许可证: MIT
+  仓库: https://github.com/lodash/lodash
+  作者: John-David Dalton
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/lodash/LICENSE
+
+--- lucide@1.47.0 ---
+  许可证: ISC
+  仓库: https://github.com/lucide-icons/lucide
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/lucide/LICENSE
+
+--- magic-string@0.30.21 ---
+  许可证: MIT
+  仓库: https://github.com/Rich-Harris/magic-string
+  作者: Rich Harris
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/magic-string/LICENSE
+
+--- math-intrinsics@1.1.0 ---
+  许可证: MIT
+  仓库: https://github.com/es-shims/math-intrinsics
+  作者: Jordan Harband
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/math-intrinsics/LICENSE
+
+--- memoize-one@6.0.0 ---
+  许可证: MIT
+  仓库: https://github.com/alexreardon/memoize-one
+  作者: Alex Reardon
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/memoize-one/LICENSE
+
+--- mime-db@1.52.0 ---
+  许可证: MIT
+  仓库: https://github.com/jshttp/mime-db
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/mime-db/LICENSE
+
+--- mime-types@2.1.35 ---
+  许可证: MIT
+  仓库: https://github.com/jshttp/mime-types
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/mime-types/LICENSE
+
+--- morphicons@1.7.1 ---
+  许可证: MIT
+  仓库: https://github.com/guillermolg00/morphicons
+  作者: Guillermo
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/morphicons/LICENSE
+
+--- ms@2.1.3 ---
+  许可证: MIT
+  仓库: https://github.com/vercel/ms
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/ms/license.md
+
+--- nanoid@3.3.16 ---
+  许可证: MIT
+  仓库: https://github.com/ai/nanoid
+  作者: Andrey Sitnik
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/nanoid/LICENSE
+
+--- normalize-wheel-es@1.2.0 ---
+  许可证: BSD-3-Clause
+  仓库: https://github.com/sxzz/normalize-wheel-es
+  作者: Bas Stottelaar
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/normalize-wheel-es/LICENSE
+
+--- nostics@1.2.0 ---
+  许可证: MIT
+  仓库: https://github.com/vercel-labs/nostics
+  作者: Anthony Fu
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/nostics/LICENSE
+
+--- perfect-debounce@2.1.0 ---
+  许可证: MIT
+  仓库: https://github.com/unjs/perfect-debounce
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/perfect-debounce/LICENSE
+
+--- picocolors@1.1.1 ---
+  许可证: ISC
+  仓库: https://github.com/alexeyraspopov/picocolors
+  作者: Alexey Raspopov
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/picocolors/LICENSE
+
+--- pinia@4.0.2 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/pinia
+  作者: Eduardo San Martin Morote
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/pinia/LICENSE
+
+--- pngjs@5.0.0 ---
+  许可证: MIT
+  仓库: https://github.com/lukeapage/pngjs
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/pngjs/LICENSE
+
+--- postcss@8.5.23 ---
+  许可证: MIT
+  仓库: https://github.com/postcss/postcss
+  作者: Andrey Sitnik
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/postcss/LICENSE
+
+--- proxy-from-env@2.1.0 ---
+  许可证: MIT
+  仓库: https://github.com/Rob--W/proxy-from-env
+  作者: Rob Wu
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/proxy-from-env/LICENSE
+
+--- qrcode@1.5.4 ---
+  许可证: MIT
+  仓库: https://github.com/soldair/node-qrcode
+  作者: Ryan Day
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/qrcode/license
+
+--- require-directory@2.1.1 ---
+  许可证: MIT
+  仓库: https://github.com/troygoode/node-require-directory
+  作者: Troy Goode
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/require-directory/LICENSE
+
+--- source-map-js@1.2.1 ---
+  许可证: BSD-3-Clause
+  仓库: https://github.com/7rulnik/source-map-js
+  作者: Valentin 7rulnik Semirulnik
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/source-map-js/LICENSE
+
+--- string-width@4.2.3 ---
+  许可证: MIT
+  仓库: https://github.com/sindresorhus/string-width
+  作者: Sindre Sorhus
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/string-width/license
+
+--- strip-ansi@6.0.1 ---
+  许可证: MIT
+  仓库: https://github.com/chalk/strip-ansi
+  作者: Sindre Sorhus
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/strip-ansi/license
+
+--- three@0.159.0 ---
+  许可证: MIT
+  仓库: https://github.com/mrdoob/three.js
+  作者: mrdoob
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/three/LICENSE
+
+--- vue-component-type-helpers@3.3.9 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/language-tools
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/vue-component-type-helpers/LICENSE
+
+--- vue-router@4.6.4 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/router
+  作者: Eduardo San Martin Morote
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/vue-router/LICENSE
+
+--- vue@3.5.40 ---
+  许可证: MIT
+  仓库: https://github.com/vuejs/core
+  作者: Evan You
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/vue/LICENSE
+
+--- wrap-ansi@7.0.0 ---
+  许可证: MIT
+  仓库: https://github.com/chalk/wrap-ansi
+  作者: Sindre Sorhus
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/wrap-ansi/license
+
+--- ws@8.21.3 ---
+  许可证: MIT
+  仓库: https://github.com/websockets/ws
+  作者: Einar Otto Stangvik
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/ws/LICENSE
+
+--- y18n@5.0.8 ---
+  许可证: ISC
+  仓库: https://github.com/yargs/y18n
+  作者: Ben Coe
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/y18n/LICENSE
+
+--- yargs-parser@21.1.1 ---
+  许可证: ISC
+  仓库: https://github.com/yargs/yargs-parser
+  作者: Ben Coe
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/yargs-parser/LICENSE.txt
+
+--- yargs@17.7.3 ---
+  许可证: MIT
+  仓库: https://github.com/yargs/yargs
+  许可证文件: D:/nodePro/cas_nodeItem/node_modules/yargs/LICENSE
+
+--- yingguangjiyou@1.1.0 ---
+  许可证: UNLICENSED
+  作者: cas-node-item
+  许可证文件: D:/nodePro/cas_nodeItem/LICENSE
+

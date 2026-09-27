@@ -1,0 +1,90 @@
+.warehouse {
+  min-height: var(--app-vh, 100vh);
+  background: transparent;
+}
+.warehouse-body {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* 返回按钮 */
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #3FA98A;
+  background: transparent;
+  border: 1px solid #3FA98A;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+}
+
+.back-btn i {
+  font-size: 16px;
+}
+
+.back-btn:hover {
+  transform: translateY(-3px) scale(1.04);
+  color: #5BC9A0;
+  border-color: #5BC9A0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+.nav{
+  display: flex;
+  justify-content: center;
+
+}
+
+.demo-tabs{
+  width: 100%;
+}
+
+/* 仅标签导航文字加金色描边 */
+.demo-tabs :deep(.el-tabs__item) {
+  -webkit-text-stroke: 1px #3FA98A;
+}
+
+.demo-tabs :deep(.el-tabs__nav-wrap) {
+  display: flex;
+  justify-content: center;
+}
+.demo-tabs :deep(.el-tabs__active-bar) {
+  background-color: #3FA98A;
+}
+.shop{
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 20px;
+  font-weight: 900;
+  color: #3FA98A;
+  background: transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+}
+
+/* ====== 移动端（窄视口）======
+   本文件被 shop.vue 与 warehouse.vue 共用，容器规则放这里避免两边各写一份 */
+@media (max-width: 768px) {
+  .warehouse-body {
+    padding: 12px 12px 0;
+    /* 底部导航占位：仓库/商店列表很长，最后一行会被 MobileTabBar 压住 */
+    padding-bottom: var(--tabbar-h, 56px);
+  }
+
+  /* 返回键加大触控面积；原来 10px 20px 在手指下偏小 */
+  .back-btn {
+    padding: 9px 16px;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+}

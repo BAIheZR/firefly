@@ -1,0 +1,565 @@
+/* ====== 多人游戏 ====== */
+.mp-page {
+  min-height: 100vh;
+  width: 100%;
+  padding: 20px 0 60px;
+  box-sizing: border-box;
+}
+.mp-body {
+  width: min(920px, 95vw);
+  margin: 10px auto 0;
+}
+.mp-card {
+  background: var(--page-content-bg);
+  backdrop-filter: blur(var(--page-blur, 16px));
+  -webkit-backdrop-filter: blur(var(--page-blur, 16px));
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  border-radius: 20px;
+  padding: 22px 28px 28px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  transition: opacity 0.3s ease;
+  opacity: var(--page-content-opacity, 1);
+}
+
+/* 顶部标题区 */
+.mp-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.mp-title {
+  margin: 0;
+  font-size: 20px;
+  color: #2c3e35;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mp-title i {
+  color: #3fa98a;
+}
+.mp-top-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.mp-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #3fa98a;
+  font-weight: 600;
+}
+.mp-user i {
+  color: #3fa98a;
+}
+
+/* 区块 */
+.mp-section {
+  margin-bottom: 22px;
+}
+.mp-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e35;
+  margin-bottom: 12px;
+}
+.mp-section-label i {
+  color: #3fa98a;
+}
+
+/* 配置弹框表单 */
+.mp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.mp-field-label {
+  font-size: 13px;
+  color: #4a5a52;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.mp-field-label em {
+  font-style: normal;
+  font-size: 11px;
+  color: #9aa9a0;
+  font-weight: 400;
+}
+/* 字段下方的补充说明（网卡选择提示、协议头提醒） */
+.mp-field-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 6px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #9aa9a0;
+}
+.mp-field-tip.warn {
+  color: #c98a2e;
+}
+.mp-field-tip i {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.mp-input {
+  padding: 9px 12px;
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  color: #2c3e35;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.mp-input:focus {
+  border-color: #3fa98a;
+  box-shadow: 0 0 0 3px rgba(63, 169, 138, 0.15);
+}
+/* 昵称只读展示 */
+.mp-nickname-readonly {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  border-radius: 10px;
+  background: rgba(63, 169, 138, 0.08);
+  font-size: 14px;
+  color: #2c3e35;
+  font-weight: 600;
+}
+.mp-nickname-readonly i {
+  color: #3fa98a;
+}
+/* 弹框体与底部 */
+.mp-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.mp-dialog-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.mp-dialog-footer-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.mp-connect-btn {
+  padding: 10px 24px;
+  font-size: 15px;
+}
+
+/* 游戏列表 */
+.mp-games {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.mp-game-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(63, 169, 138, 0.25);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+.mp-game-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 18px rgba(63, 169, 138, 0.2);
+  border-color: #3fa98a;
+}
+.mp-game-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #fff;
+  font-size: 20px;
+}
+.mp-game-info {
+  flex: 1;
+  min-width: 0;
+}
+.mp-game-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #2c3e35;
+  margin-bottom: 4px;
+}
+.mp-game-desc {
+  font-size: 12px;
+  color: #7a8a82;
+  line-height: 1.5;
+}
+.mp-game-status {
+  flex-shrink: 0;
+  color: #3fa98a;
+}
+
+/* 说明 */
+.mp-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(63, 169, 138, 0.08);
+  border-radius: 12px;
+  font-size: 12px;
+  color: #5a6a62;
+  line-height: 1.6;
+}
+.mp-notice i {
+  color: #3fa98a;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+/* ====== 穿透地址：输入框 + 检测按钮 ====== */
+.mp-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.mp-input-row .mp-input {
+  flex: 1;
+  min-width: 0;
+}
+.mp-mini-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid rgba(63, 169, 138, 0.45);
+  border-radius: 10px;
+  background: rgba(63, 169, 138, 0.12);
+  color: #2f8d72;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  white-space: nowrap;
+}
+.mp-mini-btn:hover:not(:disabled) {
+  background: rgba(63, 169, 138, 0.22);
+}
+.mp-mini-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.mp-field-tip b {
+  color: #2f8d72;
+  font-weight: 600;
+  word-break: break-all;
+}
+
+/* ====== 排障日志面板 ====== */
+.mp-logs {
+  margin-top: 12px;
+  border: 1px solid rgba(63, 169, 138, 0.28);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: #4a5a52;
+}
+.mp-logs summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #3fa98a;
+  font-size: 12px;
+  user-select: none;
+}
+.mp-logs summary::-webkit-details-marker {
+  display: none;
+}
+.mp-logs-body {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  max-height: 220px;
+  overflow: auto;
+  background: rgba(44, 62, 53, 0.06);
+  border-radius: 8px;
+  font-family: Consolas, Monaco, 'Courier New', monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #3d4f46;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.mp-logs-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.mp-logs-lasterr {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(201, 138, 46, 0.1);
+  color: #a9721f;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.mp-logs-lasterr i {
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+.mp-logs-lasterr span {
+  word-break: break-all;
+}
+
+/* 按钮 */
+.btn-primary {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3fa98a, #5bc9a0);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(63, 169, 138, 0.35);
+}
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.btn-secondary {
+  padding: 8px 16px;
+  border: 1px solid rgba(63, 169, 138, 0.5);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #3fa98a;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+.btn-secondary:hover {
+  transform: translateY(-2px);
+  background: rgba(63, 169, 138, 0.1);
+}
+
+/* Tab 切换 */
+.mp-tabs {
+  display: flex;
+  gap: 8px;
+  background: rgba(63, 169, 138, 0.08);
+  border-radius: 12px;
+  padding: 4px;
+}
+.mp-tab {
+  flex: 1;
+  padding: 10px 0;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: #5a6a62;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background 0.2s, color 0.2s;
+}
+.mp-tab i {
+  font-size: 13px;
+}
+.mp-tab.active {
+  background: linear-gradient(135deg, #3fa98a, #5bc9a0);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(63, 169, 138, 0.3);
+}
+
+/* 下拉框 */
+.mp-select {
+  width: 100%;
+}
+
+/* 房间已创建视图 */
+.mp-room-created {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.mp-room-code {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 18px;
+  background: rgba(63, 169, 138, 0.08);
+  border-radius: 14px;
+}
+.mp-room-label {
+  font-size: 12px;
+  color: #7a8a82;
+}
+.mp-room-code-value {
+  font-size: 34px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  color: #3fa98a;
+  font-family: monospace;
+}
+.mp-room-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mp-room-link-box {
+  padding: 10px 12px;
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  color: #2c3e35;
+  word-break: break-all;
+  font-family: monospace;
+  line-height: 1.5;
+}
+.mp-room-tip {
+  font-size: 12px;
+  color: #7a8a82;
+  line-height: 1.5;
+}
+.mp-room-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  color: #3fa98a;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* 房间状态栏（连接成功后显示） */
+.mp-room-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: 22px;
+  background: rgba(63, 169, 138, 0.1);
+  border: 1px solid rgba(63, 169, 138, 0.4);
+  border-radius: 14px;
+}
+.mp-room-bar-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.mp-room-bar-code {
+  font-size: 16px;
+  font-weight: 700;
+  color: #3fa98a;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.mp-room-bar-count {
+  font-size: 14px;
+  color: #4a5a52;
+  font-weight: 600;
+}
+.mp-member-list {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+.mp-member {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(63, 169, 138, 0.3);
+  border-radius: 999px;
+  font-size: 13px;
+  color: #2c3e35;
+}
+.mp-member i {
+  color: #3fa98a;
+  font-size: 12px;
+}
+.mp-member em {
+  font-style: normal;
+  font-size: 11px;
+  color: #e6a23c;
+}
+.mp-room-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 响应式 */
+@media (max-width: 640px) {
+  .mp-card { padding: 16px 14px 22px; }
+  .mp-games { grid-template-columns: 1fr; }
+  .mp-top-right { flex-wrap: wrap; }
+}
+
+/* ====== 移动端（窄视口）：容器层面（页面骨架 .mp-page/.mp-body 在此文件） ====== */
+@media (max-width: 768px) {
+  .mp-page {
+    min-height: var(--app-vh, 100vh);
+    padding: 12px 0;
+    /* 底部导航占位 */
+    padding-bottom: calc(var(--tabbar-h, 56px) + 6px);
+  }
+
+  .mp-body {
+    width: 96vw;
+    margin-top: 6px;
+  }
+
+  .mp-card {
+    border-radius: 14px;
+  }
+
+  /* 联机页表单里的输入框在触屏上要够高，且字号 ≥16px 防止 iOS 聚焦自动放大 */
+  .mp-input,
+  .mp-select {
+    min-height: var(--tap-min, 44px);
+    font-size: 16px;
+  }
+}

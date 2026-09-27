@@ -1,0 +1,47 @@
+{
+  "name": "yingguangjiyou",
+  "private": true,
+  "version": "1.1.0",
+  "description": "萤光纪游 - 养成类小游戏",
+  "author": "BAIheZR",
+  "license": "MIT",
+  "main": "dist-electron/main.js",
+  "type": "module",
+  "scripts": {
+    "sync:icon": "node -e \"const fs=require('fs');if(fs.existsSync('favicon.ico'))fs.copyFileSync('favicon.ico','public/favicon.ico')\"",
+    "predev": "npm run sync:icon",
+    "dev": "vite",
+    "prebuild": "npm run sync:icon",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "vite --mode development",
+    "electron:build": "vite build",
+    "electron:preview": "vite preview",
+    "dist": "npm run build && set ELECTRON_BUILDER_USE_SYSTEM_CA=true&& set NODE_OPTIONS=--use-system-ca&& set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/&& set ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/&& electron-builder --win --x64",
+    "pack": "npm run dist",
+    "pack:dir": "npm run build && set ELECTRON_BUILDER_USE_SYSTEM_CA=true&& set NODE_OPTIONS=--use-system-ca&& set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/&& set ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/&& electron-builder --win --x64 --dir",
+    "dist:unsafe": "npm run build && set NODE_TLS_REJECT_UNAUTHORIZED=0&& set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/&& set ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/&& electron-builder --win --x64"
+  },
+  "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
+    "@vueuse/core": "^14.4.0",
+    "axios": "^1.19.0",
+    "element-plus": "^2.14.3",
+    "lucide": "^1.47.0",
+    "morphicons": "^1.7.1",
+    "pinia": "^4.0.2",
+    "qrcode": "^1.5.4",
+    "three": "^0.159.0",
+    "vue": "^3.4.0",
+    "vue-router": "^4.3.0",
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.0",
+    "electron": "^41.10.4",
+    "electron-builder": "^26.0.12",
+    "vite": "^5.4.0",
+    "vite-plugin-electron": "^1.1.1",
+    "vite-plugin-electron-renderer": "^1.0.0"
+  }
+}

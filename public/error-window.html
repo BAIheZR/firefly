@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>萤光纪游 - 错误报告</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
+    background: linear-gradient(160deg, #eef7f3 0%, #f7fbf9 60%, #fdf6ec 100%);
+    color: #2b3a35;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .wrap { flex: 1; overflow-y: auto; padding: 18px 22px 10px; }
+
+  /* 头部警示 */
+  .head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+  .head-icon {
+    width: 46px; height: 46px; flex-shrink: 0;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ffb84d, #e2574c);
+    color: #fff; font-size: 26px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px rgba(226, 87, 76, 0.35);
+  }
+  .head h1 { font-size: 18px; color: #c0392b; }
+  .head p { font-size: 12.5px; color: #7a8a83; margin-top: 3px; }
+
+  /* 分析卡片 */
+  .card {
+    background: #fff;
+    border: 1px solid rgba(63, 169, 138, 0.22);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 2px 10px rgba(63, 169, 138, 0.06);
+  }
+  .card h3 {
+    font-size: 13px; color: #3FA98A; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .card h3::before { content: ""; width: 4px; height: 14px; border-radius: 2px; background: #3FA98A; }
+  .analysis-title { font-size: 16px; font-weight: 700; color: #d35400; margin-bottom: 10px; }
+  .analysis-label { font-size: 12px; color: #94a3ab; margin: 8px 0 3px; font-weight: 600; }
+  .analysis-cause { font-size: 13px; line-height: 1.7; color: #4a5a54; }
+  .analysis-solution { list-style: none; }
+  .analysis-solution li {
+    font-size: 13px; line-height: 1.7; color: #33453e;
+    padding: 5px 8px 5px 10px; margin-top: 5px;
+    background: #f0faf6; border-left: 3px solid #3FA98A; border-radius: 0 6px 6px 0;
+  }
+
+  /* 可折叠详情 */
+  details { margin-bottom: 12px; }
+  details summary {
+    cursor: pointer; user-select: none;
+    font-size: 13px; font-weight: 600; color: #3FA98A;
+    padding: 8px 12px; background: #fff;
+    border: 1px solid rgba(63, 169, 138, 0.22); border-radius: 10px;
+    list-style: none;
+  }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after { content: " ▾"; color: #94a3ab; }
+  details[open] summary::after { content: " ▴"; }
+  details pre {
+    margin-top: 8px; padding: 12px;
+    background: #22302b; color: #cde8dd;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 12px; line-height: 1.55;
+    border-radius: 10px; white-space: pre-wrap; word-break: break-all;
+    max-height: 220px; overflow-y: auto;
+  }
+
+  .meta { font-size: 11.5px; color: #94a3ab; line-height: 1.8; margin-bottom: 8px; }
+
+  /* 底部按钮 */
+  .foot {
+    flex-shrink: 0;
+    display: flex; gap: 10px; justify-content: flex-end;
+    padding: 12px 22px 16px;
+    border-top: 1px solid rgba(63, 169, 138, 0.18);
+    background: rgba(255, 255, 255, 0.75);
+  }
+  .btn {
+    padding: 9px 18px; font-size: 13px; font-weight: 600;
+    border-radius: 9px; cursor: pointer; font-family: inherit;
+    transition: all 0.2s;
+  }
+  .btn-ghost {
+    background: #fff; color: #3FA98A;
+    border: 1px solid rgba(63, 169, 138, 0.55);
+  }
+  .btn-ghost:hover { background: rgba(63, 169, 138, 0.12); transform: translateY(-1px); }
+  .btn-primary {
+    background: linear-gradient(135deg, #3FA98A, #2E8B6F); color: #fff; border: none;
+    box-shadow: 0 3px 10px rgba(63, 169, 138, 0.35);
+  }
+  .btn-primary:hover { filter: brightness(1.08); transform: translateY(-1px); }
+  .btn-warn {
+    background: #fff; color: #d35400;
+    border: 1px solid rgba(211, 84, 0, 0.5);
+  }
+  .btn-warn:hover { background: rgba(211, 84, 0, 0.08); transform: translateY(-1px); }
+
+  .loading { text-align: center; color: #7a8a83; padding: 60px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+  <div class="wrap" id="app"><div class="loading">正在收集错误信息…</div></div>
+  <div class="foot">
+    <button class="btn btn-ghost" id="btn-logs">打开日志文件夹</button>
+    <button class="btn btn-ghost" id="btn-copy">复制错误信息</button>
+    <button class="btn btn-warn" id="btn-restart">重启游戏</button>
+    <button class="btn btn-primary" id="btn-close">关闭窗口</button>
+  </div>
+
+<script>
+  const app = document.getElementById('app')
+  const btnCopy = document.getElementById('btn-copy')
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]))
+  }
+
+  function render(data) {
+    if (!data) return
+    const { analysis, detail, env, recentLog, source } = data
+    app.innerHTML = `
+      <div class="head">
+        <div class="head-icon">!</div>
+        <div>
+          <h1>游戏遇到了问题，日志已自动收集</h1>
+          <p>请按下方建议操作，或把错误信息发送给开发者</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>自动分析结果${source ? `（来源：${esc(source)}）` : ''}</h3>
+        <div class="analysis-title">${esc(analysis.title)}</div>
+        <div class="analysis-label">可能的原因</div>
+        <div class="analysis-cause">${esc(analysis.cause)}</div>
+        <div class="analysis-label">建议的操作</div>
+        <ul class="analysis-solution">
+          ${analysis.solution.map((s) => `<li>${esc(s)}</li>`).join('')}
+        </ul>
+      </div>
+
+      <details>
+        <summary>错误详情（点开查看）</summary>
+        <pre>${esc(detail || '（无详细信息）')}</pre>
+      </details>
+      <details>
+        <summary>最近日志（点开查看）</summary>
+        <pre>${esc(recentLog || '')}</pre>
+      </details>
+
+      <div class="meta">
+        版本 v${esc(env.version)} | Electron ${esc(env.electron)} | Chromium ${esc(env.chrome)}<br>
+        系统 ${esc(env.os)} | CPU ${esc(env.cpu)} | 内存 ${esc(env.memory)} | 硬件加速：${esc(env.hw)}<br>
+        发生时间：${esc(env.time)} | 日志保存在游戏数据目录的 Logs 文件夹内
+      </div>
+    `
+  }
+
+  // 初始化拉取
+  if (window.errorAPI) {
+    window.errorAPI.getReport().then(render).catch((e) => {
+      app.innerHTML = `<div class="loading">错误信息读取失败：${esc(e?.message || e)}</div>`
+    })
+    window.errorAPI.onUpdate(render)
+  } else {
+    // 直接用浏览器打开 html（调试场景）
+    app.innerHTML = '<div class="loading">未检测到错误报告接口（请通过游戏内错误弹窗打开）</div>'
+  }
+
+  // 按钮事件
+  document.getElementById('btn-logs').addEventListener('click', () => {
+    window.errorAPI?.openLogs?.()
+  })
+  btnCopy.addEventListener('click', async () => {
+    const r = await window.errorAPI?.copyError?.()
+    if (r?.success) {
+      btnCopy.textContent = '已复制 ✓'
+      setTimeout(() => (btnCopy.textContent = '复制错误信息'), 1800)
+    }
+  })
+  document.getElementById('btn-restart').addEventListener('click', () => {
+    window.errorAPI?.restartApp?.()
+  })
+  document.getElementById('btn-close').addEventListener('click', () => {
+    window.close()
+  })
+</script>
+</body>
+</html>

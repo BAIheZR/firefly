@@ -1,0 +1,441 @@
+.guess-word-page {
+  min-height: 100vh;
+}
+
+/* ===== 欢迎卡 ===== */
+.guess-welcome {
+  text-align: center;
+  padding: 36px 24px 30px;
+  margin: 20px auto;
+  max-width: 560px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.92), rgba(245,240,255,0.92));
+  border-radius: 18px;
+  box-shadow: 0 8px 28px rgba(120,90,200,0.18);
+  backdrop-filter: blur(6px);
+}
+.welcome-icon {
+  font-size: 56px;
+  color: #9b7bff;
+  margin-bottom: 14px;
+  display: inline-block;
+}
+.welcome-title {
+  margin: 0 0 12px;
+  font-size: 22px;
+  color: #5a4aa8;
+  font-weight: 700;
+}
+.welcome-desc {
+  margin: 0 0 18px;
+  color: #6b6293;
+  font-size: 14px;
+  line-height: 1.7;
+}
+.welcome-meta {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 22px;
+}
+.meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(155,123,255,0.12);
+  color: #7c62dd;
+  border-radius: 999px;
+  font-size: 12px;
+}
+.btn-lg { padding: 11px 22px; font-size: 15px; }
+
+/* 右上角 HOME 按钮（和金币栏并排） */
+.chess-top-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-home {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(63,169,138,0.5);
+  background: rgba(255,255,255,0.8);
+  color: #b8860b;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.25s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.btn-home:hover {
+  background: #3FA98A;
+  color: #fff;
+  border-color: #3FA98A;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(63,169,138,0.35);
+}
+
+/* ===== 题板 ===== */
+.guess-stage {
+  position: relative;
+  min-height: 320px;
+  margin-bottom: 8px;
+}
+.guess-board {
+  padding: 14px 4px 8px;
+}
+.board-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: rgba(63,169,138,0.12);
+  color: #b8860b;
+  border: 1px solid rgba(63,169,138,0.4);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.round-badge {
+  padding: 6px 12px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 999px;
+  font-size: 12px;
+  color: #555;
+  font-weight: 600;
+}
+
+/* 提示词卡片列表 */
+.hint-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  min-height: 60px;
+}
+.hint-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.78);
+  border: 1px solid rgba(63,169,138,0.3);
+  border-radius: 12px;
+  animation: hint-pop 0.35s ease both;
+}
+@keyframes hint-pop {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.hint-no {
+  flex-shrink: 0;
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3FA98A, #5BC9A0);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.hint-text {
+  color: #4a3a10;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* 输入栏 */
+.input-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 12px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(63,169,138,0.25);
+}
+.guess-input {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 10px 14px;
+  font-size: 15px;
+  border-radius: 10px;
+  border: 1px solid rgba(63,169,138,0.4);
+  background: #fff;
+  color: #2c2c2c;
+  outline: none;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.guess-input:focus {
+  border-color: #3FA98A;
+  box-shadow: 0 0 0 3px rgba(63,169,138,0.18);
+}
+.guess-input:disabled {
+  background: rgba(0,0,0,0.04);
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  border: 1px solid rgba(220,53,69,0.4);
+  background: rgba(255,255,255,0.5);
+  color: #c0392b;
+  transition: all 0.25s;
+}
+.btn-ghost:hover:not(:disabled) {
+  background: rgba(220,53,69,0.1);
+  color: #a93226;
+}
+
+.reward-hint {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 13px;
+  color: #888;
+}
+.reward-hint i { color: #DAA520; margin-right: 4px; }
+.reward-hint b { color: #DAA520; font-weight: 700; }
+
+/* ===== 候选答案 chips ===== */
+.candidate-section {
+  margin-top: 12px;
+  padding: 12px 12px 8px;
+  background: rgba(155,123,255,0.08);
+  border: 1px dashed rgba(155,123,255,0.35);
+  border-radius: 12px;
+}
+.candidate-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #7c62dd;
+  margin-bottom: 8px;
+}
+.candidate-label i { color: #9b7bff; }
+.candidate-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.candidate-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: rgba(255,255,255,0.85);
+  border: 1px solid rgba(155,123,255,0.45);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a4aa8;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.candidate-chip:hover {
+  background: rgba(155,123,255,0.2);
+  border-color: #7c62dd;
+  color: #4a3a9f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(124,98,221,0.18);
+}
+.candidate-chip:active {
+  transform: translateY(0);
+}
+
+/* 结算奖励 */
+.result-reward {
+  margin: 4px 0 18px;
+  font-size: 26px;
+  color: #d18b00;
+  font-weight: 800;
+}
+.result-reward i { margin-right: 8px; }
+
+/* ===== 历史记录 ===== */
+.history-section {
+  margin-top: 22px;
+  padding: 14px 16px 12px;
+  background: rgba(255,255,255,0.5);
+  border-radius: 14px;
+  border: 1px solid rgba(63,169,138,0.25);
+}
+.history-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed rgba(63,169,138,0.3);
+  font-size: 14px;
+  font-weight: 700;
+  color: #4a3a10;
+}
+.history-head i { color: #3FA98A; }
+.history-count {
+  margin-left: 4px;
+  padding: 2px 8px;
+  background: rgba(63,169,138,0.15);
+  border-radius: 999px;
+  font-size: 12px;
+  color: #b8860b;
+}
+.history-summary {
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #666;
+}
+.history-summary b { font-weight: 800; }
+.history-summary .ok { color: #2e8b57; }
+.history-summary .bad { color: #c0392b; }
+.history-summary .gold { color: #DAA520; }
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.history-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(63,169,138,0.2);
+  transition: background 0.2s;
+}
+.history-item.is-win { border-left: 4px solid #2e8b57; }
+.history-item.is-wrong { border-left: 4px solid #c0392b; opacity: 0.92; }
+.history-item.is-giveup { border-left: 4px solid #e6a23c; opacity: 0.95; }
+.hi-no {
+  flex-shrink: 0;
+  width: 36px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #999;
+}
+.hi-answer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.hi-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2c2c2c;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.hi-cat {
+  font-size: 11px;
+  color: #888;
+}
+.hi-cat i { margin-right: 3px; }
+.hi-meta {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: flex-end;
+  font-size: 12px;
+  color: #666;
+}
+.hi-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.hi-row i { color: #3FA98A; font-size: 11px; }
+.hi-row .ok { color: #2e8b57; font-weight: 700; }
+.hi-row .bad { color: #c0392b; font-weight: 700; }
+.hi-result {
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+  font-size: 18px;
+}
+.ok-icon { color: #2e8b57; }
+.bad-icon { color: #c0392b; }
+.giveup-icon { color: #e6a23c; }
+
+.hi-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2c2c2c;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.submit-answer { font-weight: 700; color: #2c2c2c; }
+.is-wrong .submit-answer { color: #c0392b; }
+.is-giveup .submit-answer { color: #e6a23c; font-style: italic; }
+.is-win .submit-answer.is-answer { color: #2e8b57; }
+.hi-tag {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 1px 7px;
+  background: rgba(0,0,0,0.05);
+  border-radius: 999px;
+  font-size: 10px;
+  color: #777;
+  font-weight: 500;
+}
+
+/* 滚动条美化 */
+.history-list::-webkit-scrollbar { width: 6px; }
+.history-list::-webkit-scrollbar-thumb { background: rgba(63,169,138,0.4); border-radius: 3px; }
+.history-list::-webkit-scrollbar-track { background: transparent; }
+
+/* 响应式 */
+@media (max-width: 680px) {
+  .guess-welcome { padding: 28px 16px 22px; }
+  .welcome-title { font-size: 20px; }
+  .hint-card { padding: 8px 10px; }
+  .hint-text { font-size: 14px; }
+  .guess-input { flex: 1 1 100%; }
+  .history-item { flex-wrap: wrap; }
+  .hi-meta { flex-direction: row; gap: 10px; }
+}
+
+/* ====== 移动端（窄视口）：容器层面的补充，页面骨架 .chess-* 在 chess.css 里 ====== */
+@media (max-width: 768px) {
+  .guess-welcome {
+    padding: 22px 14px 18px;
+  }
+
+  /* 猜字输入框在触屏上要够大，避免聚焦时被键盘顶出可视区 */
+  .guess-input {
+    min-height: var(--tap-min, 44px);
+    font-size: 16px; /* ≥16px 可阻止 iOS 聚焦时自动放大页面 */
+  }
+}

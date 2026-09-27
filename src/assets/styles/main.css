@@ -1,0 +1,360 @@
+/* ====== 设计令牌 ====== */
+:root {
+  /* 主色系 - 三层绿 */
+  --c-primary: #2D7A5F;        /* 深绿 → 重要文字、主按钮 */
+  --c-primary-mid: #3FA98A;    /* 薄荷绿 → 图标、次要强调 */
+  --c-primary-light: #5BC9A0;  /* 浅薄荷绿 → hover 态 */
+  --c-primary-dark: #1F5C48;   /* 墨绿 → 标题、导航文字 */
+
+  /* 暖色卡片背景 */
+  --c-cream: #FBF8F0;          /* 暖米白 → 卡片背景 */
+  --c-cream-deep: #F5F1E8;     /* 暖米色 → 次级卡片/分区背景 */
+
+  /* 文字色 */
+  --c-text: #2F3A33;           /* 深灰绿 → 正文 */
+  --c-text-sub: #6B7B6F;       /* 中灰绿 → 副文本 */
+  --c-text-hint: #9AA8A0;      /* 浅灰绿 → 提示文字 */
+
+  /* 点缀色 */
+  --c-gold: #C8982E;           /* 暖金 → 价格/金币 */
+  --c-gold-hover: #E6B450;     /* 浅金 → hover */
+  --c-peach: #E8917A;          /* 蜜桃色 → 特殊强调 */
+
+  /* 阴影 */
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 8px 24px rgba(45, 122, 95, 0.15);
+  --shadow-float: 0 12px 32px rgba(0, 0, 0, 0.10);
+
+  /* 圆角 */
+  --r-md: 14px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ====== 复制防护：默认禁选中文本，白名单 .allow-copy 放行 ====== */
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 白名单：显式标记的区域可被选中复制 */
+.allow-copy,
+.allow-copy * {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* 表单控件天然可选中（用户输入需要） */
+input,
+textarea,
+[contenteditable='true'] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+body {
+  font-family: 'Microsoft YaHei', 'PingFang SC', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: transparent;
+}
+
+#app {
+  min-height: 100vh;
+  background: transparent;
+}
+
+/* Popover*/
+.gold-popover.el-popover.el-popper {
+  /* background: linear-gradient(135deg, rgba(63, 169, 138, 0.15), rgba(91, 201, 160, 0.1)); */
+  border: 1px solid #3FA98A;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(63, 169, 138, 0.3);
+  color: #b8d8cc;
+  padding: 12px 16px;
+}
+
+.gold-popover.el-popover.el-popper .el-popover__title {
+  color: #3FA98A;
+  font-size: 14px;
+  font-weight: bold;
+  border-bottom: 1px solid rgba(63, 169, 138, 0.3);
+  padding-bottom: 6px;
+  margin-bottom: 8px;
+}
+
+.gold-popover.el-popover.el-popper .el-popper__arrow::before {
+  background: rgba(63, 169, 138, 0.15);
+  border-color: #3FA98A;
+}
+
+/* 全局背景启用时：页面内容 div 的透明度由设置面板控制 */
+.warehouse-body,
+.notify-body,
+.set-body {
+  opacity: var(--page-content-opacity, 1);
+  transition: opacity 0.3s ease;
+}
+
+/* ====== 暗黑模式 ====== */
+html.dark body,
+html.dark #app {
+  background: #141414;
+}
+
+html.dark .content-section {
+  background: #1e1e1e;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .page-title,
+html.dark .form-label,
+html.dark .about-name,
+html.dark .about-text-title,
+html.dark .info-val {
+  color: #e5e5e5;
+}
+
+html.dark .form-sub,
+html.dark .about-ver,
+html.dark .info-key {
+  color: #9a9a9a;
+}
+
+html.dark .form-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .form-input {
+  color: #e5e5e5;
+  background: #2a2a2a;
+  border-color: #444;
+}
+
+html.dark .form-input:focus {
+  background: #2a2a2a;
+  box-shadow: 0 0 0 3px rgba(63, 169, 138, 0.25);
+}
+
+html.dark .nav-title,
+html.dark .nav-item {
+  color: #bfd9cf;
+}
+
+html.dark .nav-item {
+  background: rgba(30, 30, 30, 0.7);
+  border-color: rgba(63, 169, 138, 0.35);
+}
+
+html.dark .preset-name {
+  color: #bbb;
+}
+
+html.dark .about-card {
+  background: linear-gradient(135deg, rgba(63, 169, 138, 0.12) 0%, rgba(91, 201, 160, 0.06) 100%);
+}
+
+html.dark .info-item {
+  background: #2a2a2a;
+}
+
+/* ====== MorphIcon 图标适配 ====== */
+/* morphicons/vue 的根元素就是 <svg>，class 直接落在 svg 上 */
+/* 让 SVG 继承父元素 font-size，与 Font Awesome 图标尺寸行为一致 */
+svg.morph-icon {
+  width: 1em !important;
+  height: 1em !important;
+  display: inline-block;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+/* ==========================================================================
+   移动端基础层
+   断点统一 768px，与 src/utils/device.js 的 MOBILE_BREAKPOINT 保持一致。
+   约定：本文件只放「全局且与具体页面无关」的移动端规则，页面各自的特化写在
+   对应的 xxx.css 里（同样是 @media (max-width: 768px)）。
+   ========================================================================== */
+
+/* ---- 1. 全高单位 ----
+   移动端浏览器地址栏会伸缩，100vh 恒等于「地址栏收起时的高度」，
+   于是页面底部会被裁掉一截（TabBar 悬空）。100dvh 跟随实际可视高度。 */
+:root {
+  --app-vh: 100vh;
+  /* 安全区：刘海屏/挖孔屏/手势条。非全面屏设备落到 0px，不会有副作用 */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  /* 底部固定条的总高度：内容区要按它留白，否则最后一条会被盖住 */
+  --tabbar-h: calc(56px + var(--safe-bottom));
+  /* 触控目标最小边长（iOS HIG 44pt / Material 48dp 的折中取值） */
+  --tap-min: 44px;
+}
+@supports (height: 100dvh) {
+  :root { --app-vh: 100dvh; }
+}
+
+/* ---- 2. 移动端固有行为修正 ---- */
+
+/* 去掉 iOS 点击时的灰色半透明高亮块（点哪闪哪，观感很脏） */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  /* 横屏时禁止 iOS 擅自放大字号 */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /* 关掉下拉刷新与滚动链：整页应用里这两者只会干扰手势 */
+  overscroll-behavior: none;
+  /* 阻止长按选中/长按弹菜单（与既有 user-select:none 一致，但补上 iOS 的 callout） */
+  -webkit-touch-callout: none;
+}
+
+/* 滚动容器统一开启惯性滚动，并限制在容器内不回弹到整页 */
+.scroll-y {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* ---- 3. 视口高度替换 ---- */
+#app {
+  min-height: var(--app-vh);
+}
+
+/* ---- 4. 布局辅助类 ---- */
+/* 只在移动端 / 只在桌面端显示。用 !important 是为了不被页面自身的 display 覆盖 */
+.mobile-only { display: none !important; }
+
+@media (max-width: 768px) {
+  .mobile-only { display: revert !important; }
+  .desktop-only { display: none !important; }
+}
+
+/* ---- 5. 移动端通用尺寸与交互 ---- */
+
+@media (max-width: 768px) {
+  /* 触控目标兜底：纯图标按钮太小会点不中。
+     只提最小尺寸，不强制改 padding，避免打乱原有排版。 */
+  button,
+  [role='button'],
+  .nav-btn,
+  .el-button {
+    min-height: var(--tap-min);
+    min-width: var(--tap-min);
+  }
+
+  /* Element Plus 弹框在窄屏铺满，避免内部表单被压成两列挤在一起 */
+  .el-dialog {
+    --el-dialog-width: 92vw !important;
+    width: 92vw !important;
+    margin: 5vh auto !important;
+  }
+
+  /* 抽屉（AI 对话）在手机上给足高度 */
+  .el-drawer.btt {
+    height: 62dvh !important;
+  }
+
+  /* 消息提示贴顶显示，避免被底部 TabBar 挡住 */
+  .el-message {
+    top: calc(var(--safe-top) + 8px) !important;
+    min-width: 80vw;
+  }
+
+  /* 滑块加大触控区：默认 14px 的圆点在手指下很难精确拖动 */
+  .el-slider__button {
+    width: 22px;
+    height: 22px;
+  }
+  .el-slider__runway {
+    height: 6px;
+  }
+}
+
+/* ---- 5b. 触摸设备上的 hover 粘滞 ----
+   触摸设备点击后 :hover 会一直保持，那些「上浮 2px / 放大 1.05」的悬停反馈会残留成错位。
+   这里清掉它们的位移，只保留颜色变化作为按压反馈。
+
+   注意不要写成全局的 `*:hover { transform: none }` —— 那会误伤用 transform 做布局的元素：
+   CSS 的 :hover 会同时匹配被悬停元素的所有祖先，手指按在 .home-character-img（立绘，靠
+   translate(-50%,-50%) 居中）上时，它的 transform 会被置空，立绘当场弹到左上角；
+   .tab-dot、.star-dot 这类靠 translateX(-50%) 对中的小元件同理。
+   所以这里只针对可交互控件 —— 它们身上的 transform 基本都是纯装饰。 */
+@media (hover: none) {
+  button:hover:not(:active),
+  a:hover:not(:active),
+  [role='button']:hover:not(:active),
+  .el-button:hover:not(:active),
+  .nav-btn:hover:not(:active),
+  .tab-item:hover:not(:active),
+  .list-item:hover:not(:active),
+  .item-card:hover:not(:active),
+  .clothing-card:hover:not(:active),
+  .game-menu-item:hover:not(:active),
+  .nav-item:hover:not(:active),
+  .song-item:hover:not(:active) {
+    transform: none !important;
+  }
+}
+
+/* ---- 6. 手势独占（人物调整模式）----
+   调整人物时若不禁用浏览器自身的滚动/缩放，单指拖动会被当成页面滚动，
+   pointermove 根本不触发，表现为「拖不动」。开启调整模式时由 JS 挂上这个类
+   （Home.vue 里 watch(adjustMode)）。
+   面板内部必须把 touch-action 收回来，否则里面的滑块拖不动。 */
+html.gesture-lock,
+html.gesture-lock body {
+  touch-action: none;
+  overscroll-behavior: none;
+}
+
+html.gesture-lock .model-adjust-panel,
+html.gesture-lock .model-adjust-panel * {
+  touch-action: none;
+}
+
+/* ---- 7. 低性能设备降级 ----
+   html.is-mobile 由 src/main.js 依据 device.js 的 isMobileDevice 挂上。
+   毛玻璃（backdrop-filter）在移动端是「每帧重新采样背景」的开销，
+   本项目的固定悬浮元素较多，全开会明显掉帧 —— 移动端统一改用纯色半透明底。 */
+html.is-mobile * {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* 移动端弱化大面积阴影（合成层开销，且小屏上看不出层次） */
+html.is-mobile .home-fab-group button,
+html.is-mobile .launch-fab,
+html.is-mobile .game-fab,
+html.is-mobile .game-menu {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* 尊重系统「减少动效」设置：关掉无限循环的装饰性动画 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 桌面端保留原有的 1px 细节，移动端不支持 hover 但保留 focus 可见性（无障碍） */
+:focus-visible {
+  outline: 2px solid var(--c-primary-mid);
+  outline-offset: 2px;
+}
