@@ -32,3 +32,8 @@ public/animations/
 *.njsproj
 *.sln
 *.sw?
+
+# ===== Windows 临时文件 =====
+新建 文本文档.txt
+新建 文本文档*.txt
+Thumbs.db
