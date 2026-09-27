@@ -1,10 +1,4 @@
-// ============================================================
 // 错误报告系统（主进程侧）
-// - 全量错误捕获：主进程异常 / 渲染进程崩溃 / GPU 崩溃 / 加载失败 / 预加载脚本错误 / 白屏超时
-// - 日志滚动落盘：userData/Logs/游戏日志-YYYY-MM-DD.log（保留最近 7 天）
-// - 特征分析库：把常见报错翻译成「人话 + 解决方案」
-// - 独立错误弹窗：不依赖主窗口，主窗口白屏也能弹出（public/error-window.html）
-// ============================================================
 import { app, BrowserWindow, ipcMain, shell, clipboard } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -88,7 +82,7 @@ const PATTERNS = [
     id: 'network',
     test: /econnrefused|etimedout|enotfound|enetdown|fetch failed|network changed|err_internet|err_connection|proxy|代理|网络/i,
     title: '网络连接异常',
-    cause: '无法访问网络（AI 对话、扫码登录等在线功能需要联网），可能是断网、防火墙或代理设置问题。',
+    cause: '无法访问网络（AI 对话等在线功能需要联网），可能是断网、防火墙或代理设置问题。',
     solution: [
       '检查网络连接是否正常',
       '检查防火墙/安全软件是否阻止了本程序联网',

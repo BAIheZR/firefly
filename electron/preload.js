@@ -26,12 +26,6 @@ const electronAPI = {
   loadSaveSlot: (slotId) => ipcRenderer.invoke('game:load-slot', slotId),
   deleteSaveSlot: (slotId) => ipcRenderer.invoke('game:delete-slot', slotId),
 
-  // 米哈游扫码登录（获取崩铁 UID）
-  mihoyoCreateQrcode: () => ipcRenderer.invoke('mihoyo:create-qrcode'),
-  mihoyoQueryQrcode: (ticket, deviceId) => ipcRenderer.invoke('mihoyo:query-qrcode', { ticket, deviceId }),
-  mihoyoGetCookieToken: (stoken, uid, mid) => ipcRenderer.invoke('mihoyo:get-cookie-token', { stoken, uid, mid }),
-  mihoyoGetGameRoles: (cookieToken, accountId) => ipcRenderer.invoke('mihoyo:get-game-roles', { cookieToken, accountId }),
-
   // 音乐
   musicPickFolder: () => ipcRenderer.invoke('music:pick-folder'),
   musicScanFolder: (folderPath) => ipcRenderer.invoke('music:scan-folder', { folderPath }),

@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain, dialog, shell, Menu, session, nativeImage } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
-import crypto from 'node:crypto'
 import os from 'node:os'
 import net from 'node:net'
 import tls from 'node:tls'
@@ -32,7 +31,7 @@ if (!gotTheLock) {
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
-// ======== 固定用户数据目录为 %APPDATA%\yingguangjiyou（卸载重装不丢档） ========
+// 固定用户数据目录为 %APPDATA%\yingguangjiyou（卸载重装不丢档）
 // 打包版默认目录是 %APPDATA%\萤光纪游，这里统一固定并做一次迁移，老玩家数据自动搬过来
 const preferredUserData = join(app.getPath('appData'), 'yingguangjiyou')
 try {
@@ -63,7 +62,7 @@ function copyDirMerge(srcDir, destDir) {
   }
 }
 
-// ======== 初始化 PCL 风格错误报告系统（必须在 app ready 前） ========
+// 初始化 PCL 风格错误报告系统（必须在 app ready 前）
 initErrorReporter()
 
 const AUDIO_EXTS = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '.aac', '.opus', '.wma']
@@ -100,7 +99,8 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
-      webSecurity: false,  // 允许加载本地文件资源
+      // 允许加载本地文件资源
+      webSecurity: false,
     },
   })
   // Windows 任务栏图标：在窗口 ready-to-show 后设置，避免被 electron.exe 默认图标覆盖
@@ -144,11 +144,7 @@ function createWindow() {
   watchMainWindow(mainWindow)
 }
 
-// ======== 联机隧道：自签名证书放行 ========
-// 内网穿透工具（如 SakuraFrp 开启「自动 HTTPS」后）下发的都是自签名证书，
-// Electron 默认直接拒绝，导致 wss:// 连不上（浏览器也同理，且浏览器不给「继续访问」的入口）。
-// 策略：只放行「本机客户端本次真正要连接的那个隧道主机」，由渲染进程在连接前登记；
-// 其余站点（例如 AI 接口）仍按系统证书链严格校验，不做全局降级。
+// 联机隧道：自签名证书放行
 const trustedWsHosts = new Set()
 
 ipcMain.handle('mp:trust-ws-host', (_event, host) => {
@@ -177,10 +173,6 @@ app.on('certificate-error', (event, _webContents, url, error, _certificate, call
 })
 
 // 第二道保险。certificate-error 是「校验已经失败之后」才触发的事件，对 WebSocket 握手
-// 这类非导航型请求并不保证一定走到；setCertificateVerifyProc 是同一 session 下所有 TLS
-// 校验的统一回调，覆盖 wss 更稳。
-// 放行范围与上面完全一致：只认渲染进程登记过的隧道主机，其余返回 -3
-// 让 Chromium 走它自己的默认校验结果，安全基线不下降。
 function installCertificateVerifyProc() {
   const ses = session.defaultSession
   if (!ses || typeof ses.setCertificateVerifyProc !== 'function') return
@@ -200,13 +192,10 @@ function installCertificateVerifyProc() {
 
 app.whenReady().then(() => {
   // 固定 AppUserModelId：与 electron-builder.yml 的 appId 一致，
-  // 让 Windows 任务栏图标跟随 setAppDetails 的 appIcon，而不是显示 electron.exe 默认图标
   app.setAppUserModelId('com.cas.nodeitem')
-  // 去掉顶部默认菜单栏（File / Edit / View 等）
   Menu.setApplicationMenu(null)
   // 注册联机隧道的证书放行回调（必须在 session 可用之后）
   installCertificateVerifyProc()
-  // 补弹启动早期（ready 之前）收集到的致命错误
   flushPendingCritical()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -223,7 +212,7 @@ app.on('window-all-closed', () => {
   }
 })
 
-// ======== IPC: 文件对话框 ========
+// IPC: 文件对话框
 ipcMain.handle('dialog:show-open', async (_event, options) => {
   const result = await dialog.showOpenDialog(options)
   return result
@@ -234,13 +223,13 @@ ipcMain.handle('dialog:show-save', async (_event, options) => {
   return result
 })
 
-// ======== IPC: 强制退出应用（撤销条款同意等场景） ========
+// IPC: 强制退出应用（撤销条款同意等场景）
 ipcMain.handle('app:quit', async () => {
   app.quit()
   return { success: true }
 })
 
-// ======== IPC: 用系统浏览器打开外链（Windows 优先 Edge） ========
+// IPC: 用系统浏览器打开外链（Windows 优先 Edge）
 ipcMain.handle('shell:open-external', async (_event, url) => {
   if (!url) return { success: false, error: 'URL 为空' }
   try {
@@ -268,7 +257,7 @@ ipcMain.handle('shell:open-external', async (_event, url) => {
   }
 })
 
-// ======== IPC: 图片存储 ========
+// IPC: 图片存储
 ipcMain.handle('storage:save-image', async (_event, { id, data, ext }) => {
   try {
     const fileName = `${id}.${ext}`
@@ -337,9 +326,7 @@ ipcMain.handle('fs:read-file', async (_event, { path: targetPath }) => {
   }
 })
 
-// ======== IPC: 清空全部本地数据（存档槽文件 + 图片目录） ========
-// 供设置页「清空所有数据」调用：localStorage 由渲染进程负责清理，落盘文件必须由主进程删除。
-// 否则 current_slot_id 被清掉后，重启会弹出存档选择，选回旧槽位即可把数据原样恢复。
+// IPC: 清空全部本地数据（存档槽文件 + 图片目录）
 ipcMain.handle('storage:clear-all', async () => {
   const result = { removedSlots: 0, removedImages: 0, errors: [] }
   // 1) 删除全部存档槽文件 save_slot_<n>.cns（含槽位数上限之外的残留文件）
@@ -374,7 +361,7 @@ ipcMain.handle('storage:clear-all', async () => {
   }
 })
 
-// ======== IPC: 存档槽（每个槽位独立文件，支持大小号） ========
+// IPC: 存档槽（每个槽位独立文件，支持大小号）
 const getSaveSlotPath = (slotId) => join(userDataPath, `save_slot_${slotId}.cns`)
 
 ipcMain.handle('game:save-slot', async (_event, { slotId, payload }) => {
@@ -418,130 +405,8 @@ ipcMain.handle('game:delete-slot', async (_event, slotId) => {
   }
 })
 
-// ======== IPC: 米哈游扫码登录（获取崩铁 UID） ========
-// 说明：这些接口需要在 Node 侧发起请求，因为需要设置 User-Agent / Cookie / DS 等
-// 浏览器 fetch 中被禁止的请求头，且浏览器环境会受 CORS 限制。
 
-const md5 = (text) => crypto.createHash('md5').update(text, 'utf8').digest('hex')
-
-// DS 签名盐（api-takumi.mihoyo.com binding 接口，salt_id = "25"）
-const MYS_SALT_25 = 'xV8v4Qu54lUKrEYFZkJhB8cuOh9Asafs'
-
-function generateMysDS(query = '', body = '') {
-  const t = String(Math.floor(Date.now() / 1000))
-  const r = String(Math.floor(Math.random() * 100001) + 100000) // 100000 ~ 200000
-  const c = md5(`salt=${MYS_SALT_25}&t=${t}&r=${r}&b=${body}&q=${query}`)
-  return `${t},${r},${c}`
-}
-
-async function mihoyoFetch(url, { method = 'GET', headers = {}, body = null, params = null } = {}) {
-  let finalUrl = url
-  if (params) {
-    const qs = new URLSearchParams(params).toString()
-    finalUrl += (url.includes('?') ? '&' : '?') + qs
-  }
-  const resp = await fetch(finalUrl, {
-    method,
-    headers: { 'Content-Type': 'application/json', ...headers },
-    body: body != null ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(15000),
-  })
-  const text = await resp.text()
-  try {
-    return JSON.parse(text)
-  } catch (_) {
-    return { raw: text }
-  }
-}
-
-// 扫码登录（HoYoPass）所需的基础请求头
-function hypHeader(deviceId) {
-  return {
-    'x-rpc-device_id': deviceId,
-    'User-Agent': 'HYPContainer/1.3.3.182',
-    'x-rpc-app_id': 'ddxf5dufpuyo',
-    'x-rpc-client_type': '3',
-  }
-}
-
-// 米游社 App 通用请求头（换取 cookie_token / 查询角色时使用）
-const MYS_APP_HEADER = {
-  'x-rpc-app_version': '2.102.1',
-  'x-rpc-client_type': '5',
-  'X-Requested-With': 'com.mihoyo.hyperion',
-  'User-Agent': 'Mozilla/5.0 (Linux; Android 13; PHK110 Build/SKQ1.221119.001; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/126.0.6478.133 Mobile Safari/537.36 miHoYoBBS/2.102.1',
-  'Referer': 'https://webstatic.mihoyo.com/',
-  'Origin': 'https://webstatic.mihoyo.com/',
-}
-
-// 1. 生成扫码登录二维码
-ipcMain.handle('mihoyo:create-qrcode', async () => {
-  const deviceId = crypto.randomUUID().replace(/-/g, '') + crypto.randomUUID().replace(/-/g, '')
-  try {
-    const data = await mihoyoFetch(
-      'https://passport-api.mihoyo.com/account/ma-cn-passport/app/createQRLogin',
-      { method: 'POST', headers: hypHeader(deviceId), body: {} }
-    )
-    if (data?.retcode !== 0) return { success: false, error: `创建二维码失败(${data?.retcode})`, data }
-    return { success: true, ticket: data.data.ticket, url: data.data.url, deviceId }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
-})
-
-// 2. 查询二维码扫码状态（Created / Scanned / Confirmed）
-ipcMain.handle('mihoyo:query-qrcode', async (_event, { ticket, deviceId }) => {
-  try {
-    const data = await mihoyoFetch(
-      'https://passport-api.mihoyo.com/account/ma-cn-passport/app/queryQRLoginStatus',
-      { method: 'POST', headers: hypHeader(deviceId), body: { ticket } }
-    )
-    if (data?.retcode !== 0) return { success: false, error: `查询状态失败(${data?.retcode})`, data }
-    return { success: true, data: data.data }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
-})
-
-// 3. 用 stoken 换取 cookie_token
-ipcMain.handle('mihoyo:get-cookie-token', async (_event, { stoken, uid, mid }) => {
-  const params = { stoken, uid }
-  if (mid) params.mid = mid
-  const cookie = `stuid=${uid};stoken=${stoken}${mid ? `;mid=${mid}` : ''}`
-  try {
-    const data = await mihoyoFetch(
-      'https://passport-api.mihoyo.com/account/auth/api/getCookieAccountInfoBySToken',
-      { method: 'GET', headers: { ...MYS_APP_HEADER, Cookie: cookie }, params }
-    )
-    if (data?.retcode !== 0) return { success: false, error: `获取 cookie_token 失败(${data?.retcode})`, data }
-    return { success: true, data: data.data }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
-})
-
-// 4. 查询账号下绑定的崩铁游戏角色（含 UID / 昵称 / 等级）
-ipcMain.handle('mihoyo:get-game-roles', async (_event, { cookieToken, accountId }) => {
-  const query = 'game_biz=hkrpg_cn'
-  const cookie = `account_id=${accountId};cookie_token=${cookieToken}`
-  try {
-    const data = await mihoyoFetch(
-      'https://api-takumi.mihoyo.com/binding/api/getUserGameRolesByCookie',
-      {
-        method: 'GET',
-        headers: { ...MYS_APP_HEADER, Cookie: cookie, DS: generateMysDS(query, '') },
-        params: { game_biz: 'hkrpg_cn' },
-      }
-    )
-    if (data?.retcode !== 0) return { success: false, error: `查询角色失败(${data?.retcode})`, data }
-    return { success: true, list: data.data?.list || [] }
-  } catch (err) {
-    return { success: false, error: err.message }
-  }
-})
-
-// IPC: 音乐功能 
-// 选择音乐文件夹
+// IPC: 音乐功能
 ipcMain.handle('music:pick-folder', async () => {
   try {
     const result = await dialog.showOpenDialog({
@@ -642,7 +507,6 @@ function scanMusicFolder(folderPath) {
 }
 
 // IPC: 官方游戏启动 
-// 星穹铁道官方下载地址
 const SR_DOWNLOAD_URL = 'https://sr.mihoyo.com/'
 
 // 校验路径是否为可执行文件（不再限制文件名，任何 .exe 都允许）
@@ -694,7 +558,6 @@ ipcMain.handle('launch-game', async (_event, gamePath) => {
   }
 
   // 路径未配置 / 不是 .exe / 文件不存在 → 跳转官网下载
-  // Windows：优先尝试用 Microsoft Edge 打开
   if (process.platform === 'win32') {
     exec(`start msedge "${SR_DOWNLOAD_URL}"`, (error) => {
       if (error) {
@@ -710,8 +573,6 @@ ipcMain.handle('launch-game', async (_event, gamePath) => {
 })
 
 //  IPC: AI 对话（通用 OpenAI 兼容接口） 
-// 说明：在 Node 侧发起请求，规避浏览器 CORS 与部分 API 对请求头/来源的限制，
-// 从而兼容 OpenAI / DeepSeek / Kimi / 智谱 / 通义千问 / Ollama 等所有 OpenAI 兼容 API。
 ipcMain.handle('ai:chat', async (_event, { config, messages }) => {
   try {
     const { baseUrl, apiKey, model } = config || {}
@@ -743,14 +604,7 @@ ipcMain.handle('ai:chat', async (_event, { config, messages }) => {
   }
 })
 
-// ======== IPC: 多人联机（房主模式） ========
-// 房主通过 IPC 创建/关闭房间；ws 服务在主进程内运行。
-// ======== 联机：枚举本机可用于对外联机的 IPv4 地址 ========
-// 房主必须把自己的「对方能访问到的地址」告诉好友：
-//   · 同一局域网  → 192.168.x.x
-//   · 虚拟局域网  → ZeroTier/EasyTier/Tailscale 分配的 100.x 或 10.x
-//   · 内网穿透    → 域名:远程端口（不走这里）
-// 网卡地址无法可靠猜测（不同工具网段会重叠），所以把网卡名一并返回给界面，让用户自己认。
+// IPC: 多人联机（房主模式）
 function listLocalIps() {
   const out = []
   const ifaces = os.networkInterfaces()
@@ -782,16 +636,8 @@ function ipRank(ip) {
 
 ipcMain.handle('mp:list-ips', async () => ({ success: true, lanIps: listLocalIps() }))
 
-// ======== 联机：探测穿透地址可用哪种协议 ========
-// 房主只填「域名:端口」时，代码无法从字面判断该发 ws:// 还是 wss://：
-//   · 国内穿透节点会以合规为由拦掉明文 HTTP（WebSocket 握手也是 HTTP）→ 501，必须 wss://
-//   · 局域网 / 虚拟局域网直连只能是明文 → ws://
-// 与其让用户猜或者试错，直接连一次拿结论：先试 TLS 握手，失败再试明文 HTTP 并识别 501 拦截页。
+// 联机：探测穿透地址可用哪种协议  
 const PROBE_DEFAULT_PORT = Number(process.env.MP_PORT) || 8765
-
-// 把用户输入（可能带协议头 / 路径 / 方括号 IPv6）解析成 host + port。
-// explicitPort 用来区分「用户写了端口」还是「走了默认值」：穿透隧道的远程端口是随机分配的，
-// 漏写时默认 8765 基本必然连不上，需要单独提示，而不是报一个含糊的连接失败。
 function parseHostPort(input) {
   let s = String(input || '').trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
   if (!s) return null

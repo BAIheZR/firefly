@@ -50,8 +50,7 @@ nsis:
   installerIcon: favicon.ico
   uninstallerIcon: favicon.ico
   installerHeaderIcon: favicon.ico
-  # 自定义卸载页：是否保留用户游玩数据（见 electron/installer.nsh）
-  # deleteAppDataOnUninstall 保持 false，由自定义脚本按用户勾选决定是否删除
+  # 自定义卸载页：是否保留用户游玩数据
   deleteAppDataOnUninstall: false
   include: electron/installer.nsh
   unicode: true

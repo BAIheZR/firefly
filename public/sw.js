@@ -1,14 +1,3 @@
-/* 萤光纪游 —— 极简离线壳 Service Worker
- *
- * 设计原则：宁可少缓存，不可缓错。
- *  - 路由用的是 hash 模式，所有导航请求都是同一个 URL（`/` 或 `/index.html`），
- *    所以不需要 history-fallback 那套 rewrite 逻辑。
- *  - 只接管同源 GET 请求；API、WebSocket、跨域（Font Awesome CDN）一律直接放行，
- *    避免把实时数据或第三方资源钉死成旧版本。
- *  - 采用 stale-while-revalidate：先给缓存让首屏快，后台再拉新版本，
- *    下次访问就是新的。对 Electron 桌面端无影响（file:// 下不注册）。
- */
-
 const VERSION = 'v1'
 const SHELL_CACHE = `shell-${VERSION}`
 const ASSET_CACHE = `asset-${VERSION}`
@@ -26,7 +15,6 @@ self.addEventListener('install', (event) => {
           cache.add(new Request(url, { cache: 'reload' })).catch(() => {})
         )
       )
-      // 新版本立刻待命，配合页面侧的 skipWaiting 消息可即时生效
     })()
   )
 })
@@ -100,8 +88,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 静态资源：stale-while-revalidate
-  // 关键点：network 必须在 waitUntil 里登记。否则命中缓存时直接 return，
-  // SW 可能在后台 revalidate 完成前被终止，导致缓存永远不更新。
   const cachePromise = caches.open(ASSET_CACHE)
   const network = cachePromise.then((cache) =>
     fetch(req)

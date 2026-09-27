@@ -1,7 +1,4 @@
-// ======== 联机服务端（房主模式） ========
-// 在主进程中运行，管理房间与成员。房主创建房间后，本地启动 ws 服务，
-// 房主与所有加入者都通过 WebSocket 连接（房主连 127.0.0.1 本地回环，加入者连房主公网/局域网地址）。
-// 数据最小化：成员昵称仅存在于内存，进程退出即清除，不落盘、不进错误日志。
+//  联机服务端
 import { WebSocketServer } from 'ws'
 
 // 默认 8765，可用环境变量 MP_PORT 覆盖（便于自测时避开正在运行的实例）
@@ -10,8 +7,6 @@ const MP_PORT = Number(process.env.MP_PORT) || 8765
 let wss = null
 let heartbeatTimer = null
 
-// roomCode -> room
-// room: { roomCode, hostToken, capacity, password, hostId, members: Map<memberId, member> }
 const rooms = new Map()
 
 // 生成随机码

@@ -13,15 +13,12 @@ dist-ssr
 dist-electron
 *.local
 
-# ===== 第三方素材（版权归原作者，禁止二次配布，不上传仓库） =====
-# 2D 立绘 / 商品图 / 背景图等
+# 第三方素材，未上传仓库
 src/images/
-# 3D MMD 模型（流萤模型等，readme.txt 明确「请勿二次配布」）
 public/models/
-# MMD 动作数据
 public/animations/
 
-# ===== IDE / 本地配置 =====
+# IDE / 本地配置
 .trae/
 .vscode/*
 !.vscode/extensions.json
@@ -33,7 +30,7 @@ public/animations/
 *.sln
 *.sw?
 
-# ===== Windows 临时文件 =====
+# Windows 临时文件
 新建 文本文档.txt
 新建 文本文档*.txt
 Thumbs.db
