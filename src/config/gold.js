@@ -2,7 +2,7 @@ import { defineStore } from "pinia";
 import { getBuffMultiplier } from "./inventory";
 
 const GOLD_KEY = 'game_gold';
-const DEFAULT_GOLD = 5000000000;
+const DEFAULT_GOLD = 0;
 
 export const useGoldStore = defineStore('gold', {
   state: () => ({

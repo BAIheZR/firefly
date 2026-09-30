@@ -9,7 +9,6 @@ import { createPinia } from 'pinia'
 import { watch } from 'vue'
 import { installErrorReporting } from '@/services/errorReport'
 import { installDisableCopy } from '@/utils/disableCopy'
-import { registerServiceWorker } from '@/utils/pwa'
 import { isMobileDevice, isTouchDevice, isNarrow } from '@/utils/device'
 
 // 把设备判定结果挂到 <html> 上，供 CSS 走降级分支（详见 assets/styles/main.css 第 6 节）。
@@ -25,9 +24,6 @@ watch(isNarrow, (narrow) => rootEl.classList.toggle('is-narrow', narrow), { imme
 
 // 全站复制防护：默认禁止复制/剪切/右键/选中，.allow-copy 白名单放行
 installDisableCopy()
-
-// PWA 离线壳：仅生产构建 + 安全上下文下注册（详见 utils/pwa.js）
-registerServiceWorker()
 
 const app = createApp(App)
 // PCL 风格错误上报：JS 错误/资源加载失败/Vue 错误 → 主进程日志与错误弹窗

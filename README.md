@@ -71,6 +71,16 @@ public/live2d/
 
 > 模型内部引用的纹理/动作文件名以 `.model3.json` 内的 `FileReferences` 为准；若重命名了内层文件，需同步修改 `.model3.json`。加载失败时会自动回退为 2D 立绘。
 
+### 商店与仓库素材命名规范
+
+商品数据定义在 `src/config/inventory.js` 的 `ALL_ITEMS`，所有图标与立绘放在 `src/images/`（该目录已被 `.gitignore` 排除，不进仓库，需自备）。代码通过 `import` 引用，**引用变量名 = 文件名（去扩展名）**。
+
+- **物品 / 装饰品图标**：PNG，放 `src/images/` 根目录或 `src/images/item/` 子目录。例如 `src/images/xmdgj.png` → 顶部 `import xmdgj from "@/images/xmdgj.png"`，再在条目里写 `icon: xmdgj`。
+- **装饰品图标**：建议用 `model_` 前缀命名（`model_1.png` …）。注意：仓库现存个别文件误拼为 `medel_`（如 `medel_4.png`、`medel_samu.png`），**新增请勿沿用此拼写**。
+- **纯图标占位**：`icon` 也可直接填 font-awesome 类名字符串（如 `'fa-solid fa-bread-slice'`），无需提供图片文件。
+- **服装主页立绘**：PNG，放 `src/images/game/`，在服装条目里用 `gameImg` 字段引用。**缺 `gameImg` 的服装买了也穿不上**（换装列表会过滤掉）。现有四款：`firefly_spring` / `small_loli` / `firefly_zx` / `firefly_war`。
+- **新增商品**：在 `src/config/inventory.js` 顶部加 `import`，再在 `ALL_ITEMS` 追加条目——物品用 id 1–99，服装用 id 100+，服装的 `category` 必须为 `'clothing'`。
+
 ## 许可证
 
 程序代码采用 [MIT License](LICENSE)。

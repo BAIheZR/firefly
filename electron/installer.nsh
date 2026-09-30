@@ -3,12 +3,20 @@
 ; 默认勾选（保留），取消勾选则删除 %APPDATA%\yingguangjiyou
 ; 
 
+; 引入 NSIS 扩展库：LogicLib 提供 ${If}/${Else}/${EndIf}，nsDialogs 提供 ${NSD_*} 宏
+!include LogicLib.nsh
+!include nsDialogs.nsh
+
 Var KeepUserData          ; 1=保留, 0=删除
 Var KeepDataCheckboxHwnd  ; 复选框句柄
 
 ; 安装阶段直接跳过本页（仅卸载时显示）
 Function KeepDataPage
   Abort
+FunctionEnd
+
+; 安装阶段的离开函数：因 KeepDataPage 已 Abort 跳过，实际不会走到，仅为满足 Page 语法占位
+Function KeepDataPageLeave
 FunctionEnd
 
 ; 卸载时显示的自定义页面
@@ -40,8 +48,11 @@ Function un.KeepDataPageLeave
   ${EndIf}
 FunctionEnd
 
-; 注册自定义页面（安装时由 KeepDataPage 跳过，卸载时显示 un.KeepDataPage）
-Page custom KeepDataPage un.KeepDataPageLeave
+; 注册自定义页面
+; install 阶段：创建函数 KeepDataPage 直接 Abort 跳过，不显示
+Page custom KeepDataPage KeepDataPageLeave
+; uninstall 阶段：显示 un.KeepDataPage，离开时由 un.KeepDataPageLeave 读取勾选
+UninstPage custom un.KeepDataPage un.KeepDataPageLeave
 
 ; 卸载执行阶段：根据勾选决定是否删除用户数据
 !macro customUnInstall
