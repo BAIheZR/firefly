@@ -42,6 +42,10 @@ export const SAVE_KEYS = [
   'music_listen_accum_ms',
   // AI 长期记忆卡片：属于角色养成进度，必须随存档走
   'ai_chat_memory',
+  // 五子棋对手画像（战绩 / 惯用开局 / 连子方向偏好）：属于这个存档主人的对局习惯，必须随存档走
+  'gomoku_profile',
+  // 开箱箱子库存（拥有多少个箱子）：属于养成进度，随存档走
+  'player_chest_inventory',
 ]
 
 // 明确不入档的 key（防止以后误加）：
@@ -89,7 +93,7 @@ export const useSaveSlotsStore = defineStore('saveSlots', {
   }),
 
   actions: {
-    // ===== 底层读写（桌面 IPC / 浏览器降级） =====
+    //  底层读写（桌面 IPC / 浏览器降级） 
     async readSlot(slotId) {
       if (isElectron()) {
         const res = await window.electronAPI.loadSaveSlot(slotId)
@@ -115,7 +119,7 @@ export const useSaveSlotsStore = defineStore('saveSlots', {
       }
     },
 
-    // ===== 打包 / 恢复 =====
+    //  打包 / 恢复 
     // 把当前 localStorage 打包成 data 对象（只含白名单 key）
     packCurrentData() {
       const data = {}
@@ -135,7 +139,7 @@ export const useSaveSlotsStore = defineStore('saveSlots', {
       localStorage.removeItem('pending_greeting')
     },
 
-    // ===== 槽位列表 =====
+    //  槽位列表 
     async loadSlots() {
       const slots = []
       for (let i = 1; i <= SLOT_COUNT; i++) {
@@ -152,7 +156,7 @@ export const useSaveSlotsStore = defineStore('saveSlots', {
       return slots
     },
 
-    // ===== 同步初始化（启动时调用，不依赖异步读文件） =====
+    //  同步初始化（启动时调用，不依赖异步读文件） 
     // 说明：localStorage 本身就是「当前活动槽位」的真相源，且 Electron 会持久化 localStorage，
     // 因此启动时无需从文件恢复，只需确定当前槽位 id 即可。
     syncInit() {
@@ -192,7 +196,7 @@ export const useSaveSlotsStore = defineStore('saveSlots', {
       await this.loadSlots()
     },
 
-    // ===== 保存 / 切换 / 创建 / 删除 =====
+    //  保存 / 切换 / 创建 / 删除 
     // 把当前 localStorage 写回当前槽位文件
     async saveCurrent() {
       if (this.currentSlotId == null) return

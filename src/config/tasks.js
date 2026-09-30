@@ -1,9 +1,14 @@
 import { defineStore } from "pinia";
 import { useGoldStore } from "./gold";
+// gacha.js 是纯逻辑模块（自身无任何 import），这里引用不会产生循环依赖
+import { addChest, getAllChests } from "./gacha";
+
+// 任务奖励发的宝箱：当前只有「木质宝箱」一种，取队伍里第一个作为默认
+const DEFAULT_CHEST_ID = getAllChests()[0]?.id || 'wood'
 
 // 进阶任务配置（任务系统）
 const ADVANCED_TASKS = [
-  // ===== 签到类 =====
+  //  签到类 
   {
     id: 'sign_1',
     name: '初次签到',
@@ -75,7 +80,7 @@ const ADVANCED_TASKS = [
     rewardExp: 1000,
   },
 
-  // ===== 消费类 =====
+  //  消费类 
   {
     id: 'shop_1',
     name: '购物新手',
@@ -107,7 +112,7 @@ const ADVANCED_TASKS = [
     rewardExp: 500,
   },
 
-  // ===== 收集类 =====
+  //  收集类 
   {
     id: 'cloth_1',
     name: '第一套服装',
@@ -138,6 +143,41 @@ const ADVANCED_TASKS = [
     reward: 5000,
     rewardExp: 1000,
   },
+  //  宝箱类 
+  {
+    id: 'chest_1',
+    name: '第一次开箱',
+    desc: '开启第 1 个宝箱',
+    category: 'chest',
+    icon: 'fa-solid fa-box-open',
+    target: 1,
+    reward: 500,
+    rewardExp: 50,
+    rewardChest: 1,
+  },
+  {
+    id: 'chest_10',
+    name: '第一次十连',
+    desc: '一次性开启 10 个宝箱',
+    category: 'chest',
+    icon: 'fa-solid fa-layer-group',
+    target: 10,
+    reward: 3000,
+    rewardExp: 300,
+    rewardChest: 3,
+  },
+  {
+    id: 'chest_legend',
+    name: '珍贵的物品',
+    desc: '首次从宝箱中开出服装（爆率最低）',
+    category: 'chest',
+    icon: 'fa-solid fa-shirt',
+    target: 1,
+    reward: 10000,
+    rewardExp: 1000,
+    rewardChest: 5,
+  },
+
   // 音乐类
   {
     id: 'music_1',
@@ -173,6 +213,24 @@ const ADVANCED_TASKS = [
 
 const TASKS_KEY = 'advanced_tasks_data';
 
+// 统计字段 → 关联任务 的映射（addStat / setStat / recordMax 三个 action 共用）
+// 注意：一个 statKey 更新时，会把**该字段的当前值**直接写进关联任务的 progress。
+// 所以「累计型」用 addStat、「覆盖型」用 setStat、「取最大值型」用 recordMax。
+const STAT_TASK_MAP = {
+  totalSignDays: ['sign_1', 'sign_7', 'sign_30', 'sign_100'],
+  totalShopBuys: ['shop_1', 'shop_10'],
+  totalShopGold: ['shop_gold_5000'],
+  totalClothCount: ['cloth_1', 'cloth_5'],
+  totalItemCount: ['item_20'],
+  totalMusicImports: ['music_1'],
+  totalListenMinutes: ['music_2', 'music_3'],
+  totalBuffsEquipped: ['sign_2', 'sign_3', 'sign_4'],
+  //  宝箱 
+  totalChestOpened: ['chest_1'],
+  maxChestSingle: ['chest_10'],
+  totalChestClothing: ['chest_legend'],
+};
+
 // 标记 store 是否已从 localStorage 加载，防止未初始化时 saveData 覆盖已领取记录
 let _tasksLoaded = false;
 
@@ -192,6 +250,10 @@ export const useTasksStore = defineStore('tasks', {
       totalMusicImports: 0,  // 音乐导入次数
       totalListenMinutes: 0, // 听歌时长（分钟）
       totalBuffsEquipped: 0, // 当前装备的加成数量
+      //  宝箱 
+      totalChestOpened: 0,   // 累计开箱数（含 5% 额外开出的）
+      maxChestSingle: 0,     // 单次开箱的最大数量（用于「十连」判定）
+      totalChestClothing: 0, // 从宝箱中累计开出的服装数（爆率最低档）
     },
   }),
 
@@ -259,6 +321,7 @@ export const useTasksStore = defineStore('tasks', {
         { key: 'sign', name: '任务', icon: 'fa-solid fa-calendar-check' },
         { key: 'shop', name: '消费任务', icon: 'fa-solid fa-store' },
         { key: 'collect', name: '收集任务', icon: 'fa-solid fa-trophy' },
+        { key: 'chest', name: '宝箱任务', icon: 'fa-solid fa-box-open' },
         { key: 'music', name: '音乐任务', icon: 'fa-solid fa-music' },
       ];
     },
@@ -289,30 +352,21 @@ export const useTasksStore = defineStore('tasks', {
       }));
     },
 
+    // 内部：把某个统计字段的当前值同步到它关联的所有任务进度上
+    _syncTasks(statKey) {
+      const taskIds = STAT_TASK_MAP[statKey] || [];
+      const value = this.stats[statKey];
+      taskIds.forEach(tid => {
+        this.progress[tid] = value;
+      });
+    },
+
     // 通用：给某个统计字段 +N，并自动更新对应任务进度
     addStat(statKey, amount = 1) {
       if (!_tasksLoaded) this.loadData();
       if (!(statKey in this.stats)) return;
       this.stats[statKey] = (this.stats[statKey] || 0) + amount;
-
-      // 找到关联此 statKey 的所有任务并更新进度
-      const mapping = {
-        totalSignDays: ['sign_1', 'sign_7', 'sign_30', 'sign_100'],
-        totalShopBuys: ['shop_1', 'shop_10'],
-        totalShopGold: ['shop_gold_5000'],
-        totalClothCount: ['cloth_1', 'cloth_5'],
-        totalItemCount: ['item_20'],
-        totalMusicImports: ['music_1'],
-        totalListenMinutes: ['music_2', 'music_3'],
-        totalBuffsEquipped: ['sign_2', 'sign_3', 'sign_4'],
-      };
-
-      const taskIds = mapping[statKey] || [];
-      const value = this.stats[statKey];
-      taskIds.forEach(tid => {
-        this.progress[tid] = value;
-      });
-
+      this._syncTasks(statKey);
       this.saveData();
     },
 
@@ -321,18 +375,19 @@ export const useTasksStore = defineStore('tasks', {
       if (!_tasksLoaded) this.loadData();
       if (!(statKey in this.stats)) return;
       this.stats[statKey] = value;
+      this._syncTasks(statKey);
+      this.saveData();
+    },
 
-      const mapping = {
-        totalClothCount: ['cloth_1', 'cloth_5'],
-        totalItemCount: ['item_20'],
-        totalBuffsEquipped: ['sign_2', 'sign_3', 'sign_4'],
-      };
-
-      const taskIds = mapping[statKey] || [];
-      taskIds.forEach(tid => {
-        this.progress[tid] = value;
-      });
-
+    // 记录「历史最大值」型统计（如单次开箱数量），只增不减
+    recordMax(statKey, value) {
+      if (!_tasksLoaded) this.loadData();
+      if (!(statKey in this.stats)) return;
+      const prev = Number(this.stats[statKey]) || 0;
+      const next = Math.max(prev, Number(value) || 0);
+      if (next === prev) return;   // 没超过就不写盘
+      this.stats[statKey] = next;
+      this._syncTasks(statKey);
       this.saveData();
     },
 
@@ -354,12 +409,21 @@ export const useTasksStore = defineStore('tasks', {
         goldStore.addGold(task.reward, `任务奖励:${task.name}`);
       }
 
+      // 发放宝箱奖励
+      const chestCount = Number(task.rewardChest) || 0;
+      if (chestCount > 0) {
+        addChest(DEFAULT_CHEST_ID, chestCount);
+      }
+
       this.saveData();
       return {
         success: true,
         reward: task.reward,
         rewardExp: task.rewardExp || 0,
-        msg: `领取成功！获得 ${task.reward} 金币${task.rewardExp ? ` + ${task.rewardExp} 经验` : ''}`,
+        rewardChest: chestCount,
+        msg: `领取成功！获得 ${task.reward} 金币`
+          + (task.rewardExp ? ` + ${task.rewardExp} 经验` : '')
+          + (chestCount > 0 ? ` + ${chestCount} 个宝箱` : ''),
       };
     },
 
@@ -370,6 +434,7 @@ export const useTasksStore = defineStore('tasks', {
       const results = [];
       let totalGold = 0;
       let totalExp = 0;
+      let totalChest = 0;
 
       ADVANCED_TASKS.forEach(task => {
         const current = this.progress[task.id] || 0;
@@ -377,12 +442,16 @@ export const useTasksStore = defineStore('tasks', {
           this.claimed.push(task.id);
           totalGold += task.reward;
           totalExp += task.rewardExp || 0;
+          totalChest += Number(task.rewardChest) || 0;
           results.push(task.id);
         }
       });
 
       if (totalGold > 0) {
         goldStore.addGold(totalGold, '一键领取任务奖励');
+      }
+      if (totalChest > 0) {
+        addChest(DEFAULT_CHEST_ID, totalChest);
       }
 
       this.saveData();
@@ -391,8 +460,11 @@ export const useTasksStore = defineStore('tasks', {
         claimedIds: results,
         totalGold,
         totalExp,
+        totalChest,
         msg: results.length > 0
-          ? `已领取 ${results.length} 个奖励，共 ${totalGold} 金币${totalExp ? ` + ${totalExp} 经验` : ''}`
+          ? `已领取 ${results.length} 个奖励，共 ${totalGold} 金币`
+            + (totalExp ? ` + ${totalExp} 经验` : '')
+            + (totalChest > 0 ? ` + ${totalChest} 个宝箱` : '')
           : '暂无可领取的奖励',
       };
     },

@@ -1,4 +1,4 @@
-/* ====== 多人游戏 ====== */
+/* = 多人游戏 = */
 .mp-page {
   min-height: 100vh;
   width: 100%;
@@ -233,7 +233,7 @@
   flex-shrink: 0;
 }
 
-/* ====== 穿透地址：输入框 + 检测按钮 ====== */
+/* = 穿透地址：输入框 + 检测按钮 = */
 .mp-input-row {
   display: flex;
   gap: 8px;
@@ -271,7 +271,7 @@
   word-break: break-all;
 }
 
-/* ====== 排障日志面板 ====== */
+/* = 排障日志面板 = */
 .mp-logs {
   margin-top: 12px;
   border: 1px solid rgba(63, 169, 138, 0.28);
@@ -538,7 +538,7 @@
   .mp-top-right { flex-wrap: wrap; }
 }
 
-/* ====== 移动端（窄视口）：容器层面（页面骨架 .mp-page/.mp-body 在此文件） ====== */
+/* = 移动端（窄视口）：容器层面（页面骨架 .mp-page/.mp-body 在此文件） = */
 @media (max-width: 768px) {
   .mp-page {
     min-height: var(--app-vh, 100vh);
@@ -562,4 +562,123 @@
     min-height: var(--tap-min, 44px);
     font-size: 16px;
   }
+}
+
+/* ==========================================================================
+   桌（当前对局）+ 邀请
+   房间无上限，限流的是「桌」：一桌 = 一局游戏，先到先得坐满就开打，
+   没座位的人可以观战，或者自己再开一桌。
+   ========================================================================== */
+
+/* 邀请条：开一桌默认等于邀请房间里所有人，可以接受 / 先观战 / 拒绝 */
+.mp-invites {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.mp-invite {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: linear-gradient(120deg, rgba(230, 162, 60, 0.16), rgba(255, 255, 255, 0.6));
+  border: 1px solid rgba(230, 162, 60, 0.5);
+}
+.mp-invite-text {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  color: #2c3e35;
+}
+.mp-invite-text i { color: #e6a23c; }
+.mp-invite-text b { color: #b8791f; }
+.mp-invite-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* 桌列表 */
+.mp-tables {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.mp-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 13px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(63, 169, 138, 0.25);
+}
+.mp-table-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e35;
+}
+.mp-table-name { display: flex; align-items: center; gap: 6px; }
+.mp-table-name i { color: #3fa98a; }
+.mp-table-seats {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #5b6b62;
+  font-variant-numeric: tabular-nums;
+}
+.mp-table-status {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+.mp-table-status.is-open {
+  color: #b8791f;
+  background: rgba(230, 162, 60, 0.16);
+}
+.mp-table-status.is-playing {
+  color: #2c8f6f;
+  background: rgba(63, 169, 138, 0.18);
+}
+.mp-table-people {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  font-size: 12.5px;
+  color: #5b6b62;
+}
+.mp-seat em { font-style: normal; font-size: 11px; color: #e6a23c; }
+.mp-watchers { color: #7a8b82; }
+.mp-declined { color: #98a49e; }
+.mp-table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+/* 游戏卡上的「N 人一桌」角标 */
+.mp-game-cap {
+  font-style: normal;
+  margin-left: 6px;
+  font-size: 11.5px;
+  font-weight: 400;
+  color: #7a8b82;
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
+
+@media (max-width: 640px) {
+  .mp-tables { grid-template-columns: 1fr; }
+  .mp-invite-actions { margin-left: 0; }
 }

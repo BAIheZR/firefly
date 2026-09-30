@@ -1,8 +1,4 @@
-// 渲染进程错误上报：接入主进程 PCL 风格报错系统
-// 覆盖：JS 运行时错误、资源加载失败（图片/脚本）、未处理的 Promise 拒绝、
-//       Vue 组件错误、启动心跳（供主进程白屏看门狗判定）
-// 浏览器环境（无 Electron）自动降级为仅 console 输出
-
+// 渲染进程错误上报
 export function installErrorReporting(app) {
   if (typeof window === 'undefined') return
   const api = window.electronAPI

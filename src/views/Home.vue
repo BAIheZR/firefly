@@ -4,7 +4,7 @@
     <div v-if="homeBgVisible" class="home-bg-overlay" :style="homeBgStyle"></div>
     <NavBar />
 
-    <!-- 给木：五子棋 / 猜字游戏入口（左上角） -->
+    <!-- 给木：五子棋 / 猜字谜 / 萤火夜话 入口（左上角） -->
     <div class="game-fab-wrap">
       <button type="button" class="game-fab" :class="{ open: showGameMenu }" title="给木" @click="toggleGameMenu" @mouseenter="onHoverGameEntry">
         <i class="fa-solid fa-gamepad"></i>
@@ -18,7 +18,11 @@
           </button>
           <button type="button" class="game-menu-item" @click="goGuessWord">
             <span class="menu-item-icon-text">字</span>
-            <span>猜字游戏</span>
+            <span>猜字谜</span>
+          </button>
+          <button type="button" class="game-menu-item" @click="goWerewolf">
+            <img :src="wolfImg" alt="萤火夜话" class="menu-item-img" />
+            <span>萤火夜话</span>
           </button>
         </div>
       </Transition>
@@ -31,7 +35,7 @@
       :style="characterStyle"
     >
       <PMXCharacter
-        v-if="!isImageMode"
+        v-if="!isSpriteMode"
         ref="pmxRef"
         :active="pageActive"
         :model="DEFAULT_MODEL_CFG.model"
@@ -40,6 +44,18 @@
         :defaultPose="DEFAULT_MODEL_CFG.defaultPose"
         :adjustMode="adjustMode"
         @transform-change="onTransformChange"
+      />
+      <!-- 穿了带 Live2D 模型的服装时优先用 Live2D；左下角可一键切回 2D 立绘 -->
+      <Live2DViewer
+        v-else-if="isLive2DMode"
+        ref="live2dRef"
+        :src="live2dSrc"
+        :active="pageActive"
+        :scale="live2dTransform.scale"
+        :offsetX="live2dTransform.x"
+        :offsetY="live2dTransform.y"
+        :maxFps="isTouchDevice ? 30 : 60"
+        @error="onLive2DError"
       />
       <img
         v-else
@@ -84,6 +100,18 @@
         <i class="fa-solid fa-up-down-left-right"></i>
         <span>调整</span>
       </button>
+      <!-- Live2D / 2D 立绘 一键切换（仅当当前服装有 Live2D 模型时出现） -->
+      <button
+        v-if="canUseLive2D"
+        type="button"
+        class="adjust-fab"
+        :class="{ active: isLive2DMode }"
+        :title="isLive2DMode ? '当前为 Live2D，点击切回立绘' : '当前为立绘，点击切换 Live2D'"
+        @click="toggleRenderMode"
+      >
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        <span>{{ isLive2DMode ? 'Live2D' : '立绘' }}</span>
+      </button>
     </div>
 
     <!-- 人物调整面板（3D 模型 / 2D 立绘通用，调整模式下显示） -->
@@ -95,7 +123,7 @@
           <el-slider v-model="modelScale" :min="0.4" :max="2.5" :step="0.05" class="adjust-slider" @input="onSliderInput" />
           <span class="adjust-value">{{ modelScale.toFixed(2) }}x</span>
         </div>
-        <div v-if="!isImageMode" class="adjust-row">
+        <div v-if="!isSpriteMode" class="adjust-row">
           <span class="adjust-label">方向</span>
           <el-slider v-model="modelRy" :min="-180" :max="180" :step="1" class="adjust-slider" @input="onRyInput" />
           <span class="adjust-value">{{ modelRy }}°</span>
@@ -139,6 +167,7 @@ defineOptions({ name: 'Home' })
 import NavBar from '@/components/NavBar.vue'
 import ChatDialog from '@/components/ChatDialog.vue'
 import PMXCharacter from '@/components/PMXCharacter.vue'
+import Live2DViewer from '@/components/Live2DViewer.vue'
 import { useRouter } from 'vue-router'
 import { ref, reactive, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated, watch } from 'vue'
 import { useInventoryStore } from '@/config/inventory'
@@ -146,6 +175,7 @@ import { useBackgroundStore } from '@/config/background'
 import { getLoginGreeting, getSignGreeting, getAffectionStage, getAffectionGreeting, getHoverGreeting, getClickGreeting } from '@/config/greetings'
 import { isTouchDevice } from '@/utils/device'
 import chessImg from '@/images/game/chess.png'
+import wolfImg from '@/images/game/wolf/ly.png'
 import iconImg from '@/images/item/icon.png'
 
 const router = useRouter()
@@ -166,13 +196,55 @@ const homeBgStyle = computed(() => {
 // keep-alive 激活状态：控制 PMXCharacter 是否渲染/追踪鼠标
 const pageActive = ref(true)
 
-// ====== 主页形象展示 ======
+// = 主页形象展示 =
 // 默认形象（未穿戴任何服装）使用 3D PMX 模型；穿戴服装时改显对应 2D 立绘图片
 const DEFAULT_MODEL_CFG = { model: '猫耳流萤.pmx', basePath: '/models/1/', eyeTracking: true, defaultPose: true }
 // 当前穿戴的服装（未穿戴或已失去返回 null）
 const equippedClothing = computed(() => inventoryStore.equippedClothing)
 // 是否为图片立绘模式：穿戴了带主页立绘的服装
 const isImageMode = computed(() => !!equippedClothing.value?.gameImg)
+
+//  Live2D：服装 id → public/live2d 下的模型目录 
+// 该目录必须与 src/images/game 下的立绘 png 同名成对，模型入口固定为 <name>.model3.json
+const LIVE2D_MAP = {
+  101: 'firefly_spring', // 流萤&春日手信
+  102: 'small_loli',     // 流萤&小不点
+  103: 'firefly_zx',     // 流萤&仲夏萤火之约
+  104: 'firefly_war',    // 流萤&战斗服
+}
+// 当前服装对应的 Live2D 入口路径（没有则空串 → 只能走立绘/3D）
+const live2dSrc = computed(() => {
+  const name = LIVE2D_MAP[equippedClothing.value?.id]
+  return name ? `/live2d/${name}/${name}.model3.json` : ''
+})
+const canUseLive2D = computed(() => !!live2dSrc.value)
+
+// 展示方式偏好：'live2d'（默认）| 'image'（2D 立绘）。
+// 这是「设备级」的显示偏好，不进 SAVE_KEYS，切换存档槽时保持用户习惯。
+const RENDER_MODE_KEY = 'home_render_mode'
+const renderMode = ref('live2d')
+const isLive2DMode = computed(() => canUseLive2D.value && renderMode.value === 'live2d')
+// 立绘类展示（Live2D / 2D 图片）统称：它们共用一套拖动/缩放调整逻辑，3D PMX 走另一套
+const isSpriteMode = computed(() => isImageMode.value || isLive2DMode.value)
+const live2dRef = ref(null)
+
+const saveRenderMode = () => {
+  try { localStorage.setItem(RENDER_MODE_KEY, renderMode.value) } catch (e) { /* 隐私模式忽略 */ }
+}
+const loadRenderMode = () => {
+  const saved = localStorage.getItem(RENDER_MODE_KEY)
+  if (saved === 'live2d' || saved === 'image') renderMode.value = saved
+}
+const toggleRenderMode = () => {
+  renderMode.value = isLive2DMode.value ? 'image' : 'live2d'
+  saveRenderMode()
+}
+const onLive2DError = (e) => {
+  // 模型加载失败（缺 Cubism Core / 文件缺失 / 显存不足）→ 自动退回 2D 立绘，别让首页空着
+  console.warn('[Home] Live2D 加载失败，已回退到 2D 立绘：', e)
+  renderMode.value = 'image'
+  saveRenderMode()
+}
 
 const showGameMenu = ref(false)
 const toggleGameMenu = () => {
@@ -186,6 +258,11 @@ const goGuessWord = () => {
   showGameMenu.value = false
   router.push('/guess-word')
 }
+// 萤火夜话：单人模式（帕姆当判官，剩下的座位由 AI 乘客补上）
+const goWerewolf = () => {
+  showGameMenu.value = false
+  router.push('/werewolf')
+}
 const goIdle = () => {
   router.push({ path: '/idle', query: { autoStart: '1' } })
 }
@@ -193,7 +270,7 @@ const goIdle = () => {
 // 主页人物（调整模式下可拖拽移动/缩放；3D 模型与 2D 立绘各存一份到 localStorage）
 const characterEl = ref(null)
 
-// ===== 人物大小/位置调整（模型 / 立绘通用） =====
+//  人物大小/位置调整（模型 / 立绘通用） 
 const pmxRef = ref(null)
 const adjustMode = ref(false)
 const modelScale = ref(1)
@@ -202,42 +279,57 @@ const SCALE_MIN = 0.4
 const SCALE_MAX = 2.5
 const clampScale = (s) => Math.min(SCALE_MAX, Math.max(SCALE_MIN, s))
 
-// ===== 2D 立绘图片变换（所有立绘共享一份持久化；x/y 为相对屏幕中心的像素偏移） =====
+//  立绘类变换（Live2D / 2D 图片各存一份持久化；x/y 为相对屏幕中心的像素偏移） 
 const IMAGE_TRANSFORM_KEY = 'home_image_transform'
+const LIVE2D_TRANSFORM_KEY = 'home_live2d_transform'
 const imageTransform = reactive({ scale: 1, x: 0, y: 0 })
+const live2dTransform = reactive({ scale: 1, x: 0, y: 0 })
+
+// 当前生效的那一份：拖动 / 捏合 / 滚轮 / 滑杆全部作用于它，两套各存各的互不干扰
+const activeTransform = () => (isLive2DMode.value ? live2dTransform : imageTransform)
+
 const characterImgStyle = computed(() => ({
   // translate 写在 scale 外层，保证位移像素不被缩放放大
   transform: `translate(calc(-50% + ${imageTransform.x}px), calc(-50% + ${imageTransform.y}px)) scale(${imageTransform.scale})`,
 }))
-const saveImageTransform = () => {
-  localStorage.setItem(IMAGE_TRANSFORM_KEY, JSON.stringify({ ...imageTransform }))
-}
-const loadImageTransform = () => {
+
+const readTransform = (key, target) => {
   try {
-    const saved = JSON.parse(localStorage.getItem(IMAGE_TRANSFORM_KEY) || 'null')
+    const saved = JSON.parse(localStorage.getItem(key) || 'null')
     if (saved) {
-      imageTransform.scale = clampScale(Number(saved.scale) || 1)
-      imageTransform.x = Number(saved.x) || 0
-      imageTransform.y = Number(saved.y) || 0
+      target.scale = clampScale(Number(saved.scale) || 1)
+      target.x = Number(saved.x) || 0
+      target.y = Number(saved.y) || 0
     }
   } catch (e) { /* 数据损坏则忽略 */ }
 }
-const resetImageTransform = () => {
-  imageTransform.scale = 1
-  imageTransform.x = 0
-  imageTransform.y = 0
-  saveImageTransform()
+const saveSpriteTransform = (isL2D = isLive2DMode.value) => {
+  const tf = isL2D ? live2dTransform : imageTransform
+  const key = isL2D ? LIVE2D_TRANSFORM_KEY : IMAGE_TRANSFORM_KEY
+  localStorage.setItem(key, JSON.stringify({ ...tf }))
+}
+const loadSpriteTransforms = () => {
+  readTransform(IMAGE_TRANSFORM_KEY, imageTransform)
+  readTransform(LIVE2D_TRANSFORM_KEY, live2dTransform)
+}
+const resetSpriteTransform = () => {
+  const tf = activeTransform()
+  tf.scale = 1
+  tf.x = 0
+  tf.y = 0
+  saveSpriteTransform()
   modelScale.value = 1
 }
-const setImageScale = (s) => {
-  imageTransform.scale = clampScale(s)
-  modelScale.value = imageTransform.scale
+const setSpriteScale = (s) => {
+  const tf = activeTransform()
+  tf.scale = clampScale(s)
+  modelScale.value = tf.scale
 }
 
 // 进入调整时把当前形象的大小/方向同步到滑杆
 const syncAdjustSliders = () => {
-  if (isImageMode.value) {
-    modelScale.value = imageTransform.scale
+  if (isSpriteMode.value) {
+    modelScale.value = activeTransform().scale
     modelRy.value = 0
   } else {
     const t = pmxRef.value?.getTransform?.()
@@ -246,7 +338,7 @@ const syncAdjustSliders = () => {
 }
 // 退出/完成调整时按当前模式保存
 const saveCurrentTransform = () => {
-  if (isImageMode.value) saveImageTransform()
+  if (isSpriteMode.value) saveSpriteTransform()
   else pmxRef.value?.saveTransform()
 }
 const toggleAdjust = () => {
@@ -256,7 +348,7 @@ const toggleAdjust = () => {
 }
 const onTransformChange = (t) => { modelScale.value = t.scale; modelRy.value = Math.round(t.ry) }
 const onSliderInput = (v) => {
-  if (isImageMode.value) setImageScale(v)
+  if (isSpriteMode.value) setSpriteScale(v)
   else pmxRef.value?.setScale(v)
 }
 const onRyInput = (v) => { pmxRef.value?.setRy(v) }
@@ -265,11 +357,14 @@ const finishAdjust = () => {
   adjustMode.value = false
 }
 const resetAdjust = () => {
-  if (isImageMode.value) resetImageTransform()
+  if (isSpriteMode.value) resetSpriteTransform()
   else pmxRef.value?.resetTransform()
 }
 
-// ===== 图片立绘：调整模式下的拖拽移动 + 滚轮/双指缩放（window 监听，仅图片模式生效） =====
+//  立绘类（2D 图片 / Live2D）：调整模式下的拖拽移动 + 滚轮/双指缩放 
+// 统一挂在 window 上监听，仅「调整模式 + 立绘类展示」时生效。
+// Live2D 的 canvas 是 pointer-events:none（为了不挡下层 UI），拿不到自身事件，
+// 所以只能走 window —— 也正因如此，这套逻辑对两种模式可以完全共用。
 let imgDragging = false
 let imgDragStart = { px: 0, py: 0, x: 0, y: 0 }
 // 双指捏合状态（移动端没有滚轮，缩放只能靠手势）
@@ -284,34 +379,38 @@ function imgPointerDistance() {
 }
 
 const onImgPointerDown = (e) => {
-  if (!adjustMode.value || !isImageMode.value) return
+  if (!adjustMode.value || !isSpriteMode.value) return
   if (e.target && e.target.closest && e.target.closest('.model-adjust-panel')) return
   imgPointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
   if (imgPointers.size >= 2) {
     // 第二指落下 → 切到捏合，放弃拖动，避免两指位移同时改位置导致立绘乱跳
     imgDragging = false
     imgPinchStartDist = imgPointerDistance()
-    imgPinchStartScale = imageTransform.scale
+    imgPinchStartScale = activeTransform().scale
     return
   }
   if (e.button !== 0) return // 立绘仅左键移动
   imgDragging = true
-  imgDragStart = { px: e.clientX, py: e.clientY, x: imageTransform.x, y: imageTransform.y }
+  {
+    const tf = activeTransform()
+    imgDragStart = { px: e.clientX, py: e.clientY, x: tf.x, y: tf.y }
+  }
 }
 const onImgPointerMove = (e) => {
-  if (!adjustMode.value || !isImageMode.value) return
+  if (!adjustMode.value || !isSpriteMode.value) return
   if (imgPointers.has(e.pointerId)) imgPointers.set(e.pointerId, { x: e.clientX, y: e.clientY })
   if (imgPointers.size >= 2) {
     const dist = imgPointerDistance()
     if (imgPinchStartDist > 0 && dist > 0) {
       // 以捏合起点为基准换算，避免逐帧累乘造成漂移
-      setImageScale(imgPinchStartScale * (dist / imgPinchStartDist))
+      setSpriteScale(imgPinchStartScale * (dist / imgPinchStartDist))
     }
     return
   }
   if (!imgDragging) return
-  imageTransform.x = imgDragStart.x + (e.clientX - imgDragStart.px)
-  imageTransform.y = imgDragStart.y + (e.clientY - imgDragStart.py)
+  const tf = activeTransform()
+  tf.x = imgDragStart.x + (e.clientX - imgDragStart.px)
+  tf.y = imgDragStart.y + (e.clientY - imgDragStart.py)
 }
 const endImgDrag = (e) => {
   if (e && e.pointerId != null) imgPointers.delete(e.pointerId)
@@ -321,12 +420,12 @@ const endImgDrag = (e) => {
   }
 }
 const onImgWheel = (e) => {
-  if (!adjustMode.value || !isImageMode.value) return
+  if (!adjustMode.value || !isSpriteMode.value) return
   e.preventDefault()
-  setImageScale(imageTransform.scale * (e.deltaY < 0 ? 1.05 : 0.95))
+  setSpriteScale(activeTransform().scale * (e.deltaY < 0 ? 1.05 : 0.95))
 }
-watch([adjustMode, isImageMode], ([adjust, imgMode]) => {
-  const active = adjust && imgMode
+watch([adjustMode, isSpriteMode], ([adjust, spriteMode]) => {
+  const active = adjust && spriteMode
   if (active) {
     window.addEventListener('pointerdown', onImgPointerDown)
     window.addEventListener('pointermove', onImgPointerMove)
@@ -352,13 +451,17 @@ watch(adjustMode, (on) => {
   document.documentElement.classList.toggle('gesture-lock', on)
 })
 
-// 模型/立绘模式切换时：若正在调整，先保存旧形象的变换再退出调整模式
-watch(isImageMode, (imgMode) => {
-  if (adjustMode.value) {
-    if (imgMode) pmxRef.value?.saveTransform()
-    else saveImageTransform()
-    adjustMode.value = false
-  }
+// 展示方式切换时：先把「旧的那一份」变换存好，再决定调整模式怎么走。
+// 用 prev 而不是当前状态来存，因为切换那一刻 activeTransform() 已经指向新的一份了。
+const displayKey = computed(() => (isLive2DMode.value ? 'live2d' : (isImageMode.value ? 'image' : '3d')))
+watch(displayKey, (now, prev) => {
+  if (!adjustMode.value) return
+  if (prev === 'live2d') saveSpriteTransform(true)
+  else if (prev === 'image') saveSpriteTransform(false)
+  else pmxRef.value?.saveTransform()
+  // 3D 与立绘类的调整面板内容不一样（方向滑杆只对 3D 有意义），跨类切换直接退出调整
+  if (prev === '3d' || now === '3d') adjustMode.value = false
+  else syncAdjustSliders()
 })
 
 // 玩家状态：好感度 / 行动点
@@ -386,7 +489,7 @@ const onStatsMouseUp = (e) => {
 }
 const onStatsBlur = () => { statsVisible.value = false } // 窗口失焦兜底
 
-// ===== 移动端：长按显示好感度/行动点 =====
+//  移动端：长按显示好感度/行动点 
 // 触屏没有「右键」，但「按住才显示、松手就收起」这个语义要保留，
 // 长按是最接近的映射；同时避开调整模式（那时长按属于拖拽手势）。
 const STATS_LONG_PRESS_MS = 400
@@ -417,11 +520,11 @@ const onStatsTouchMove = () => { cancelStatsPress() }
 // 调整面板的操作提示：触屏没有右键/滚轮，文案要跟着换，否则用户按提示操作无反应
 const adjustTip = computed(() => {
   if (isTouchDevice) {
-    return isImageMode.value
+    return isSpriteMode.value
       ? '拖动移动 · 双指捏合或滑杆调大小'
       : '拖动移动 · 双指捏合或滑杆调大小 · 转向用滑杆'
   }
-  return isImageMode.value
+  return isSpriteMode.value
     ? '左键拖动移动 · 滚轮或滑杆调大小'
     : '左键拖动移动 · 右键拖动转向 · 滚轮或滑杆调大小'
 })
@@ -436,6 +539,12 @@ const bubbleX = ref(typeof window !== 'undefined' ? window.innerWidth / 2 : 0)
 const bubbleY = ref(typeof window !== 'undefined' ? window.innerHeight * 0.14 : 0)
 const characterImgRef = ref(null)
 const bubbleStyle = computed(() => {
+  if (isLive2DMode.value) {
+    // Live2D：坐标由组件根据「内容外框」实时算出（跟随缩放/位移/窗口 resize）
+    const pos = live2dRef.value?.headScreenPos
+    if (pos) return { left: pos.x + 'px', top: (pos.y - 80) + 'px' }
+    return { left: bubbleX.value + 'px', top: bubbleY.value + 'px' }
+  }
   if (isImageMode.value && characterImgRef.value) {
     // 2D 图片：读真实渲染矩形，自适应拖拽 / 缩放 / 窗口 resize
     const rect = characterImgRef.value.getBoundingClientRect()
@@ -529,7 +638,7 @@ const characterStyle = computed(() => ({
   transform: `translate(-50%, -50%)`,
 }))
 
-// ===== 官方游戏启动 =====
+//  官方游戏启动 
 const GAME_PATH_KEY = 'official_game_path'
 const gamePath = ref('')
 const hasGamePath = computed(() => !!gamePath.value)
@@ -576,7 +685,8 @@ const handleLaunchGame = async () => {
 onMounted(() => {
   inventoryStore.loadData()
   loadPlayerStats()
-  loadImageTransform()
+  loadRenderMode()
+  loadSpriteTransforms()
   // 好感度/行动点面板：桌面端按住右键显示，松开/失焦隐藏；移动端长按显示
   window.addEventListener('mousedown', onStatsMouseDown)
   window.addEventListener('mouseup', onStatsMouseUp)

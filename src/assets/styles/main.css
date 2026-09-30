@@ -1,4 +1,4 @@
-/* ====== 设计令牌 ====== */
+/* = 设计令牌 = */
 :root {
   /* 主色系 - 三层绿 */
   --c-primary: #2D7A5F;        /* 深绿 → 重要文字、主按钮 */
@@ -37,7 +37,7 @@
   box-sizing: border-box;
 }
 
-/* ====== 复制防护：默认禁选中文本，白名单 .allow-copy 放行 ====== */
+/* = 复制防护：默认禁选中文本，白名单 .allow-copy 放行 = */
 body {
   user-select: none;
   -webkit-user-select: none;
@@ -102,7 +102,7 @@ body {
   transition: opacity 0.3s ease;
 }
 
-/* ====== 暗黑模式 ====== */
+/* = 暗黑模式 = */
 html.dark body,
 html.dark #app {
   background: #141414;
@@ -164,7 +164,7 @@ html.dark .info-item {
   background: #2a2a2a;
 }
 
-/* ====== MorphIcon 图标适配 ====== */
+/* = MorphIcon 图标适配 = */
 /* morphicons/vue 的根元素就是 <svg>，class 直接落在 svg 上 */
 /* 让 SVG 继承父元素 font-size，与 Font Awesome 图标尺寸行为一致 */
 svg.morph-icon {
@@ -175,12 +175,12 @@ svg.morph-icon {
   flex-shrink: 0;
 }
 
-/* ==========================================================================
+/* ====
    移动端基础层
    断点统一 768px，与 src/utils/device.js 的 MOBILE_BREAKPOINT 保持一致。
    约定：本文件只放「全局且与具体页面无关」的移动端规则，页面各自的特化写在
    对应的 xxx.css 里（同样是 @media (max-width: 768px)）。
-   ========================================================================== */
+   ==== */
 
 /* ---- 1. 全高单位 ----
    移动端浏览器地址栏会伸缩，100vh 恒等于「地址栏收起时的高度」，

@@ -440,7 +440,7 @@ export function initErrorReporter() {
     cleanOldLogs()
     const env = envInfo()
     log('INFO', '启动', [
-      `===== 萤光纪游 v${env.version} 启动 =====`,
+      `萤光纪游 v${env.version} 启动`,
       `Electron ${env.electron} | Chromium ${env.chrome} | Node ${env.node}`,
       `系统：${env.os} | CPU ${env.cpu} | 内存 ${env.memory}`,
       `硬件加速：${env.hw} | 参数：${process.argv.slice(1).join(' ') || '（无）'}`,

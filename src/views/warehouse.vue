@@ -21,7 +21,7 @@
           <el-tab-pane label="全部" name="all">
             <ViewSwitcher v-model="allView" :options="viewOptions">
               <template #default="{ current }">
-                <div v-if="allData.length" :class="current === 'card' ? 'item-cards' : 'item-list'">
+                <div v-if="allData.length" :key="current" :class="current === 'card' ? 'item-cards' : 'item-list'">
                   <div v-for="item in allData" :key="item.id" :class="current === 'card' ? 'item-card' : 'list-item'">
                     <div :class="current === 'card' ? 'card-icon' : 'list-icon'">
                       <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
@@ -37,6 +37,9 @@
                       <div class="card-price">
                         <i class="fa-solid fa-boxes-stacked"></i>
                         {{ item.count }}
+                      </div>
+                      <div v-if="item.category !== 'clothing'" class="card-sell">
+                        <i class="fa-solid fa-coins"></i> 出售 +{{ sellPriceOf(item) }}
                       </div>
                       <button v-if="item.category === 'clothing'" class="buy-btn" disabled>不可出售</button>
                       <div v-else class="card-btns">
@@ -56,6 +59,9 @@
                       <div class="list-price">
                         <i class="fa-solid fa-boxes-stacked"></i>
                         {{ item.count }}
+                        <span v-if="item.category !== 'clothing'" class="list-sell">
+                          <i class="fa-solid fa-coins"></i>+{{ sellPriceOf(item) }}
+                        </span>
                       </div>
                       <button v-if="item.category === 'clothing'" class="list-buy-btn" disabled>不可出售</button>
                       <div v-else class="list-btns">
@@ -76,7 +82,7 @@
           <el-tab-pane label="物品" name="first">
             <ViewSwitcher v-model="itemView" :options="viewOptions">
               <template #default="{ current }">
-                <div v-if="itemData.length" :class="current === 'card' ? 'item-cards' : 'item-list'">
+                <div v-if="itemData.length" :key="current" :class="current === 'card' ? 'item-cards' : 'item-list'">
                   <div v-for="item in itemData" :key="item.id" :class="current === 'card' ? 'item-card' : 'list-item'">
                     <div :class="current === 'card' ? 'card-icon' : 'list-icon'">
                       <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
@@ -92,6 +98,9 @@
                       <div class="card-price">
                         <i class="fa-solid fa-boxes-stacked"></i>
                         {{ item.count }}
+                      </div>
+                      <div class="card-sell">
+                        <i class="fa-solid fa-coins"></i> 出售 +{{ sellPriceOf(item) }}
                       </div>
                       <div class="card-btns">
                         <button class="buy-btn" @click="handleUse(item)">使用</button>
@@ -110,6 +119,9 @@
                       <div class="list-price">
                         <i class="fa-solid fa-boxes-stacked"></i>
                         {{ item.count }}
+                        <span class="list-sell">
+                          <i class="fa-solid fa-coins"></i>+{{ sellPriceOf(item) }}
+                        </span>
                       </div>
                       <div class="list-btns">
                         <button class="list-buy-btn" @click="handleUse(item)">使用</button>
@@ -129,7 +141,7 @@
           <el-tab-pane label="服装" name="second">
             <ViewSwitcher v-model="clothingView" :options="viewOptions">
               <template #default="{ current }">
-                <div v-if="current === 'card' && clothingData.length" class="clothing-cards">
+                <div v-if="current === 'card' && clothingData.length" key="card" class="clothing-cards">
                   <div v-for="item in clothingData" :key="item.id" class="clothing-card">
                     <div class="clothing-portrait">
                       <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="portrait-img" :class="{ 'portrait-img-hanld': item.id === 108, 'portrait-img-xbd': item.id === 103 }" />
@@ -151,7 +163,7 @@
                     </div>
                   </div>
                 </div>
-                <div v-else-if="current === 'list' && clothingData.length" class="item-list">
+                <div v-else-if="current === 'list' && clothingData.length" key="list" class="item-list">
                   <div v-for="item in clothingData" :key="item.id" class="list-item">
                     <div class="list-icon">
                       <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
@@ -172,7 +184,7 @@
                     <button class="list-buy-btn" disabled>不可出售</button>
                   </div>
                 </div>
-                <div v-else class="empty-state">
+                <div v-else key="empty" class="empty-state">
                   <i class="fa-regular fa-folder-open"></i>
                   <p>仓库空空如也</p>
                 </div>
@@ -208,6 +220,8 @@ const store = useInventoryStore()
 const goldStore = useGoldStore()
 // 判断 icon 是否为图片（非字体图标）
 const isImg = (icon) => icon && !icon.startsWith('fa')
+// 出售单价（半价，与 inventory.sellItem 的计算口径保持一致）
+const sellPriceOf = (item) => Math.floor((item?.price || 0) * 0.5)
 
 const activeName = ref('all')
 
@@ -251,10 +265,13 @@ const handleUse = (item) => {
 }
 
 const confirmSell = () => {
-  if (confirmItem.value) {
-    store.sellItem(confirmItem.value.id)
-    confirmItem.value = null
+  const it = confirmItem.value
+  if (!it) return
+  const ok = store.sellItem(it.id)
+  if (ok) {
+    ElMessage.success(`出售「${it.name}」获得 ${sellPriceOf(it)} 金币`)
   }
+  confirmItem.value = null
 }
 </script>
 

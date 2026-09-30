@@ -1,11 +1,10 @@
 // AI 对话服务层
-// - 人物设定（persona）硬编码，玩家不可修改
 // - 配置（baseUrl / apiKey / model）存 localStorage，跨存档槽共享
 // - 请求优先走 Electron 主进程（规避 CORS），浏览器模式下降级为直接 fetch
 
 const AI_CONFIG_KEY = 'ai_config'
 
-// ===== 人物设定（硬编码，玩家不可修改） =====
+//  人物设定（硬编码，玩家不可修改） 
 export const AI_PERSONA = `你是「流萤」（Firefly），《崩坏：星穹铁道》中的角色，也叫「萨姆」。星核猎手成员、熔火骑士，命途为巡猎、繁育，性别女。
 
 【身份与性格】
@@ -31,7 +30,7 @@ export const AI_PERSONA = `你是「流萤」（Firefly），《崩坏：星穹�
 2. 不要提及自己是一个 AI、语言模型或程序。
 3. 不要替「开拓者」说话，也不要替对方做决定。`
 
-// ===== 预置模型（玩家选择模型后自动匹配 API 地址） =====
+//  预置模型（玩家选择模型后自动匹配 API 地址） 
 export const AI_MODELS = [
   { id: 'deepseek', label: 'DeepSeek', model: 'deepseek-chat', baseUrl: 'https://api.deepseek.com/v1' },
   { id: 'openai', label: 'OpenAI（GPT-4o mini）', model: 'gpt-4o-mini', baseUrl: 'https://api.openai.com/v1' },
@@ -42,7 +41,7 @@ export const AI_MODELS = [
   { id: 'custom', label: '自定义', model: '', baseUrl: '' },
 ]
 
-// ===== 配置管理 =====
+//  配置管理 
 export function loadAIConfig() {
   try {
     const raw = localStorage.getItem(AI_CONFIG_KEY)
@@ -72,7 +71,7 @@ export function hasAIConfig() {
   return !!(cfg.baseUrl && cfg.apiKey && cfg.model)
 }
 
-// ===== 对话请求 =====
+//  对话请求 
 // history: [{ role: 'user' | 'assistant', content }]（短期滑动窗口原文）
 // memorySummary: 长期记忆摘要文本，注入 system prompt
 // 返回 AI 回复文本；未配置时抛出带标记的错误
@@ -92,12 +91,7 @@ export async function chatWithAI(history, memorySummary = '') {
   return content
 }
 
-// ===== 长期记忆整理（方案 2+3：滚动摘要 + 结构化记忆卡） =====
-// 把「已有记忆 + 窗口外的旧对话」交给 AI，输出：
-// - facts: 新提取的记忆卡 [{ text, tag }]，tag ∈ profile|preference|promise|event|other
-// - obsolete: 已被新内容取代的旧记忆卡原文（用于作废）
-// - summary: 更新后的近期相处脉络摘要（300 字内）
-// 触发时机：当前会话消息数达到 SUMMARY_TRIGGER 后异步调用（非阻塞，不影响正常聊天）
+//  长期记忆整理（方案 2+3：滚动摘要 + 结构化记忆卡） 
 export async function extractMemories(memory, oldMessages) {
   const config = loadAIConfig()
   if (!config.baseUrl || !config.apiKey || !config.model) {
@@ -150,7 +144,7 @@ ${dialogText}`
   }
 }
 
-// ===== 往事纪要压缩 =====
+//  往事纪要压缩 
 // 事件卡累积过多时，把最老的一批事件压缩进「往事纪要」（编年史），原事件卡随后标记归档
 // 纪要滚动更新、控制在 800 字内，按时间顺序保留所有重要事件
 export async function condenseChronicle(oldChronicle, eventFacts) {

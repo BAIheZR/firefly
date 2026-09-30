@@ -24,7 +24,7 @@ export const useBackgroundStore = defineStore("background", {
     // 是否启用全局背景
     enabled: false,
 
-    // ====== 首页专属背景（独立于全局背景，仅作用于 Home 页面） ======
+    // = 首页专属背景（独立于全局背景，仅作用于 Home 页面） =
     // 首页背景类型：'preset' | 'custom' | 'none'
     homeType: "none",
     // 首页预设背景 id
@@ -55,7 +55,7 @@ export const useBackgroundStore = defineStore("background", {
     // 页面内容透明度（0-1）
     contentBgOpacity: (state) => state.contentOpacity / 100,
 
-    // ====== 首页专属背景 getter ======
+    // = 首页专属背景 getter =
     // 首页背景的实际 image URL（未启用或未设置时返回空字符串）
     homeBackgroundImage: (state) => {
       if (!state.homeEnabled) return "";
@@ -155,7 +155,7 @@ export const useBackgroundStore = defineStore("background", {
       this.saveData();
     },
 
-    // ====== 首页专属背景 actions ======
+    // 首页专属背景
     // 首页使用预设背景
     setHomePreset(presetId) {
       const preset = PRESET_BACKGROUNDS.find((p) => p.id === presetId);

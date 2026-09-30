@@ -23,6 +23,10 @@
   </head>
   <body>
     <div id="app"></div>
+    <!-- Live2D Cubism Core：解码 .moc3 所需的官方运行时（非 ESM，直接挂 window.Live2DCubismCore）。
+         必须排在 main.js 之前，否则 pixi-live2d-display 加载时拿不到核心会直接报错。
+         用相对路径 './' 是为了同时兼容 dev server(/) 与打包后的 file://(dist/)。 -->
+    <script src="./live2dcubismcore.min.js"></script>
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>

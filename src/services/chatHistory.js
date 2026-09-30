@@ -1,12 +1,4 @@
 // AI 聊天记忆服务层
-// 三层记忆结构：
-// - 短期原文（ai_chat_current）：当前会话消息，发送时取最近 CONTEXT_WINDOW 条
-// - 长期记忆卡（ai_chat_memory.facts）：AI 提取的结构化事实，全量永久保存，不设上限
-//   · tag=profile/preference/promise 的卡片数量少且稳定，注入时全量携带
-//   · tag=event 的事件卡可能极多（9999+ 条对话也不丢），注入时只携带最近 EVENT_INJECT_LIMIT 条，
-//     更早的事件压缩进 chronicle（往事纪要）后标记 archived，原卡仍永久保留
-// - 滚动摘要（summary）：近期相处脉络；chronicle：往事纪要（远期事件编年压缩）
-
 const CURRENT_KEY = 'ai_chat_current'
 const MEMORY_KEY = 'ai_chat_memory'
 
@@ -21,7 +13,7 @@ export const EVENT_INJECT_LIMIT = 30
 export const FACT_TAGS = ['profile', 'preference', 'promise', 'event', 'other']
 // 注入时全量携带的标签（稳定事实，数量少）
 export const ALWAYS_INJECT_TAGS = ['profile', 'preference', 'promise']
-// ===== 当前会话（原文全量保留 + 已整理水位线） =====
+// 当前会话（原文全量保留 + 已整理水位线）
 // 消息原文永久保留在聊天界面中，不再裁剪；summarizedCount 之前的消息已沉淀为长期记忆卡
 // 返回 { messages, summarizedCount }
 export function loadCurrentChat() {
@@ -49,7 +41,8 @@ export function clearCurrentChat() {
 }
 
 // 长期记忆
-// 结构：{ summary, chronicle, facts: [{ id, text, tag, at, archived }], updatedAt }
+// 结构：{ summary, chronicle, facts: [{ id, text, tag, at, archived }], milestones: [{ key, title, at }], updatedAt }
+// milestones：好感度跨阶段时记录的「关系历程」，供记事本展示与对话注入
 export function loadMemory() {
   try {
     const raw = localStorage.getItem(MEMORY_KEY)
@@ -65,14 +58,24 @@ export function loadMemory() {
             archived: !!f.archived,
           }))
       : []
+    const milestones = Array.isArray(obj.milestones)
+      ? obj.milestones
+          .filter((m) => m && typeof m.key === 'string' && typeof m.title === 'string')
+          .map((m) => ({
+            key: m.key,
+            title: m.title,
+            at: typeof m.at === 'number' ? m.at : Date.now(),
+          }))
+      : []
     return {
       summary: typeof obj.summary === 'string' ? obj.summary : '',
       chronicle: typeof obj.chronicle === 'string' ? obj.chronicle : '',
       facts,
+      milestones,
       updatedAt: typeof obj.updatedAt === 'number' ? obj.updatedAt : 0,
     }
   } catch (e) {
-    return { summary: '', chronicle: '', facts: [], updatedAt: 0 }
+    return { summary: '', chronicle: '', facts: [], milestones: [], updatedAt: 0 }
   }
 }
 
@@ -112,10 +115,51 @@ export function pickEventsToArchive(facts) {
   return overflow > 0 ? activeEvents.slice(0, overflow) : []
 }
 
-// 组装注入 system prompt 的记忆文本（分层：档案卡 + 近期事件 + 往事纪要 + 近期摘要）
-export function buildMemoryText(memory) {
-  if (!memory) return ''
+//  记忆卡编辑（供记事本使用；纯函数，入参出参都是 facts 数组，不改原数组） 
+// 改写某张卡的文字（空文本视为无效，原样返回）
+export function updateFactText(facts, id, text) {
+  const t = String(text || '').trim()
+  if (!t) return facts
+  return facts.map((f) => (f.id === id ? { ...f, text: t } : f))
+}
+
+// 删除某张卡
+export function removeFact(facts, id) {
+  return facts.filter((f) => f.id !== id)
+}
+
+// 归档 / 恢复某张卡（归档卡不进注入，但永久保留）
+export function toggleFactArchived(facts, id) {
+  return facts.map((f) => (f.id === id ? { ...f, archived: !f.archived } : f))
+}
+
+//  关系里程碑（好感度跨阶段时写入，形成「关系历程」） 
+// stageInfo：affectionStages.js 的阶段对象（取 key / title）
+// 按 key 去重：同一阶段只记一次（即便好感度掉档后再次跨入，也不重复）
+export function appendMilestone(memory, stageInfo) {
+  if (!memory || !stageInfo) return memory
+  const key = stageInfo.key
+  const title = stageInfo.title
+  if (!key || !title) return memory
+  const list = Array.isArray(memory.milestones) ? memory.milestones : []
+  if (list.some((m) => m.key === key)) {
+    memory.milestones = list
+    return memory
+  }
+  memory.milestones = [...list, { key, title, at: Date.now() }]
+  return memory
+}
+
+// 组装注入 system prompt 的记忆文本（分层：关系状态 + 档案卡 + 近期事件 + 往事纪要 + 近期摘要）
+// relationText：由调用方按实时好感度生成的关系描述（可空）
+export function buildMemoryText(memory, relationText = '') {
+  const rel = String(relationText || '').trim()
+  if (!memory) return rel ? `【与开拓者的关系】\n${rel}` : ''
   const parts = []
+  if (rel) {
+    parts.push('【与开拓者的关系】')
+    parts.push(rel)
+  }
   const stable = memory.facts.filter((f) => !f.archived && ALWAYS_INJECT_TAGS.includes(f.tag))
   if (stable.length) {
     const labelMap = { profile: '关于开拓者', preference: '喜好', promise: '约定' }

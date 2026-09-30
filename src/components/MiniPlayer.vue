@@ -50,7 +50,7 @@ const visible = computed(() => route.path !== '/music' && musicStore.hasTracks)
 // 迷你播放器需要再往上让一层，否则两者直接压在一起
 const isHome = computed(() => route.path === '/')
 
-// ===== 拖拽逻辑 =====
+//  拖拽逻辑 
 const posStyle = ref({})
 let isDragging = false
 let hasDragged = false
@@ -254,9 +254,9 @@ onBeforeUnmount(() => {
   transform: translateY(20px) scale(0.9);
 }
 
-/* ==========================================================================
+/* ====
    移动端
-   ========================================================================== */
+   ==== */
 
 /* 拖动依赖 pointermove 持续触发；触屏上若不禁用浏览器自身的滚动接管，
    手指一移动就被判定为滚动，pointermove 会中断，表现为「拖一下就断」 */

@@ -40,6 +40,11 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   },
+  optimizeDeps: {
+    // Live2D 运行时是「用到才动态 import」的（pixi ≈ 500KB，首页不该背这个包），
+    // 预打包一下，避免 dev 时首次切换服装才触发依赖扫描 → 页面整块 reload
+    include: ['pixi.js', '@jannchie/pixi-live2d-display/cubism4'],
+  },
   server: {
     port: 3000,
     // 监听所有网卡：允许局域网内的手机/其他设备访问，用于联机功能测试

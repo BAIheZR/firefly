@@ -4,8 +4,9 @@
       <div class="chess-card">
         <div class="chess-top">
           <h2 class="chess-title">
-            <i class="fa-solid fa-spell-check"></i> 猜字游戏
+            <i class="fa-solid fa-spell-check"></i> 猜字谜
             <span v-if="isMp" class="mp-badge"><i class="fa-solid fa-tower-broadcast"></i> 联机竞速</span>
+            <span v-if="isWatcher" class="mp-badge is-watch"><i class="fa-solid fa-eye"></i> 观战中</span>
           </h2>
           <div class="chess-top-right">
             <div class="chess-earned" title="本局赢得的金币">
@@ -20,7 +21,10 @@
 
         <!-- 对手信息（联机时才有） -->
         <div v-if="isMp" class="mp-role-bar">
-          <span class="mp-role-tag is-opponent">
+          <span v-if="isWatcher" class="mp-role-tag is-watcher">
+            <i class="fa-solid fa-eye"></i> 观战中 · 你只能看，不能答题
+          </span>
+          <span v-else class="mp-role-tag is-opponent">
             <i class="fa-solid fa-user"></i> 对手：{{ opponentName }}
           </span>
           <span class="mp-role-tag" :class="roundWinner === 'self' ? 'is-black' : 'is-white'">
@@ -45,7 +49,7 @@
               <template v-if="isMp">
                 两边拿到同一道题同时开猜，先答对的人拿走金币。
                 <br />提示条数是双方共享的，谁多要一条提示，两边的赏金一起下降。
-                <br />答对或放弃后由房主出下一题。
+                <br />答对或放弃后由桌主出下一题。
               </template>
               <template v-else>
                 萤宝会逐条给出提示词，你来猜出正确答案。
@@ -62,10 +66,12 @@
             <button
               class="btn-primary btn-lg"
               @click="startNewGame"
-              :disabled="isMp && !mp.selfIsHost"
+              :disabled="isMp && (isWatcher || !amTableOwner)"
             >
               <i class="fa-solid fa-play"></i>
-              {{ isMp && !mp.selfIsHost ? '等待房主开始' : '开始挑战' }}
+              <template v-if="isWatcher">观战中 · 不能开始</template>
+              <template v-else-if="isMp && !amTableOwner">等待桌主开始</template>
+              <template v-else>开始挑战</template>
             </button>
           </div>
 
@@ -98,17 +104,25 @@
                 ref="inputRef"
                 v-model="answer"
                 class="guess-input"
-                placeholder="输入你的答案，按 Enter 提交"
+                :placeholder="isWatcher ? '观战中，不能答题' : '输入你的答案，按 Enter 提交'"
                 @keydown.enter="submitAnswer"
-                :disabled="submitting || roundOver"
+                :disabled="submitting || roundOver || isWatcher"
               />
-              <button class="btn-primary" @click="submitAnswer" :disabled="submitting || roundOver || !answer.trim()">
+              <button
+                class="btn-primary"
+                @click="submitAnswer"
+                :disabled="submitting || roundOver || !answer.trim() || isWatcher"
+              >
                 <i class="fa-solid fa-paper-plane"></i> 提交
               </button>
-              <button class="btn-secondary" @click="askHint" :disabled="roundOver || revealedCount >= 10">
+              <button
+                class="btn-secondary"
+                @click="askHint"
+                :disabled="roundOver || revealedCount >= 10 || isWatcher"
+              >
                 <i class="fa-solid fa-lightbulb"></i> 再要一条提示
               </button>
-              <button class="btn-ghost" @click="confirmGiveup" :disabled="roundOver">
+              <button class="btn-ghost" @click="confirmGiveup" :disabled="roundOver || isWatcher">
                 <i class="fa-solid fa-flag"></i> 放弃本题
               </button>
             </div>
@@ -207,6 +221,32 @@
         </div>
       </div>
     </div>
+
+    <!-- 歧义选择弹框：输入通用名（如「丹恒」「银狼」）对应多个答案时，让玩家选择具体指的是谁 -->
+    <div v-if="pickVisible" class="pick-mask" @click.self="cancelPick">
+      <div class="pick-box">
+        <div class="pick-title">
+          <i class="fa-solid fa-circle-question"></i>
+          你输入的「{{ pickTyped }}」可能指：
+        </div>
+        <div class="pick-desc">请选择你要提交的具体答案</div>
+        <div class="pick-list">
+          <button
+            v-for="(c, i) in pickCandidates"
+            :key="i"
+            class="pick-item"
+            type="button"
+            @click="confirmPick(c)"
+          >
+            {{ c.answer }}
+            <span v-if="c.variant" class="pick-variant">（{{ c.variant }}）</span>
+          </button>
+        </div>
+        <div class="pick-foot">
+          <button class="btn-ghost" type="button" @click="cancelPick">取消</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -236,7 +276,14 @@ const userStore = useUserStore()
 
 // 联机模式由大厅带 ?mp=1 进入；不带参数即单人，行为与原来一致
 const isMp = computed(() => route.query.mp === '1')
-const opponentName = computed(() => mp.members.find((m) => m.id !== mp.selfId)?.name || '等待对手…')
+// ?watch=1 = 联机观战：只跟着看题和广播，不能答题
+const isWatcher = computed(() => isMp.value && route.query.watch === '1')
+// 出题/开局的权力在这一桌的桌主身上，不是房间房主（房间里可能同时开着好几桌）
+const amTableOwner = computed(() => mp.amTableOwner)
+// 同桌的另一个人（房间里可能有好几桌，不能再用「房间里的另一个人」）
+const opponentName = computed(
+  () => mp.mySession?.seats.find((p) => p.id !== mp.selfId)?.name || '等待对手…'
+)
 
 const BASE_ACTION_POINT = 50
 const ACTION_POINT_PER_LEVEL = 10
@@ -252,7 +299,7 @@ const actionPointDisplay = computed(() => {
   return `${cur} / ${cap}`
 })
 
-// ===== 游戏状态 =====
+//  游戏状态 
 // state: 'idle' | 'playing'
 const state = ref('idle')
 const currentWord = ref(null)
@@ -262,6 +309,10 @@ const answer = ref('')
 const submitting = ref(false)
 const roundNo = ref(0)
 const inputRef = ref(null)
+// 歧义选择：输入通用名命中多个答案时弹出选择框
+const pickVisible = ref(false)
+const pickTyped = ref('')
+const pickCandidates = ref([])
 // 联机竞速：本题归属 ''=未分出 | 'self' | 'other'
 const roundWinner = ref('')
 const roundOver = computed(() => isMp.value && roundWinner.value !== '')
@@ -311,7 +362,7 @@ const categoryMeta = computed(() => {
   return CATEGORY_LABELS[currentWord.value.category] || { name: '未知', icon: 'fa-solid fa-question' }
 })
 
-// ===== 候选答案生成（仅单人） =====
+//  候选答案生成（仅单人） 
 function shuffle(arr) {
   const a = arr.slice()
   for (let i = a.length - 1; i > 0; i--) {
@@ -348,7 +399,7 @@ function pickCandidate(c) {
   nextTick(() => inputRef.value?.focus())
 }
 
-// ===== 提示条数（幂等，联机双方共享） =====
+//  提示条数（幂等，联机双方共享） 
 function applyHintCount(count) {
   if (!currentWord.value) return
   const max = currentWord.value.hints.length
@@ -356,11 +407,16 @@ function applyHintCount(count) {
   revealedHints.value = currentWord.value.hints.slice(0, n)
 }
 
-// ===== 游戏流程 =====
+//  游戏流程 
 function startNewGame() {
   if (isMp.value) {
-    if (!mp.selfIsHost) {
-      ElMessage.info('只有房主可以开始新一局')
+    if (isWatcher.value) {
+      ElMessage.info('你在观战，不能开始新一局')
+      return
+    }
+    // 出题权在这一桌的桌主身上，不是房间房主
+    if (!amTableOwner.value) {
+      ElMessage.info('只有桌主可以开始新一局')
       return
     }
     if (!mp.connected) {
@@ -428,61 +484,118 @@ function askHint() {
   }
 }
 
+// 答案归一化：去空格/中点/连接符，转小写，便于宽松比对
+const normalizeStr = (s) => String(s || '').replace(/[\s·•\-_=+]/g, '').toLowerCase()
+
+// 猜中处理（单人/联机）
+function markCorrect(submitAns) {
+  const reward = currentReward.value
+  goldStore.addGold(reward, 'guess_word')
+  history.value.unshift({
+    type: 'correct',
+    submitAnswer: submitAns,
+    correctAnswer: currentWord.value.answer,
+    category: currentWord.value.category,
+    variant: currentWord.value.variant || '',
+    hintCount: revealedCount.value,
+    reward,
+    roundNo: roundNo.value,
+  })
+  submitting.value = false
+  const early = revealedCount.value <= 5
+  setBubble(early ? getGuessGreeting('correct') : getGuessGreeting('win_late'), youVotorImg)
+
+  if (isMp.value) {
+    roundWinner.value = 'self'
+    ElMessage.success(`猜中啦！奖励 ${reward} 金币，等待房主出下一题`)
+    mp.sendGame({ kind: 'gw:correct', name: userStore.currentUser })
+    // 房主自己抢到时，负责出下一题
+    if (amTableOwner.value) hostScheduleNext()
+    return
+  }
+
+  ElMessage.success(`猜中啦！奖励 ${reward} 金币，下一题来咯`)
+  setTimeout(() => {
+    drawLocalQuestion()
+    setBubble('宝宝真棒，下一题来啦，加油', goodImg)
+  }, 1200)
+}
+
+// 答错处理
+function markWrong(submitAns) {
+  history.value.unshift({
+    type: 'wrong',
+    submitAnswer: submitAns,
+    correctAnswer: currentWord.value.answer,
+    category: currentWord.value.category,
+    variant: currentWord.value.variant || '',
+    hintCount: revealedCount.value,
+    reward: 0,
+    roundNo: roundNo.value,
+  })
+  setBubble(getGuessGreeting('wrong'), waitImg)
+  ElMessage.error('不对哦，再试试')
+  answer.value = ''
+  submitting.value = false
+  setTimeout(() => inputRef.value?.focus(), 50)
+}
+
 function submitAnswer() {
+  // 旁观者不能答题（入口按钮也是禁用的，这里再兜一道）
+  if (isWatcher.value) return
   if (state.value !== 'playing' || submitting.value || roundOver.value) return
   const ans = answer.value.trim()
   if (!ans) return
   submitting.value = true
-  const normalize = (s) => String(s || '').replace(/[\s·•\-_=+]/g, '').toLowerCase()
-  if (normalize(ans) === normalize(currentWord.value.answer)) {
-    // 猜中：奖励 + 历史记录
-    const reward = currentReward.value
-    goldStore.addGold(reward, 'guess_word')
-    history.value.unshift({
-      type: 'correct',
-      submitAnswer: ans,
-      correctAnswer: currentWord.value.answer,
-      category: currentWord.value.category,
-      variant: currentWord.value.variant || '',
-      hintCount: revealedCount.value,
-      reward,
-      roundNo: roundNo.value,
-    })
-    submitting.value = false
-    const early = revealedCount.value <= 5
-    setBubble(early ? getGuessGreeting('correct') : getGuessGreeting('win_late'), youVotorImg)
+  const norm = normalizeStr(ans)
 
-    if (isMp.value) {
-      roundWinner.value = 'self'
-      ElMessage.success(`猜中啦！奖励 ${reward} 金币，等待房主出下一题`)
-      mp.sendGame({ kind: 'gw:correct', name: userStore.currentUser })
-      // 房主自己抢到时，负责出下一题
-      if (mp.selfIsHost) hostScheduleNext()
-      return
-    }
-
-    ElMessage.success(`猜中啦！奖励 ${reward} 金币，下一题来咯`)
-    setTimeout(() => {
-      drawLocalQuestion()
-      setBubble('宝宝真棒，下一题来啦，加油', goodImg)
-    }, 1200)
-  } else {
-    history.value.unshift({
-      type: 'wrong',
-      submitAnswer: ans,
-      correctAnswer: currentWord.value.answer,
-      category: currentWord.value.category,
-      variant: currentWord.value.variant || '',
-      hintCount: revealedCount.value,
-      reward: 0,
-      roundNo: roundNo.value,
-    })
-    setBubble(getGuessGreeting('wrong'), waitImg)
-    ElMessage.error('不对哦，再试试')
-    answer.value = ''
-    submitting.value = false
-    setTimeout(() => inputRef.value?.focus(), 50)
+  // 1. 与当前题答案精确匹配 → 直接猜中
+  if (norm === normalizeStr(currentWord.value.answer)) {
+    return markCorrect(ans)
   }
+
+  // 2. 收集输入命中的所有候选（匹配答案本身，或匹配 aliases 里的通用名）
+  const candidates = WORD_BANK.filter((w) => {
+    if (normalizeStr(w.answer) === norm) return true
+    if (w.aliases && w.aliases.some((a) => normalizeStr(a) === norm)) return true
+    return false
+  })
+
+  if (candidates.length === 0) {
+    return markWrong(ans)
+  }
+
+  if (candidates.length === 1) {
+    // 唯一候选：若它就是当前题，则算猜中（用玩家输入文本记录），否则答错
+    if (candidates[0].answer === currentWord.value.answer) return markCorrect(ans)
+    return markWrong(ans)
+  }
+
+  // 3. 多个候选（如输入「丹恒」命中 丹恒/丹恒·饮月/丹恒·腾荒）→ 弹框让玩家选具体指谁
+  pickTyped.value = ans
+  pickCandidates.value = candidates
+  pickVisible.value = true
+  submitting.value = false
+}
+
+// 歧义选择框：确认选择某个候选
+function confirmPick(c) {
+  pickVisible.value = false
+  submitting.value = true
+  const chosen = c.answer
+  if (normalizeStr(chosen) === normalizeStr(currentWord.value.answer)) {
+    // 玩家从列表里选对了
+    return markCorrect(chosen)
+  }
+  return markWrong(chosen)
+}
+
+// 歧义选择框：取消
+function cancelPick() {
+  pickVisible.value = false
+  pickCandidates.value = []
+  answer.value = ''
+  setTimeout(() => inputRef.value?.focus(), 50)
 }
 
 async function confirmGiveup() {
@@ -499,7 +612,7 @@ async function confirmGiveup() {
   giveupLocal()
   if (isMp.value) {
     mp.sendGame({ kind: 'gw:giveup', name: userStore.currentUser })
-    if (mp.selfIsHost) hostScheduleNext()
+    if (amTableOwner.value) hostScheduleNext()
   } else {
     setTimeout(() => {
       drawLocalQuestion()
@@ -532,19 +645,24 @@ function giveupLocal() {
   }
 }
 
-// ===== 联机消息 =====
+//  联机消息 
 let offGame = null
 let hostNextTimer = null
 
-// 房主：延时出下一题（双方都答完/放弃后）
+// 桌主：延时出下一题（双方都答完/放弃后）
 function hostScheduleNext(delay = 2600) {
-  if (!mp.selfIsHost) return
+  if (!amTableOwner.value) return
   if (hostNextTimer) clearTimeout(hostNextTimer)
   hostNextTimer = setTimeout(() => { drawQuestion() }, delay)
 }
 
 function onMpMessage(data, fromId) {
   switch (data.kind) {
+    // 这一桌凑齐人了：桌主自动出第一题（先到先得、满员即开）
+    case 'mp:session-start':
+      if (isWatcher.value || !amTableOwner.value) return
+      if (state.value === 'idle') startNewGame()
+      break
     case 'gw:question':
       applyQuestion(data.wordIndex, data.roundNo || (roundNo.value + 1), data.hintCount || 1)
       break
@@ -552,21 +670,21 @@ function onMpMessage(data, fromId) {
       applyHintCount(data.count)
       break
     case 'gw:correct':
-      // 对手抢先答对：公布答案，等房主出下一题
+      // 对手抢先答对：公布答案，等桌主出下一题
       if (roundWinner.value === 'self') break
       roundWinner.value = 'other'
       ElMessage.warning(`${data.name} 抢先答对了！正确答案是「${currentWord.value?.answer}」`)
-      if (mp.selfIsHost) hostScheduleNext()
+      if (amTableOwner.value) hostScheduleNext()
       break
     case 'gw:giveup':
       if (roundWinner.value === 'self') break
       roundWinner.value = 'other'
       ElMessage.info(`${data.name} 放弃了本题，正确答案是「${currentWord.value?.answer}」`)
-      if (mp.selfIsHost) hostScheduleNext()
+      if (amTableOwner.value) hostScheduleNext()
       break
     case 'mp:sync-request':
-      // 中途进入对局页 → 房主补发当前题目与提示进度
-      if (mp.selfIsHost && state.value !== 'idle') {
+      // 中途进入对局页（含观战者）→ 桌主补发当前题目与提示进度
+      if (amTableOwner.value && state.value !== 'idle') {
         mp.sendGame({
           kind: 'gw:question',
           wordIndex: currentIndex.value,
@@ -594,8 +712,12 @@ onMounted(() => {
       router.replace('/multiplayer')
       return
     }
+    // 直接刷新页面时 store 里的桌号会丢，从地址栏补回来
+    mp.restoreSession(route.query.sid || '', route.query.watch === '1')
     offGame = mp.onGame(onMpMessage)
-    if (!mp.selfIsHost) mp.sendGame({ kind: 'mp:sync-request' }, mp.hostId || null)
+    // 向**这一桌的桌主**索要当前题目（不再是房间房主）
+    const ownerId = mp.mySession?.ownerId || mp.hostId
+    if (ownerId && ownerId !== mp.selfId) mp.sendGame({ kind: 'mp:sync-request' }, ownerId)
     return
   }
 
@@ -606,6 +728,8 @@ onBeforeUnmount(() => {
   if (bubbleTimer) { clearTimeout(bubbleTimer); bubbleTimer = null }
   if (hostNextTimer) { clearTimeout(hostNextTimer); hostNextTimer = null }
   if (offGame) { offGame(); offGame = null }
+  // 离开对局页 = 离开这一桌
+  if (isMp.value) mp.leaveSession()
 })
 
 // 返回：联机回游戏大厅，单人回主页

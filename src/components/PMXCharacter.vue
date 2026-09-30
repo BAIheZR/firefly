@@ -12,7 +12,7 @@ import { TGALoader } from 'three/addons/loaders/TGALoader.js'
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js'
 import { isMobileDevice } from '@/utils/device'
 
-// ===== 移动端渲染预算 =====
+//  移动端渲染预算 
 // 本组件的主线是 OutlineEffect —— 它要把整个场景渲染两遍（一遍描边、一遍本体）。
 // 在 90/120Hz 的手机上，RAF 会按屏幕刷新率驱动，等于每秒 120~240 次场景渲染，
 // 发热、掉帧、耗电全部来自这里。人物动作对 30fps 完全够看，故移动端限帧。
@@ -174,7 +174,7 @@ const loadSavedTransform = () => {
 let dragging = false // false | 'move' | 'rotate'
 let dragStart = { px: 0, py: 0, x: 0, y: 0, ry: 0 }
 
-// ===== 双指捏合缩放（移动端没有滚轮，靠这个改大小）=====
+//  双指捏合缩放（移动端没有滚轮，靠这个改大小）
 // 复用 pointer 事件而不另写一套 touchstart：触屏下 pointerdown/move/up 同样会触发，
 // 且自带 pointerId —— 用它数「几根手指按着」，比维护两套监听稳。
 // 双指落下时必须立刻终止拖动，否则两根手指的位移会同时改写 modelTransform，模型会抖。

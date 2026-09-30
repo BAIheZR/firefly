@@ -32,7 +32,7 @@
   z-index: 1;
 }
 
-/* ====== 左下角按钮组：挂机时间 + AI 聊天 ====== */
+/* = 左下角按钮组：挂机时间 + AI 聊天 = */
 .home-fab-group {
   position: fixed;
   left: 32px;
@@ -88,7 +88,7 @@
   color: #5BC9A0;
 }
 
-/* ====== 模型调整按钮激活态 + 调整面板 ====== */
+/* = 模型调整按钮激活态 + 调整面板 = */
 .adjust-fab.active {
   border-color: #5BC9A0;
   background: rgba(91, 201, 160, 0.32);
@@ -179,7 +179,7 @@
   transform: translateX(-50%) translateY(-10px);
 }
 
-/* ====== 悬浮启动官方游戏按钮 ====== */
+/* = 悬浮启动官方游戏按钮 = */
 .launch-fab {
   position: fixed;
   right: 32px;
@@ -363,7 +363,7 @@
   transform: translateY(-6px) scale(0.96);
 }
 
-/* ====== 人物头上问候气泡 ====== */
+/* = 人物头上问候气泡 = */
 .character-bubble {
   position: absolute;
   /* left/top 由 JS 动态设置（跟随模型头部屏幕坐标） */
@@ -422,7 +422,7 @@
   transform: translateX(-50%) translateY(-8px);
 }
 
-/* ====== 给木：游戏入口（左上角） ====== */
+/* = 给木：游戏入口（左上角） = */
 .game-fab-wrap {
   position: fixed;
   top: 120px;
@@ -541,12 +541,12 @@
   transform: translateY(-8px) scale(0.95);
 }
 
-/* ==========================================================================
+/* ====
    移动端布局
    核心约束：底部要留出 MobileTabBar（--tabbar-h）的高度，
    主页原有的四个固定悬浮角标（左下三个按钮 + 右下启动键）必须整体上移，
    并排成「一行」——竖屏宽度放不下两组错落的悬浮块。
-   ========================================================================== */
+   ==== */
 @media (max-width: 768px) {
   /* 3D canvas 容器跟随实际可视高度（而非地址栏收起时的 100vh） */
   .home-character {

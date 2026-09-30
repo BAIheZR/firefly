@@ -1,6 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 
+// ★ `meta.landscape: true` = 移动端进这个页面要横屏（见 composables/useLandscape.js）。
+//   用户要求：所有「玩」的页面都横屏；主页 / 设置 / 商店 / 仓库 / 通知保持竖屏。
+//   这是横屏页面清单的唯一真源 —— 新增游戏只在路由上标一下，别在别处再列一份。
 const routes = [
   {
     path: '/',
@@ -31,27 +34,38 @@ const routes = [
   {
     path: '/music',
     name: 'Music',
-    component: () => import('@/views/Music.vue')
+    component: () => import('@/views/Music.vue'),
+    meta: { landscape: true, landscapeTitle: '音乐' }
   },
   {
     path: '/idle',
     name: 'Idle',
-    component: () => import('@/views/Idle.vue')
+    component: () => import('@/views/Idle.vue'),
+    meta: { landscape: true, landscapeTitle: '挂机' }
   },
   {
     path: '/chess',
     name: 'Chess',
-    component: () => import('@/views/Chess.vue')
+    component: () => import('@/views/Chess.vue'),
+    meta: { landscape: true, landscapeTitle: '五子棋' }
   },
   {
     path: '/guess-word',
     name: 'GuessWord',
-    component: () => import('@/views/GuessWord.vue')
+    component: () => import('@/views/GuessWord.vue'),
+    meta: { landscape: true, landscapeTitle: '猜词' }
+  },
+  {
+    path: '/werewolf',
+    name: 'Werewolf',
+    component: () => import('@/views/Werewolf.vue'),
+    meta: { landscape: true, landscapeTitle: '萤火夜话' }
   },
   {
     path: '/multiplayer',
     name: 'Multiplayer',
-    component: () => import('@/views/Multiplayer.vue')
+    component: () => import('@/views/Multiplayer.vue'),
+    meta: { landscape: true, landscapeTitle: '联机大厅' }
   }
 ]
 

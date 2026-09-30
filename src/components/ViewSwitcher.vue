@@ -20,7 +20,10 @@
 
     <!-- 内容区域：父组件通过默认插槽传入内容，我们提供一个作用域插槽把当前值传回去 -->
     <div class="view-content">
-      <slot :current="modelValue"></slot>
+      <!-- 卡片/列表切换过渡：mode="out-in" 让旧视图先退场、新视图再进场，避免重叠 -->
+      <transition name="view-swap" mode="out-in">
+        <slot :current="modelValue"></slot>
+      </transition>
     </div>
   </div>
 </template>
@@ -97,5 +100,22 @@ const handleSwitch = (value) => {
 
 .view-content {
   margin-top: 16px;
+}
+
+/*  卡片/列表切换过渡 
+   过渡类由 Vue 加到 slot 渲染出的根元素上（属父组件作用域），
+   故用 :deep() 穿透 scoped；active 类只放 transition 属性，from/to 只放可插值属性，
+   避免与卡片/列表自身布局样式冲突。*/
+.view-content :deep(.view-swap-enter-active),
+.view-content :deep(.view-swap-leave-active) {
+  transition: opacity 0.28s ease, transform 0.28s ease;
+}
+.view-content :deep(.view-swap-enter-from) {
+  opacity: 0;
+  transform: translateY(12px) scale(0.98);
+}
+.view-content :deep(.view-swap-leave-to) {
+  opacity: 0;
+  transform: translateY(-12px) scale(0.98);
 }
 </style>

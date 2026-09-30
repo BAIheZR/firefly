@@ -13,7 +13,7 @@
   align-items: flex-start;
 }
 
-/* ====== 左侧导航 ====== */
+/* = 左侧导航 = */
 .set-nav {
   width: 240px;
   flex-shrink: 0;
@@ -135,7 +135,7 @@
   box-shadow: 0 4px 14px rgba(45, 122, 95, 0.35);
 }
 
-/* ====== 右侧内容 ====== */
+/* = 右侧内容 = */
 .set-main {
   flex: 1;
   min-width: 0;
@@ -181,7 +181,7 @@
   margin-top: 0;
 }
 
-/* ====== 表单行 ====== */
+/* = 表单行 = */
 .form-row {
   display: flex;
   align-items: center;
@@ -254,7 +254,7 @@
   background: var(--c-cream-deep);
 }
 
-/* ====== 头像上传 ====== */
+/* = 头像上传 = */
 .avatar-upload {
   display: flex;
   align-items: center;
@@ -284,7 +284,7 @@
   object-fit: cover;
 }
 
-/* ====== 按钮 ====== */
+/* = 按钮 = */
 .btn-gold {
   display: inline-flex;
   align-items: center;
@@ -348,7 +348,7 @@
   border-color: var(--c-text-hint);
 }
 
-/* ====== 内联输入组 ====== */
+/* = 内联输入组 = */
 .inline-group {
   display: flex;
   align-items: center;
@@ -364,7 +364,7 @@
   margin-left: auto;
 }
 
-/* ====== 用户名确认组 ====== */
+/* = 用户名确认组 = */
 .username-confirm-group {
   display: flex;
   align-items: center;
@@ -375,7 +375,7 @@
   width: 200px;
 }
 
-/* ====== 滑块 ====== */
+/* = 滑块 = */
 .slider-row {
   display: flex;
   align-items: center;
@@ -434,7 +434,7 @@
   text-align: right;
 }
 
-/* ====== 开关 ====== */
+/* = 开关 = */
 .switch {
   position: relative;
   display: inline-block;
@@ -486,7 +486,7 @@
   background: #c3d1cb;
 }
 
-/* ====== 危险行 ====== */
+/* = 危险行 = */
 .danger-row .form-label {
   color: #e74c3c;
 }
@@ -495,7 +495,7 @@
   color: #e8a59e;
 }
 
-/* ====== 关于 ====== */
+/* = 关于 = */
 .about-card {
   display: flex;
   flex-direction: column;
@@ -573,7 +573,7 @@
   line-height: 1.7;
 }
 
-/* ====== 感谢墙 ====== */
+/* = 感谢墙 = */
 .thanks-lead {
   font-size: 14px;
   color: var(--c-text-sub);
@@ -679,7 +679,7 @@
   color: var(--c-text-sub);
 }
 
-/* ====== 裁剪弹窗 ====== */
+/* = 裁剪弹窗 = */
 .cropper-overlay {
   position: fixed;
   inset: 0;
@@ -790,7 +790,7 @@
   border-top: 1px solid #eee;
 }
 
-/* ====== 官方游戏启动 ====== */
+/* = 官方游戏启动 = */
 .game-path-setting {
   display: flex;
   flex-direction: column;
@@ -856,7 +856,7 @@
   padding: 10px 18px;
 }
 
-/* ====== 外观设置 - 背景选择 ====== */
+/* = 外观设置 - 背景选择 = */
 .preset-list {
   display: flex;
   gap: 16px;
@@ -930,7 +930,7 @@
   z-index: 1;
 }
 
-/* ====== AI 对话配置 ====== */
+/* = AI 对话配置 = */
 .ai-config {
   display: flex;
   flex-direction: column;
@@ -988,7 +988,7 @@
   margin-left: 78px;
 }
 
-/* ====== 模型借物致谢 ====== */
+/* = 模型借物致谢 = */
 .credits-lead {
   display: flex;
   align-items: flex-start;
@@ -1091,11 +1091,11 @@
   flex-shrink: 0;
 }
 
-/* ==========================================================================
+/* ====
    移动端（窄视口）—— 本文件原先没有任何断点
    改动集中在两处：① 左栏导航从侧边改为顶部横向滚动；
    ② 头像裁剪器整体放大到手指能操作（原实现是按鼠标设计的）
-   ========================================================================== */
+   ==== */
 @media (max-width: 768px) {
   .set-page {
     min-height: var(--app-vh, 100vh);
@@ -1129,7 +1129,7 @@
     padding-right: 14px;
   }
 
-  /* ===== 表单单行：改为「标签在上、控件在下」 =====
+  /*  表单单行：改为「标签在上、控件在下」 
      基础样式是 label 与控件左右分列（justify-content: space-between），
      控件还带固定宽度（.form-input 240px / .slider-row 240px / .path-input 320px）。
      375px 屏上 240 + 20 间隙 + 标签根本放不下，即使不溢出也会挤成一条。
@@ -1223,7 +1223,7 @@
     height: 42px;
   }
 
-  /* ===== 头像裁剪器 ===== */
+  /*  头像裁剪器  */
 
   /* 原 480px 固定宽在窄屏溢出 */
   .cropper-modal {

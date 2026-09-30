@@ -131,7 +131,7 @@ const handleCancel = () => {
   opacity: 0;
 }
 
-/* ===== 移动端：窄屏下改为接近满宽，按钮加大到可点范围 ===== */
+/*  移动端：窄屏下改为接近满宽，按钮加大到可点范围  */
 @media (max-width: 768px) {
   .cd-box {
     min-width: 0;

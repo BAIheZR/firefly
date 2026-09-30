@@ -84,6 +84,19 @@
             </div>
           </div>
 
+          <!-- 开箱 -->
+          <div class="chest-section">
+            <div class="section-label">开箱</div>
+            <button class="chest-entry-btn" @click="openChestPanel" title="查看并开启箱子">
+              <i class="fa-solid fa-box-open chest-entry-icon"></i>
+              <div class="chest-entry-info">
+                <span class="chest-entry-name">宝箱</span>
+                <span class="chest-entry-count">拥有 x{{ chestTotal }}</span>
+              </div>
+              <i class="fa-solid fa-chevron-right chest-entry-arrow"></i>
+            </button>
+          </div>
+
           <!-- 流萤的记忆 -->
           <div class="memory-entry">
             <button class="memory-entry-btn" @click="showMemory = true" title="查看流萤记住的事情">
@@ -167,6 +180,150 @@
                 <i class="fa-regular fa-folder-open"></i>
                 <p>暂无可选装饰品</p>
                 <p class="buff-picker-hint">前往商店购买或仓库查看拥有的装饰品</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 开箱面板 -->
+          <div v-if="showChestPanel" class="buff-picker-mask" @click="closeChestPanel">
+            <div class="buff-picker chest-panel" @click.stop>
+              <div class="buff-picker-header">
+                <div class="chest-panel-title">
+                  <span>{{ activeChest ? activeChest.name : '宝箱' }}</span>
+                  <em class="chest-panel-have">拥有 x{{ activeChestCount }}</em>
+                </div>
+                <button class="buff-picker-close" @click="closeChestPanel">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+
+              <!-- 箱子展示（点击箱子也可以开） -->
+              <div ref="chestBodyRef" class="chest-panel-body">
+                <div
+                  class="chest-visual"
+                  :class="{ 'is-opening': chestAnimating, 'is-opened': chestOpened, 'is-empty': activeChestCount <= 0 }"
+                  @click="handleOpenChest"
+                  :title="activeChestCount > 0 ? '点击开启' : '没有箱子'"
+                >
+                  <div class="chest-glow" :class="`glow-${chestTopRarity}`"></div>
+                  <img
+                    :src="chestOpened ? giftOpenImg : giftImg"
+                    alt="宝箱"
+                    class="chest-img"
+                    :class="{ 'chest-img-shake': chestAnimating }"
+                    draggable="false"
+                  />
+                </div>
+
+                <!-- 概率一览（随运气值实时变化） -->
+                <div class="chest-rates">
+                  <div class="chest-rate-row">
+                    <span class="chest-rate-label"><i class="fa-solid fa-shirt"></i> 服装</span>
+                    <span class="chest-rate-val rarity-legend">{{ formatRate(chestRates.clothing) }}%</span>
+                  </div>
+                  <div class="chest-rate-row">
+                    <span class="chest-rate-label"><i class="fa-solid fa-gem"></i> 装饰品</span>
+                    <span class="chest-rate-val rarity-rare">{{ formatRate(chestRates.decoration) }}%</span>
+                  </div>
+                  <div class="chest-rate-row">
+                    <span class="chest-rate-label"><i class="fa-solid fa-box"></i> 一般物品</span>
+                    <span class="chest-rate-val">{{ formatRate(chestRates.item) }}%</span>
+                  </div>
+                  <div class="chest-rate-row">
+                    <span class="chest-rate-label"><i class="fa-solid fa-coins"></i> 金币</span>
+                    <span class="chest-rate-val">{{ formatRate(chestRates.gold) }}%</span>
+                  </div>
+                  <div class="chest-rate-note">
+                    <i class="fa-solid fa-clover"></i>
+                    运气值 +{{ luckPercent }}% ｜ 每次有 {{ extraRate }}% 概率额外开出一个
+                  </div>
+                </div>
+
+                <!-- 数量输入 -->
+                <div class="chest-count-row">
+                  <span class="chest-count-label">开启数量</span>
+                  <div class="chest-count-ctrl">
+                    <button class="chest-step-btn" :disabled="chestCount <= 1" @click="stepChestCount(-1)">−</button>
+                    <input
+                      v-model.number="chestCount"
+                      type="number"
+                      class="chest-count-input"
+                      :min="1"
+                      :max="Math.max(1, activeChestCount)"
+                    />
+                    <button class="chest-step-btn" :disabled="chestCount >= activeChestCount" @click="stepChestCount(1)">＋</button>
+                    <button class="chest-max-btn" :disabled="activeChestCount <= 0" @click="chestCount = activeChestCount">MAX</button>
+                  </div>
+                </div>
+
+                <!-- 结果（一次性列出物资） -->
+                <div v-if="chestResult" ref="chestResultRef" class="chest-result">
+                  <div class="chest-result-head">
+                    <span class="chest-result-title">
+                      本次开启 {{ chestResult.totalDraws }} 个
+                      <em v-if="chestResult.extraCount > 0" class="chest-result-extra">（额外 +{{ chestResult.extraCount }}）</em>
+                    </span>
+                    <button class="chest-result-close" title="收起结果" @click="chestResult = null">
+                      <i class="fa-solid fa-xmark"></i>
+                    </button>
+                  </div>
+                  <div class="chest-result-list">
+                    <div
+                      v-for="r in chestResult.list"
+                      :key="r.kind + ':' + r.id"
+                      class="chest-result-item"
+                      :class="'is-' + r.rarity"
+                    >
+                      <div class="chest-result-icon">
+                        <img v-if="isBuffImg(r.icon)" :src="r.icon" :alt="r.label" class="chest-result-img" />
+                        <i v-else :class="r.icon || 'fa-solid fa-box'"></i>
+                      </div>
+                      <div class="chest-result-info">
+                        <div class="chest-result-name">{{ r.label }}</div>
+                        <div class="chest-result-sub">
+                          <template v-if="r.kind === 'gold'">共 {{ r.gold }} 金币</template>
+                          <template v-else>{{ r.count }} 件</template>
+                        </div>
+                      </div>
+                      <span class="chest-result-badge">x{{ r.count }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 底部按钮 -->
+              <div class="chest-panel-footer">
+                <div class="chest-buy-row">
+                  <span class="chest-buy-label">购买箱子</span>
+                  <div class="chest-buy-ctrl">
+                    <button class="chest-step-btn" :disabled="buyCount <= 1" @click="stepBuyCount(-1)">−</button>
+                    <input
+                      v-model.number="buyCount"
+                      type="number"
+                      class="chest-count-input"
+                      :min="1"
+                    />
+                    <button class="chest-step-btn" @click="stepBuyCount(1)">＋</button>
+                  </div>
+                  <span class="chest-buy-cost">
+                    <i class="fa-solid fa-coins"></i> {{ buyCost }}
+                  </span>
+                  <button
+                    class="btn-secondary chest-buy-btn"
+                    :disabled="!activeChest || goldStore.currentGold < buyCost"
+                    @click="handleBuyChest"
+                  >
+                    购买
+                  </button>
+                </div>
+                <button
+                  class="btn-gold chest-open-btn"
+                  :disabled="activeChestCount <= 0 || chestOpening"
+                  @click="handleOpenChest"
+                >
+                  <i class="fa-solid fa-box-open"></i>
+                  {{ activeChestCount <= 0 ? '没有箱子' : `开启箱子（${Math.min(chestCount, activeChestCount)}）` }}
+                </button>
               </div>
             </div>
           </div>
@@ -390,6 +547,10 @@
                       <i class="fa-solid fa-star"></i>
                       <span>+{{ task.rewardExp }} 经验</span>
                     </div>
+                    <div v-if="task.rewardChest" class="reward-line chest-line">
+                      <i class="fa-solid fa-box-open"></i>
+                      <span>+{{ task.rewardChest }} 宝箱</span>
+                    </div>
                   </div>
                   <button
                     class="btn-claim-small"
@@ -433,10 +594,10 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
-import { useInventoryStore, changeAffection } from '@/config/inventory'
+import { useInventoryStore, changeAffection, ALL_ITEMS } from '@/config/inventory'
 import { useGoldStore } from '@/config/gold'
 import { useUserStore } from '@/config/user'
 import { useTasksStore } from '@/config/tasks'
@@ -444,6 +605,19 @@ import { useToastStore } from '@/config/toast'
 import { getSignGreeting } from '@/config/greetings'
 import MemoryViewer from '@/components/MemoryViewer.vue'
 import fireflyYuan from '@/images/game/firefly_yuan.png'
+// 开箱素材：gift.png=未开箱 / gift_open.png=已开箱（均为透明 PNG）
+import giftImg from '@/images/gift/gift.png'
+import giftOpenImg from '@/images/gift/gift_open.png'
+import {
+  getAllChests,
+  computeRates,
+  getLuckPercent,
+  loadChestInventory,
+  saveChestInventory,
+  openChests,
+  summarizeDraws,
+  EXTRA_CHEST_RATE,
+} from '@/config/gacha'
 
 const router = useRouter()
 const store = useInventoryStore()
@@ -866,7 +1040,7 @@ const permanentBuffs = computed(() => {
   return [...filled, null]
 })
 
-// ===== 装饰品选择弹窗 =====
+//  装饰品选择弹窗 
 const showBuffPicker = ref(false)
 const openBuffPicker = () => {
   if (selectedBuffs.value.length >= MAX_BUFFS) {
@@ -885,7 +1059,7 @@ const handlePickDecoration = (item) => {
   showBuffTypePicker.value = true
 }
 
-// ===== 加成类型选择弹窗 =====
+//  加成类型选择弹窗 
 const showBuffTypePicker = ref(false)
 // 重新抽取：每日前 5 次免费，超出后首次 100 金币，之后每次 +20% 递增
 const REROLL_KEY = 'player_buff_reroll'
@@ -974,7 +1148,7 @@ const handleRemoveBuff = async (uid) => {
   showToast('已移除加成', 'info', 'fa-solid fa-circle-info')
 }
 
-// ===== 换装 =====
+//  换装 
 const equippedClothing = computed(() => store.equippedClothing)
 const equippedClothingId = computed(() => store.equippedClothingId)
 const equippableClothings = computed(() => store.equippableClothings)
@@ -1015,6 +1189,196 @@ const handleUnequipClothing = () => {
   showToast(res.msg, 'info', 'fa-solid fa-eraser')
 }
 
+//  开箱 
+const chestList = ref(getAllChests())
+const activeChest = computed(() => chestList.value[0] || null)
+const activeChestId = computed(() => activeChest.value?.id || 'wood')
+// 箱子库存（{ [chestId]: count }）
+const chestInv = ref(loadChestInventory())
+const activeChestCount = computed(() => chestInv.value[activeChestId.value] || 0)
+const chestTotal = computed(() =>
+  Object.values(chestInv.value).reduce((s, n) => s + (Number(n) || 0), 0)
+)
+
+const showChestPanel = ref(false)
+const chestCount = ref(1)
+const chestOpening = ref(false)
+// 开箱动画状态：chestAnimating=抖动中 / chestOpened=已切换成开箱图 / chestTopRarity=最高稀有度（决定辉光颜色）
+const chestAnimating = ref(false)
+const chestOpened = ref(false)
+const chestTopRarity = ref('normal')
+// 购买箱子数量 / 花费
+const buyCount = ref(1)
+const buyCost = computed(() => {
+  const price = activeChest.value?.price || 0
+  const n = Math.max(1, Math.floor(Number(buyCount.value) || 1))
+  return price * n
+})
+// 上次开箱结果（一次性列出物资）
+const chestResult = ref(null)
+// 结果卡片 / 面板内容区 DOM 引用：开完箱自动滚到结果处，避免结果被压在可视区外
+const chestResultRef = ref(null)
+const chestBodyRef = ref(null)
+
+// 运气值：实时读取（永久加成变动后需重进页面，或开箱前重新拉一次）
+const luckPercent = ref(getLuckPercent())
+// 概率表随运气值变化
+const chestRates = computed(() => computeRates(luckPercent.value))
+const extraRate = EXTRA_CHEST_RATE
+const formatRate = (v) => Math.round((Number(v) || 0) * 100) / 100
+
+const openChestPanel = () => {
+  chestInv.value = loadChestInventory()
+  luckPercent.value = getLuckPercent()
+  chestResult.value = null
+  chestCount.value = 1
+  // 每次打开面板都回到「未开箱」状态
+  chestAnimating.value = false
+  chestOpened.value = false
+  chestTopRarity.value = 'normal'
+  showChestPanel.value = true
+  // 面板是新挂载的，等 DOM 出来再把内容区滚回顶部
+  nextTick(() => {
+    if (chestBodyRef.value) chestBodyRef.value.scrollTop = 0
+  })
+}
+const closeChestPanel = () => {
+  showChestPanel.value = false
+  chestAnimating.value = false
+  chestOpened.value = false
+}
+
+const stepChestCount = (delta) => {
+  const max = Math.max(1, activeChestCount.value)
+  const next = (Number(chestCount.value) || 1) + delta
+  chestCount.value = Math.min(max, Math.max(1, next))
+}
+
+const stepBuyCount = (delta) => {
+  const next = (Number(buyCount.value) || 1) + delta
+  buyCount.value = Math.max(1, Math.min(999, next))
+}
+
+// 购买箱子（金币扣费，箱子入库）
+const handleBuyChest = () => {
+  if (!activeChest.value) return
+  const n = Math.max(1, Math.floor(Number(buyCount.value) || 1))
+  const cost = activeChest.value.price * n
+  if (!goldStore.spendGold(cost, `购买${activeChest.value.name}`)) {
+    showToast('金币不足', 'error', 'fa-solid fa-circle-xmark')
+    return
+  }
+  const inv = loadChestInventory()
+  inv[activeChestId.value] = (inv[activeChestId.value] || 0) + n
+  saveChestInventory(inv)
+  chestInv.value = inv
+  buyCount.value = 1
+  showToast(`购买了 ${n} 个${activeChest.value.name}`, 'success', 'fa-solid fa-box-open')
+}
+
+// 开箱池：取商店里的服装 / 装饰品 / 一般物品
+// 注意：一般物品池剔除「负面效果」件（affection 为负），避免开出倒扣好感度的东西
+const buildPools = () => {
+  const all = ALL_ITEMS
+  const clothings = all.filter((i) => i.category === 'clothing')
+  const decorations = all.filter((i) => i.tag === 'decorations')
+  const items = all.filter(
+    (i) => i.category === 'item' && i.tag !== 'decorations' && !(typeof i.affection === 'number' && i.affection < 0)
+  )
+  return { clothings, decorations, items }
+}
+
+// 抖动 → 开箱 的动画时长（与 CSS keyframes 对齐）
+const CHEST_SHAKE_MS = 520
+
+const handleOpenChest = () => {
+  if (chestOpening.value) return
+  const n = Math.min(Math.max(1, Math.floor(Number(chestCount.value) || 1)), activeChestCount.value)
+  if (n <= 0 || activeChestCount.value < n) {
+    showToast('箱子数量不足', 'error', 'fa-solid fa-circle-xmark')
+    return
+  }
+  chestOpening.value = true
+  try {
+    // 1. 扣箱子
+    const res = consumeChestLocal(activeChestId.value, n)
+    if (!res.ok) {
+      showToast('箱子数量不足', 'error', 'fa-solid fa-circle-xmark')
+      return
+    }
+    // 2. 结算（含 5% 额外开箱）
+    const { draws, extraCount } = openChests(n, luckPercent.value, buildPools())
+    // 3. 发放奖励
+    const summary = summarizeDraws(draws)
+    for (const r of summary.list) {
+      if (r.kind === 'gold') {
+        goldStore.addGold(r.gold, '开箱奖励')
+      } else {
+        store.grantItem(r.id, r.count)
+      }
+    }
+    // 3.5 宝箱任务统计
+    //   累计开箱数按「实际开出」算（含 5% 额外开出的箱子）
+    tasksStore.addStat('totalChestOpened', draws.length)
+    //   十连判定用「本次主动开启的数量」n，避免 9 个 + 1 个额外误判成十连
+    tasksStore.recordMax('maxChestSingle', n)
+    const clothingGot = summary.list
+      .filter((r) => r.kind === 'clothing')
+      .reduce((s, r) => s + r.count, 0)
+    if (clothingGot > 0) tasksStore.addStat('totalChestClothing', clothingGot)
+
+    // 4. 取本次最高稀有度，决定辉光颜色
+    const rank = { legend: 0, rare: 1, normal: 2 }
+    const top = summary.list.reduce(
+      (acc, r) => (rank[r.rarity] < rank[acc] ? r.rarity : acc),
+      'gold'
+    )
+    // 5. 播动画：抖动 → 换成开箱图 → 揭晓结果
+    chestAnimating.value = true
+    chestOpened.value = false
+    chestTopRarity.value = top
+    chestResult.value = null
+    // 回到顶部，保证开箱动画（箱子）在可视区内
+    if (chestBodyRef.value) chestBodyRef.value.scrollTop = 0
+    window.setTimeout(() => {
+      chestAnimating.value = false
+      chestOpened.value = true
+      chestResult.value = { ...summary, extraCount }
+      chestCount.value = 1
+      showToast(
+        `开启了 ${n} 个箱子${extraCount > 0 ? `（额外 +${extraCount}）` : ''}`,
+        'success',
+        'fa-solid fa-box-open'
+      )
+      // 结果渲染完再滚到结果卡片顶部，让整份清单尽量落在可视区里。
+      // 只动面板自己的 scrollTop，不用 scrollIntoView —— 后者会连带滚动弹窗背后的页面。
+      nextTick(() => {
+        const bodyEl = chestBodyRef.value
+        const cardEl = chestResultRef.value
+        if (!bodyEl || !cardEl) return
+        const target = Math.max(0, cardEl.offsetTop - 12)
+        const max = Math.max(0, bodyEl.scrollHeight - bodyEl.clientHeight)
+        bodyEl.scrollTop = Math.min(target, max)
+      })
+    }, CHEST_SHAKE_MS)
+  } finally {
+    chestOpening.value = false
+  }
+}
+
+// 扣箱子（本地 + 持久化，并同步响应式）
+function consumeChestLocal(chestId, qty) {
+  const inv = loadChestInventory()
+  const have = inv[chestId] || 0
+  if (have < qty) return { ok: false }
+  const left = have - qty
+  if (left > 0) inv[chestId] = left
+  else delete inv[chestId]
+  saveChestInventory(inv)
+  chestInv.value = inv
+  return { ok: true }
+}
+
 //进阶任务
 const activeCategory = ref('sign')
 
@@ -1038,6 +1402,10 @@ const TASK_UNIT_MAP = {
   cloth_1:   { unit: '件', hint: '拥有服装' },
   cloth_5:   { unit: '件', hint: '拥有服装' },
   item_20:   { unit: '件', hint: '拥有物品' },
+  // 宝箱
+  chest_1:      { unit: '个', hint: '累计开箱' },
+  chest_10:     { unit: '个', hint: '单次开启' },
+  chest_legend: { unit: '件', hint: '开出服装' },
   // 音乐
   music_1: { unit: '次', hint: '导入音乐' },
   music_2: { unit: '分钟', hint: '累计听歌' },
@@ -1052,6 +1420,11 @@ const taskUnitHint = (task) => {
   return meta?.hint || ''
 }
 
+// 任务奖励可能发宝箱，领完要把侧栏「拥有 x N」刷新掉
+const refreshChestInv = () => {
+  chestInv.value = loadChestInventory()
+}
+
 const handleClaimTask = (taskId) => {
   const res = tasksStore.claimTask(taskId, store)
   if (!res.success) {
@@ -1059,12 +1432,14 @@ const handleClaimTask = (taskId) => {
     return
   }
   if (res.rewardExp) addExp(res.rewardExp)
+  if (res.rewardChest) refreshChestInv()
   showToast(res.msg, 'success', 'fa-solid fa-gift')
 }
 
 const handleClaimAll = () => {
   const res = tasksStore.claimAll(store)
   if (res.totalExp) addExp(res.totalExp)
+  if (res.totalChest) refreshChestInv()
   showToast(res.msg, res.success ? 'success' : 'info', res.success ? 'fa-solid fa-gift' : 'fa-solid fa-circle-info')
 }
 
@@ -1089,7 +1464,7 @@ const syncInventoryStats = () => {
 //公告
 const announcement = ref({
   title: '系统公告',
-  text: '这是更新：1.增加ai记忆功能，商店新增物品和装饰品，新增首页专属背景配置\n2.添加同意条款和多人联机\n3.添加模型，适配鼠标跟随\n4.增加报错弹框功能,ico变换\n5.部分功能正在测试中。。。\n 6.修复部分bug',
+  text: '【v1.2.0 更新】\n1.新增「狼人杀」游戏\n2.新增「开宝箱」玩法\n3.实装四款 Live2D 角色模型\n4.适配移动端（PWA）\n5.商店/仓库卡片新增悬浮动画，仓库物品显示出售价\n———\n往期：增加ai记忆功能、商店新增物品和装饰品、新增首页专属背景配置；添加同意条款和多人联机；添加模型适配鼠标跟随；增加报错弹框功能；修复部分bug',
 })
 
 // Toast

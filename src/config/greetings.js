@@ -1,8 +1,9 @@
-// 人物问候语文案库（融合 text.md 规范）
-// 场景：每日登录时段 / 特殊节日 / 签到反馈 / 好感度阶段 / 悬浮入口 / 点击人物
+// 人物问候语文案库
 // 所有触发在 Home.vue 统一节流 6 秒（每条文字每隔 6s 才能重新触发）
 
-// ===== 每日登录时段问候（按现实时间，当天首次登录显示一次） =====
+import { AFFECTION_STAGES, getAffectionStageIndex } from './affectionStages'
+
+//  每日登录时段问候（按现实时间，当天首次登录显示一次） 
 const GREETINGS_BY_PERIOD = {
   morningEarly: ['早上好啊宝宝，今天你也起的很早呢'],   // 06:00 - 09:59
   morningLate:  ['早上好啊宝宝，吃饭了吗'],              // 10:00 - 10:59
@@ -11,7 +12,7 @@ const GREETINGS_BY_PERIOD = {
   evening:      ['这么晚才上线吗，宝宝你今天过的怎么样'],  // 18:00 - 05:59
 }
 
-// ===== 特殊节日（按公历 月-日） =====
+//  特殊节日（按公历 月-日） 
 const FESTIVAL_GREETINGS = {
   '01-01': ['新年快乐！新的一年也要一起度过哦'],
   '02-14': ['情人节快乐，今天可以只陪着我吗？'],
@@ -23,7 +24,7 @@ const FESTIVAL_GREETINGS = {
   '12-31': ['跨年啦，今年最后一天也要在一起'],
 }
 
-// ===== 签到反馈 =====
+//  签到反馈 
 const SIGN_GREETINGS = [
   '谢谢你来找我签到，今天也要加油哦',
   '签到完成啦，我会一直记着你的',
@@ -31,28 +32,24 @@ const SIGN_GREETINGS = [
   '每日签到，每日陪伴，约定好了',
 ]
 
-// ===== 好感度阶段反馈（按好感度区间，跨入新区间时触发） =====
-const AFFECTION_STAGE_GREETINGS = [
-  { min: 0,    max: 199,  lines: ['我们…才刚认识吧，请多关照'] },
-  { min: 200,  max: 499,  lines: ['好像越来越了解你了呢'] },
-  { min: 500,  max: 999,  lines: ['和你在一起的时间总是过得很快'] },
-  { min: 1000, max: 1999, lines: ['已经离不开你了，你知道吗？'] },
-  { min: 2000, max: Infinity, lines: ['无论何时何地，我都在你身边'] },
-]
+//  好感度阶段反馈（按好感度区间，跨入新区间时触发） 
+const AFFECTION_STAGE_GREETINGS = AFFECTION_STAGES.map((s) => ({
+  min: s.min,
+  max: s.max,
+  lines: [s.greeting],
+}))
 
-// ===== 悬浮入口反馈 =====
+//  悬浮入口反馈 
 const HOVER_GREETINGS = {
   gameEntry:  ['今天阳光真好，你想玩点什么呢'],
   idle:       ['这么快就开始挂机了吗'],
   launchGame: ['想开始玩崩铁了吗，可以哦，我在游戏里面很期待和你的见面呢'],
 }
 
-// ===== 点击人物反馈（连续点击≥10次触发） =====
+//  点击人物反馈（连续点击≥10次触发） 
 const CLICK_GREETINGS = ['别点了宝宝，有点痒']
 
-// ===== 五子棋场景对话（Chess 页面左图右气泡） =====
-// scene: hello=进入页面 / good=AI回合开始（轮到萤宝）/ you_votor=玩家赢 / votor=萤宝赢
-//        draw=和棋 / think=AI思考中 / place_after=玩家落子后萤宝小鼓励
+//  五子棋场景对话（Chess 页面左图右气泡） 
 const CHESS_GREETINGS = {
   hello:      ['宝宝，想要和我下五子棋吗', '准备好了吗宝宝，我要开始啦', '陪你下棋真好，我们开始吧'],
   good:       ['宝宝到我咯', '嗯，让我看看该下哪呢', '该我啦，我要认真咯'],
@@ -64,9 +61,7 @@ const CHESS_GREETINGS = {
   wait:       ['宝宝快点吧，我等的花都没了', '宝宝你在想什么呀，要抓紧哦~', '再不下棋，我就先去喝口水啦'],
 }
 
-// ===== 猜字游戏场景对话（GuessWord 页面左图右气泡） =====
-// scene: hello=进入页面 / start=开始一局 / hint=揭示新提示 / wrong=猜错 / correct=猜对（早）/ win_late=猜对（晚）
-//        lose=提示用完没猜中 / giveup=玩家放弃
+//  猜字谜场景对话（GuessWord 页面左图右气泡） 
 const GUESS_GREETINGS = {
   hello:     ['宝宝，来玩猜字吗？我给你提示词，你猜答案', '我当提示官，你来猜，准备好啦吗'],
   start:     ['好的宝宝，开始啦，第一提示给你', '认真听哦宝宝，提示来咯'],
@@ -78,7 +73,33 @@ const GUESS_GREETINGS = {
   giveup:    ['宝宝这就放弃了吗？正确答案是「{answer}」', '没关系，答案是「{answer}」，下次再来'],
 }
 
-// ===== 工具函数 =====
+//  萤火夜话场景对话（狼人杀联机/单机共用） 
+const WEREWOLF_GREETINGS = {
+  hello:    ['宝宝，今晚陪我玩个游戏好不好？', '来玩萤火夜话吧，我来当萤火使', '梦里也可以一起玩哦，要不要来一局'],
+  start:    ['牌发下去了，别让星核猎手骗到你', '我就在场上，记得看我给你的那束光'],
+  night:    ['天黑了，轮到他们行动了', '梦境沉下来了，别出声'],
+  day:      ['天亮了，看看昨夜留下了什么', '梦醒的时候，总有人不在了'],
+  vote:     ['该投票了，你信谁？', '想清楚再投，一票就是一条命'],
+  win:      ['太厉害啦！这局全靠你', '看到了吗？这就是开拓者'],
+  lose:     ['没关系的宝宝，下一局我们赢回来', '梦里输一局不算什么，醒了我还陪着你'],
+  quit:     ['这就不玩了吗……那我把光收起来啦', '下次要陪我玩完一整局哦'],
+}
+
+//  流萤专属台词（玩家拿到流萤这张牌，或场上有一个 AI 流萤时用） 
+const FIREFLY_GREETINGS = {
+  opening:      ['宝宝，今晚陪我玩个游戏好不好？', '来玩狼人杀吧，我当萤火使', '宝宝，这局你来当我的萤火。'],
+  light:        ['今晚，我来照亮他。', '让我看看……把光留在这里吧。'],
+  saveSuccess:  ['他今晚不会有事，放心。', '萤火还在，他还在。'],
+  selfKilled:   ['宝宝……我可能要先下场啦。替我赢回来，好吗？', '别怕，我还在你看不见的地方。'],
+  playerKilled: ['宝宝！……我会替你找出他们的。', '你放心，我一定给你报仇。'],
+  playerVoted:  ['宝宝别怕，我相信你。', '我会记住今天投你的每一个人。'],
+  playerWin:    ['太厉害啦！这局全靠你。', '看到了吗？这就是开拓者。'],
+  playerLose:   ['没关系的宝宝，下一局我们赢回来。', '梦里输一局不算什么，醒了我还陪着你。'],
+  playerIsWolf: ['宝宝……原来你是银狼啊。（笑）', '好吧好吧，输给你我也认了。'],
+  pairEnding:   ['我们都活到最后了呢，宝宝。', '这束光，是留给你的。'],
+}
+
+//  工具函数 
 function pickRandom(arr) {
   if (!arr || arr.length === 0) return ''
   return arr[Math.floor(Math.random() * arr.length)]
@@ -100,7 +121,7 @@ function getMonthDay() {
   return `${m}-${d}`
 }
 
-// ===== 对外取用函数 =====
+//  对外取用函数 
 
 // 每日登录问候：节日优先，否则按时段
 export function getLoginGreeting() {
@@ -123,8 +144,7 @@ export function getAffectionGreeting(affection) {
 
 // 好感度阶段索引（跨阈值检测）
 export function getAffectionStage(affection) {
-  const idx = AFFECTION_STAGE_GREETINGS.findIndex(s => affection >= s.min && affection <= s.max)
-  return idx < 0 ? 0 : idx
+  return getAffectionStageIndex(affection)
 }
 
 // 悬浮入口反馈：type = 'gameEntry' | 'idle' | 'launchGame'
@@ -143,13 +163,24 @@ export function getChessGreeting(scene) {
   return pickRandom(CHESS_GREETINGS[scene])
 }
 
-// 猜字游戏场景对话
-// scene: hello | start | hint | wrong | correct | win_late | lose | giveup
-// 可选 fill: { answer: '正确答案' } 用于 lose/giveup 场景的占位符替换
+// 猜字谜场景对话
 export function getGuessGreeting(scene, fill) {
   let line = pickRandom(GUESS_GREETINGS[scene])
   if (fill && typeof line === 'string') {
     line = line.replace(/\{answer\}/g, fill.answer || '')
   }
   return line
+}
+
+// 萤火夜话场景对话
+// scene: hello | start | night | day | vote | win | lose | quit
+export function getWerewolfGreeting(scene) {
+  return pickRandom(WEREWOLF_GREETINGS[scene]) || pickRandom(WEREWOLF_GREETINGS.hello)
+}
+
+// 流萤专属台词（萤火使相关的一切情感触发都走这里，方便以后统一改口吻）
+// scene: opening | light | saveSuccess | selfKilled | playerKilled | playerVoted
+//        | playerWin | playerLose | playerIsWolf | pairEnding
+export function getFireflyGreeting(scene) {
+  return pickRandom(FIREFLY_GREETINGS[scene]) || pickRandom(FIREFLY_GREETINGS.opening)
 }

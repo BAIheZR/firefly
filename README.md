@@ -46,6 +46,30 @@ npm run dist
 - `src/images/` — 2D 立绘、商品图、背景图
 - `public/models/` — MMD 3D 模型
 - `public/animations/` — MMD 动作数据 (.vmd)
+- `public/live2d/` — Live2D 模型资产（运行时核心 `public/live2dcubismcore.min.js` 已随仓库提供，模型本体需自备）
+
+### Live2D 模型命名规范
+
+`public/live2d/` 下每个模型一个子目录，**目录名 = 模型名**，目录内需包含同名的 `.model3.json`：
+
+```
+public/live2d/
+  └── <模型名>/
+        ├── <模型名>.model3.json   ← 入口文件，名字必须与目录一致
+        ├── <模型名>.moc3
+        ├── 纹理、物理、动作等文件
+```
+
+当前代码（`src/views/Home.vue` 的 `LIVE2D_MAP`）已映射四款模型，目录名需严格对应：
+
+| 目录名 / model3.json 名 | 用途 |
+|---|---|
+| `firefly_spring` | 流萤·春日手信 |
+| `small_loli` | 流萤·小不点 |
+| `firefly_zx` | 流萤·仲夏萤火之约 |
+| `firefly_war` | 流萤·战斗服 |
+
+> 模型内部引用的纹理/动作文件名以 `.model3.json` 内的 `FileReferences` 为准；若重命名了内层文件，需同步修改 `.model3.json`。加载失败时会自动回退为 2D 立绘。
 
 ## 许可证
 

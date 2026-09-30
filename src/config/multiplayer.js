@@ -1,26 +1,37 @@
-// ======== 多人联机全局 store ========
-// 关键点：WebSocket 连接必须活在整个应用生命周期里，而不是挂在 Multiplayer.vue 组件上。
-// 若连接归页面持有，进入对局页（router.push 到 /chess 等）时组件卸载会关闭连接，
-// 房主断开还会触发服务端 closeRoom，整个房间直接消失。
-//
-// 角色约定：房主 = host，加入者 = guest。
-// 消息走服务端的 game 中转通道：{ type:'game', data:{ kind, ... }, to? }
-//   to 为空  → 广播给房间内其他人
-//   to 指定  → 只发给该成员（用于给新加入者补发局面快照）
+// 多人联机全局
 import { defineStore } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/config/user'
 
+// 桌号的「宽限期」：刚开/刚进的桌，房主的全量广播还没回来时，
+// 本地 sessions 里查不到它 —— 这段时间内不许把它当成「已经不在了」。
+const SESSION_GRACE_MS = 4000
+
 export const MP_PORT = 8765
-
-// 单次连接尝试的等待上限。网络被丢包（而不是明确拒绝）时 WebSocket 可能长时间
-// 不给任何回调，没有这道超时就会一直卡在"连接中"。取 6s：正常握手通常 <1s。
 const ATTEMPT_TIMEOUT_MS = 6000
-
-// 模块级（非响应式）：原始 socket 与监听器。
-// WebSocket 实例不能进 reactive state，否则会被 Vue 代理，导致 readyState / 身份比较异常。
 let socket = null
+// 本轮 connect 用到的「重连凭证草稿」：成功进房（收到 joined）后才正式落进
+// state.reconnectInfo；连接彻底失败时清空，避免拿一个根本连不上的凭证反复重试。
+let pendingReconnect = null
 const listeners = new Set()
+
+// 设备级的「客户端身份」。join 时带上它，服务端在宽限期内就能把同一个人认回来
+// （复用同一个 memberId）—— 于是同桌其他人的对局状态（按 memberId 索引）不用重建，
+// 手机切后台再回来在别人眼里就是「没断过」。
+// 用 localStorage 但**不进存档白名单**：它是设备级的，不属于任何存档槽。
+const CLIENT_ID_KEY = 'mp_client_id'
+function getClientId() {
+  try {
+    let id = localStorage.getItem(CLIENT_ID_KEY)
+    if (!id) {
+      id = 'c' + Math.random().toString(36).slice(2, 12)
+      localStorage.setItem(CLIENT_ID_KEY, id)
+    }
+    return id
+  } catch (_) {
+    return ''
+  }
+}
 
 export const useMultiplayerStore = defineStore('multiplayer', {
   state: () => ({
@@ -30,8 +41,26 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     selfIsHost: false,
     hostId: '',           // 房主成员 id，非房主上报用
     roomCode: '',
+    // 0 = 房间无上限（默认）。房间只负责把人聚在一起，
+    // 「一局游戏几个座位」由下面的 sessions（桌）管。
     roomCapacity: 0,
     members: [],
+    //  桌（session）：房间里可以同时开着好几局 
+    // 服务端是盲中继、不存任何对局状态，所以桌列表由「房主」当唯一权威：
+    // 所有人把 开桌 / 接受 / 拒绝 / 观战 / 离桌 发给房主，房主算完广播全量 sessions。
+    // 房主永远在线（他掉线房间就关了），所以这个权威不会缺位。
+    sessions: [],
+    // [{ id, gameId, gameName, route, cap, ownerId, ownerName,
+    //    seats:[{id,name}], watchers:[{id,name}], declined:[id],
+    //    status:'open'|'playing', createdAt }]
+    sessionId: '',      // 我当前所在的桌（玩家与旁观者都填它）
+    sessionRole: '',    // 'player' | 'watcher'
+    // 记下「什么时候进的这一桌」。开桌 / 接受 / 观战都是先本地记桌号、
+    // 再等房主把全量桌列表广播回来，中间那一小段时间里 sessions 里还查不到这一桌 ——
+    // 用它把「刚进的桌」和「已经没了的桌」区分开（见 staleSession）。
+    sessionSetAt: 0,
+    // 我拒绝过的桌（本地记一份，房主广播回来之前界面就能立刻不弹）
+    declinedSids: [],
     hostToken: '',
     inviteLink: '',
     // 房主对外地址相关：穿透地址优先；留空时用 localAddr（局域网 / 虚拟局域网卡地址）
@@ -50,17 +79,60 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     // 穿透地址探测结果：{ reachable, scheme:'wss'|'ws', tls, blocked, error }
     tunnelProbe: null,
     probing: false,
+    // 被系统挂起（切后台）导致断线时的「软挂起」标记：保留房间/桌状态、
+    // 不弹断开提示，回到前台 onAppVisible() 拿 reconnectInfo 自动重连。
+    backgrounded: false,
+    // 重连凭证：成功进房后记下「用什么地址、什么身份」重新 join，
+    // 这样从后台回来无需用户手动重输。主动离开房间时清空（见 resetRoom）。
+    reconnectInfo: null,
   }),
 
   getters: {
     memberCount: (s) => s.members.length,
     selfName: () => useUserStore().currentUser,
-    // 五子棋配色：房主执黑先行，加入者执白
+    // 五子棋配色：房主执黑先行，加入者执白（没有开桌时的兜底，开桌后一律以「桌主执黑」为准）
     myChessRole: (s) => (s.selfIsHost ? 1 : 2),
+
+    //  桌相关 
+    // 房间人数文案：0 = 无上限，不再显示 x/y
+    capacityText: (s) =>
+      s.roomCapacity > 0 ? `${s.memberCount}/${s.roomCapacity} 人` : `${s.memberCount} 人 · 无上限`,
+    // 我所在的那一桌（没在任何桌里时为 null）
+    mySession: (s) => s.sessions.find((x) => x.id === s.sessionId) || null,
+    // 我开的桌 / 我坐在这一桌的玩家席 / 我只是旁观
+    amTableOwner: (s) => {
+      const t = s.sessions.find((x) => x.id === s.sessionId)
+      return !!t && t.ownerId === s.selfId
+    },
+    isWatcher: (s) => s.sessionRole === 'watcher',
+    // 我还欠一个答复的邀请：别人开的、还在招人的、我没接受也没拒绝也没在观战的桌
+    pendingInvites: (s) =>
+      s.sessions.filter(
+        (x) =>
+          x.status === 'open' &&
+          // 已经在这一桌里了（刚点完接受 / 观战，房主的全量广播还在路上）就不再当邀请弹
+          x.id !== s.sessionId &&
+          x.ownerId !== s.selfId &&
+          !(x.seats || []).some((p) => p.id === s.selfId) &&
+          !(x.watchers || []).some((p) => p.id === s.selfId) &&
+          !(x.declined || []).includes(s.selfId) &&
+          !s.declinedSids.includes(x.id)
+      ),
+    // 正在进行的桌（给别人观战用）
+    playingSessions: (s) => s.sessions.filter((x) => x.status === 'playing'),
+
+    // ★ 残留桌号：本地还记着「我在某一桌」，但那张桌在房间里已经不存在了。
+    // 成因很常见：桌主退了对局页 → 整桌解散 → 但其他人手上的桌号还在。
+    // 不识别出来的后果就是死锁：想开新桌时被自己那句「你已经在「XX」里了，先退出」挡住，
+    // 而房间里其实早就没有那张桌了，用户只能重启应用。
+    staleSession: (s) =>
+      !!s.sessionId &&
+      !s.sessions.some((x) => x.id === s.sessionId) &&
+      Date.now() - (s.sessionSetAt || 0) > SESSION_GRACE_MS,
   },
 
   actions: {
-    // ===== 订阅：对局页与大厅页都通过它接收房间/游戏消息 =====
+    //  订阅：对局页与大厅页都通过它接收房间/游戏消息 
     // fn(data, fromId)；返回取消订阅函数
     onGame(fn) {
       listeners.add(fn)
@@ -72,18 +144,27 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       })
     },
 
-    // ===== 发送 =====
-    sendGame(data, to = null) {
+    //  发送 
+    // 房间级信令：永远不带桌号，房间里所有人（包括还待在大厅没开局的人）都会收到。
+    // 开桌 / 接受 / 拒绝 / 观战 / 散桌 这类「不属于任何一局」的信令全走这里。
+    sendRoom(data, to = null) {
       if (!socket || socket.readyState !== 1) return false
       socket.send(JSON.stringify({ type: 'game', data, to }))
       return true
     },
 
-    // ===== 排障日志 =====
-    // 联机的失败原因大多在"代码之外"（穿透节点拦明文、自签名证书被拒、隧道没启动、
-    // 防火墙没放行），所以把关键步骤都留痕：
-    //   1) 打到控制台 —— 房主/加入者自己排障、F12 就能看
-    //   2) 存进 state.logs —— 界面上直接可见，异地好友截图即可反馈，不用教他开开发者工具
+    // 桌内消息：自动带上当前桌号。
+    // ★ 这是「房间里同时开好几局」的关键：游戏页照旧调 sendGame，一行都不用改，
+    //   消息就自动只落在我所在的那一桌；收端按同一个桌号过滤（见 handleMessage），
+    //   于是几张桌各打各的，互不串台。
+    sendGame(data, to = null) {
+      if (!socket || socket.readyState !== 1) return false
+      const payload = this.sessionId ? { ...data, sid: this.sessionId } : data
+      socket.send(JSON.stringify({ type: 'game', data: payload, to }))
+      return true
+    },
+
+    //  排障日志 
     pushLog(level, message) {
       const time = new Date().toLocaleTimeString('zh-CN', { hour12: false })
       const line = `[${time}] ${level.toUpperCase()} ${message}`
@@ -96,7 +177,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.lastErrorDetail = ''
     },
 
-    // ===== 连接管理 =====
+    //  连接管理 
     // 只允许存在一条连接：旧连接先解绑回调再关闭，避免旧连接继续改写状态（曾导致人数虚高成 3/2）
     closeSocket() {
       const old = socket
@@ -121,11 +202,13 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       if (!list.length) {
         this.connecting = false
         this.lastError = '连接地址为空'
-        this.pushLog('error', '连接地址为空，未发起任何尝试')
-        ElMessage.error(this.lastError)
-        return false
-      }
-      this.pushLog('info', `${hint ? hint + '：' : ''}开始连接，候选地址 ${list.length} 个 → ${list.join(' → ')}`)
+      this.pushLog('error', '连接地址为空，未发起任何尝试')
+      ElMessage.error(this.lastError)
+      return false
+    }
+    // 记下「用什么地址、什么身份」重新 join，进房成功后再正式落进 state.reconnectInfo
+    pendingReconnect = { urls: list, payload, hint }
+    this.pushLog('info', `${hint ? hint + '：' : ''}开始连接，候选地址 ${list.length} 个 → ${list.join(' → ')}`)
 
       const tried = []
       for (let i = 0; i < list.length; i++) {
@@ -145,6 +228,10 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }
       this.pushLog('error', `全部候选地址均失败：${this.lastErrorDetail}`)
       ElMessage.error(this.lastError)
+      // 连不上：重连凭证作废，免得从后台回来拿一个死地址反复重试
+      pendingReconnect = null
+      this.reconnectInfo = null
+      this.backgrounded = false
       return false
     },
 
@@ -218,6 +305,16 @@ export const useMultiplayerStore = defineStore('multiplayer', {
             if (socket !== ws) return
             socket = null
             this.connecting = false
+            // 切到后台被系统挂起导致断线：先「软挂起」——保留房间/桌状态，不弹断开提示；
+            // 回到前台时 onAppVisible() 会拿 reconnectInfo 自动重连，对用户而言「没断过」。
+            if (typeof document !== 'undefined' && document.hidden) {
+              if (this.connected) {
+                this.backgrounded = true
+                this.pushLog('warn', `${url} 连接被系统挂起（可能切到后台），回到前台将自动重连`)
+              }
+              this.connected = false
+              return
+            }
             this.pushLog('warn', `${url} 连接已关闭：code=${e.code}${e.reason ? ` reason=${e.reason}` : ''} clean=${e.wasClean}`)
             if (this.connected) {
               this.resetRoom()
@@ -247,7 +344,25 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       return this.connectWithFallback([url], payload)
     },
 
-    // ===== 房主：对外地址 =====
+    //  从后台回到前台：自动重连 
+    // 手机切后台时系统会掐掉 WebSocket（见 tryConnect 里的 onclose 软挂起分支）。
+    // 回到前台时若处于「软挂起」且手里还有重连凭证，就原地重连 —— 用户视角就是「没断过」。
+    // 由 App.vue 的 visibilitychange 监听调用。
+    onAppVisible() {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
+      // ★ 这里刻意不清 backgrounded：要留到收到 joined 时再读它，才能判定这次是
+      //   「从后台恢复」，进而做「重新挂回原桌 + 重拉快照」。清它由 joined / 连接失败 / resetRoom 负责。
+      if (this.reconnectInfo && !this.connected && !this.connecting) {
+        this.pushLog('info', '从后台返回，自动重连房间')
+        this.connectWithFallback(
+          this.reconnectInfo.urls,
+          this.reconnectInfo.payload,
+          '从后台返回，自动重连'
+        )
+      }
+    },
+
+    //  房主：对外地址 
     // 拉取本机 IPv4 列表（含虚拟局域网卡）。创建房间前就拉一次，
     // 房主可以先看清"对方该填哪个地址"再开房。
     async refreshLocalIps() {
@@ -266,9 +381,6 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     },
 
     // 生成邀请链接：穿透地址优先，否则用本机地址。
-    // 「留空时用 127.0.0.1」是历史 bug —— 对方必然连不上，这里不再兜底回环地址。
-    // 协议头规则见 resolveTunnelUrl：写了就听用户的，没写就按探测结果 / 主机形态自动判定，
-    // 所以房主只填「frp-bus.com:37515」也能得到正确的 wss:// 链接。
     buildInviteLink() {
       const tunnel = (this.tunnelAddr || '').trim()
       const port = this.port || MP_PORT
@@ -285,9 +397,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       return link
     },
 
-    // ===== 房主：探测穿透地址可用哪种协议 =====
-    // 只对「域名:端口」有意义：域名多半是穿透隧道，是否加密只能实测。
-    // 结论会存进 tunnelProbe，并立刻反映到邀请链接的协议头上。
+    //  房主：探测穿透地址可用哪种协议 
     async probeTunnel(addrInput) {
       const addr = (addrInput ?? this.tunnelAddr ?? '').trim()
       if (!addr) {
@@ -342,7 +452,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       return p.scheme === 'wss' ? 'wss' : 'ws'
     },
 
-    // ===== 房主：创建房间 =====
+    //  房主：创建房间 
     async createRoom(capacity, password, tunnelAddr, port = MP_PORT) {
       if (!window.electronAPI?.mpCreateRoom) {
         ElMessage.error('房主模式需要桌面端（Electron）环境')
@@ -386,6 +496,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           roomCode: res.roomCode,
           hostToken: res.hostToken,
           name: this.selfName,
+          clientId: getClientId(),
         })
       } catch (e) {
         this.connecting = false
@@ -395,7 +506,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }
     },
 
-    // ===== 加入者：加入房间 =====
+    //  加入者：加入房间 
     async joinRoom(addr, roomCode, password) {
       if (this.connected) {
         ElMessage.warning('你已在房间中，请先「离开房间」再加入其他房间')
@@ -411,7 +522,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       const candidates = buildWsCandidates(raw, this.port || MP_PORT)
       return this.connectWithFallback(
         candidates,
-        { type: 'join', roomCode, password: password || '', name: this.selfName },
+        { type: 'join', roomCode, password: password || '', name: this.selfName, clientId: getClientId() },
         `加入房间 ${roomCode}（输入地址「${raw}」）`
       )
     },
@@ -425,22 +536,50 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       } catch (_) { /* 浏览器端或解析失败时静默忽略 */ }
     },
 
-    // ===== 服务端消息 =====
+    //  服务端消息 
     handleMessage(msg) {
       switch (msg.type) {
-        case 'joined':
+        case 'joined': {
+          // 是不是「从后台回来」的那次重连（软挂起后自动重连的标记）
+          const wasBackgrounded = this.backgrounded
           this.connected = true
           this.connecting = false
+          this.backgrounded = false
           this.selfId = msg.selfId
           this.selfIsHost = !!msg.isHost
           this.hostId = msg.hostId || ''
           this.roomCapacity = msg.capacity
           this.roomCode = msg.roomCode
           this.members = dedupe(msg.members)
-          this.pushLog('info', `已进入房间 ${msg.roomCode}，身份=${msg.isHost ? '房主' : '加入者'}，当前 ${this.members.length}/${msg.capacity} 人`)
-          ElMessage.success(this.selfIsHost ? '房间已就绪，等待好友加入' : '已加入房间')
+          // 进房成功 → 把本轮的重连凭证正式留下，供下次被系统挂起后照原样重连
+          if (pendingReconnect) this.reconnectInfo = pendingReconnect
+          this.pushLog('info', `已进入房间 ${msg.roomCode}，身份=${msg.isHost ? '房主' : '加入者'}，当前 ${this.capacityText}`)
+          ElMessage.success(
+            wasBackgrounded
+              ? '已从后台恢复连接'
+              : this.selfIsHost ? '房间已就绪，等待好友加入' : '已加入房间'
+          )
           this.emitGame({ kind: 'mp:joined' })
+          // 后进来的人要一份当前开了哪些桌（房主自己就是权威，不用问）
+          this.requestSessions()
+          // 从后台回来：房主会在收到 member-left 时把我从桌上摘掉，
+          // 这里要主动「重新挂回原来那一桌」，并让桌主重推一份对局快照（三页都已实现 mp:sync-request）。
+          if (wasBackgrounded && this.sessionId) {
+            const sid = this.sessionId
+            this.sendRoom(
+              { kind: 'mp:session-rejoin', sid, role: this.sessionRole },
+              this.hostId || null
+            )
+            setTimeout(() => {
+              if (this.sessionId !== sid) return
+              const owner = this.mySession?.ownerId
+              if (owner && owner !== this.selfId) {
+                this.sendGame({ kind: 'mp:sync-request' }, owner)
+              }
+            }, 600)
+          }
           break
+        }
         case 'error':
           this.connecting = false
           this.lastError = msg.message || '连接出错'
@@ -456,9 +595,25 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           }
           ElMessage.info(`${msg.member.name} 加入了房间`)
           this.emitGame({ kind: 'mp:member-joined', member: msg.member })
+          // 新人刚进来不知道有哪些桌，房主主动推一份
+          if (this.selfIsHost) this.broadcastSessions()
           break
         case 'member-left':
           this.members = this.members.filter((m) => m.id !== msg.memberId)
+          // 人走了要把它从各桌的座位 / 观战名单里摘掉，否则桌永远等不到人
+          if (this.selfIsHost && this.sessions.length) {
+            this.sessions.forEach((t) => {
+              t.seats = t.seats.filter((p) => p.id !== msg.memberId)
+              t.watchers = t.watchers.filter((p) => p.id !== msg.memberId)
+              t.declined = t.declined.filter((x) => x !== msg.memberId)
+              if (msg.memberId === t.ownerId || !t.seats.length) {
+                this.sessions = this.sessions.filter((x) => x.id !== t.id)
+              } else if (t.status === 'playing' && t.seats.length < t.cap) {
+                t.status = 'open'
+              }
+            })
+            this.broadcastSessions()
+          }
           this.emitGame({ kind: 'mp:member-left', memberId: msg.memberId })
           break
         case 'room-closed':
@@ -467,24 +622,295 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           ElMessage.warning('房主已关闭房间')
           this.emitGame({ kind: 'mp:room-closed' })
           break
-        case 'game':
-          this.emitGame(msg.data || {}, msg.from)
+        case 'game': {
+          const d = msg.data || {}
+          // 桌内消息按桌过滤：房间里可能同时开着好几局，不是我这桌的包直接丢掉，
+          // 免得别桌的落子 / 发言污染我这一局。
+          // ★ 但「桌信令」必须豁免：它们虽然带着 sid（要指明是哪一桌），却是发给全房间的
+          //   （开桌 / 满员开打 / 全量桌列表）。房主此刻可能正坐在另一桌上打牌，
+          //   若按 sid 一滤，这些信令会被房主自己丢弃，桌列表就再也更新不了了。
+          const kind = typeof d.kind === 'string' ? d.kind : ''
+          const isTableSignal = kind === 'mp:sessions' || kind.startsWith('mp:session')
+          // 桌内流量必须「桌号完全对得上」：待在大厅（没桌号）的人也不该收到别桌的落子 / 快照
+          if (!isTableSignal && d.sid && d.sid !== this.sessionId) return
+          // 房主广播回来的全量桌列表：所有人（含房主自己）以它为准
+          if (d.kind === 'mp:sessions') {
+            this.sessions = Array.isArray(d.sessions) ? d.sessions : []
+          }
+          // 房主是桌列表的唯一权威，桌相关信令先吃掉，不再往游戏页分发
+          if (this.selfIsHost && typeof d.kind === 'string' && d.kind.startsWith('mp:session-')) {
+            this.hostHandleSession(d, msg.from)
+            return
+          }
+          this.emitGame(d, msg.from)
           break
+        }
         default:
           break
       }
     },
 
-    // ===== 房主选择游戏：广播给全员，大家一起进入 =====
-    selectGame(game) {
-      this.currentGame = game.id
-      this.sendGame({ kind: 'mp:select-game', gameId: game.id, gameName: game.name })
+    //  桌（session）：房间里可以同时开着好几局 
+    //
+    // 为什么需要「桌」：房间已经无上限了，可一局游戏的座位是有限的
+    // （五子棋 2 人、萤火夜话 6 人）。房间只负责把人聚在一起，真正限流的是桌。
+    // 于是：房主在打牌，其他人也能自己开一桌；谁先坐满谁先开局；
+    // 没进去的人可以观战，或者再开一桌。
+    //
+    // 服务端是盲中继、不存任何对局状态，所以桌列表由「房主」当唯一权威：
+    // 大家把 开桌/接受/拒绝/观战/离桌 发给房主，房主算完广播全量 sessions。
+    // 房主永远在线（他掉线房间就关了），这个权威不会缺位。
+
+    // 开一张桌。开桌即等于向房间内所有人发出邀请（用户要求：默认全员收到）。
+    // 开桌人自动占第一个座位（先到先得）。返回桌号，调用方拿它跳转对局页。
+    openSession(game, cap) {
+      if (!this.connected) return ''
+      const sid = `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+      this.sessionId = sid
+      this.sessionRole = 'player'
+      this.sessionSetAt = Date.now()
+      this.declinedSids = this.declinedSids.filter((x) => x !== sid)
+      this.sendRoom(
+        {
+          kind: 'mp:session-open',
+          sid,
+          gameId: game.id,
+          gameName: game.name,
+          route: game.route || '',
+          cap: Math.max(2, Number(cap) || game.minCapacity || 2),
+        },
+        this.hostId || null
+      )
+      return sid
     },
 
-    // ===== 离开房间 =====
+    // 接受邀请 → 占一个座位。先到先得，坐满就开局（由房主判定）。
+    acceptSession(sid) {
+      if (!this.connected || !sid) return
+      this.sessionId = sid
+      this.sessionRole = 'player'
+      this.sessionSetAt = Date.now()
+      this.declinedSids = this.declinedSids.filter((x) => x !== sid)
+      this.sendRoom({ kind: 'mp:session-accept', sid }, this.hostId || null)
+    },
+
+    // 拒绝邀请 → 留在大厅，可以观战，也可以自己另开一桌
+    declineSession(sid) {
+      if (!sid) return
+      if (!this.declinedSids.includes(sid)) this.declinedSids.push(sid)
+      this.sendRoom({ kind: 'mp:session-decline', sid }, this.hostId || null)
+    },
+
+    // 观战 → 进对局页，只接收广播，不占座位
+    watchSession(sid) {
+      if (!this.connected || !sid) return
+      this.sessionId = sid
+      this.sessionRole = 'watcher'
+      this.sessionSetAt = Date.now()
+      this.sendRoom({ kind: 'mp:session-watch', sid }, this.hostId || null)
+    },
+
+    // 离开当前所在的桌（玩家离席 / 旁观者退出观战）
+    leaveSession() {
+      const sid = this.sessionId
+      if (!sid) return
+      this.sendRoom({ kind: 'mp:session-leave', sid }, this.hostId || null)
+      this.sessionId = ''
+      this.sessionRole = ''
+      this.sessionSetAt = 0
+    },
+
+    // 桌主散桌
+    endSession(sid) {
+      if (!sid) return
+      this.sendRoom({ kind: 'mp:session-end', sid }, this.hostId || null)
+      if (this.sessionId === sid) {
+        this.sessionId = ''
+        this.sessionRole = ''
+        this.sessionSetAt = 0
+      }
+    },
+
+    //  离开对局页 = 关掉这张桌 
+    // 用户要求：玩家只要退了对局、回到游戏大厅，这张桌就直接关掉。
+    // 不这么做会留下一张没人管的空桌，把所有人卡在「你已经在某桌里了」上。
+    // 分工：自己开的桌 → 散桌（整桌连带清掉）；坐别人的桌 / 观战 → 让出席位。
+    exitSession() {
+      const sid = this.sessionId
+      if (!sid) return
+      if (this.amTableOwner) this.endSession(sid)
+      else this.leaveSession()
+    },
+
+    // 只清本地那份残留桌号（那张桌在房间里其实已经没了，不需要也不能再发信令）
+    clearSession() {
+      this.sessionId = ''
+      this.sessionRole = ''
+      this.sessionSetAt = 0
+    },
+
+    // 刚进房间的人向房主要一份当前桌列表（房主自己不需要）
+    requestSessions() {
+      if (!this.connected || this.selfIsHost) return
+      this.sendRoom({ kind: 'mp:sessions-request' }, this.hostId || null)
+    },
+
+    // 直接刷新对局页时，store 里的桌号会丢（地址栏的 ?sid= 还在）—— 用它补回来。
+    // 不补的后果很具体：sendGame 不会带 sid，我这桌的落子会广播到整个房间去。
+    restoreSession(sid, watch = false) {
+      if (sid) {
+        this.sessionId = sid
+        // 刷新页面重新接上这一桌，同样算「刚进桌」，别被当成残留桌号清掉
+        this.sessionSetAt = Date.now()
+      }
+      if (this.sessionId) this.sessionRole = watch ? 'watcher' : 'player'
+    },
+
+    //  房主：桌列表的唯一权威 
+    hostHandleSession(d, fromId) {
+      const nameOf = (id) => this.members.find((m) => m.id === id)?.name || '有人'
+      const find = (sid) => this.sessions.find((x) => x.id === sid)
+      switch (d.kind) {
+        case 'mp:sessions-request':
+          return this.broadcastSessions()
+
+        case 'mp:session-open': {
+          if (find(d.sid)) return this.broadcastSessions()
+          const cap = Math.max(2, Number(d.cap) || 2)
+          const owner = { id: fromId, name: nameOf(fromId) }
+          const table = {
+            id: d.sid,
+            gameId: d.gameId,
+            gameName: d.gameName,
+            route: d.route || '',
+            cap,
+            ownerId: fromId,
+            ownerName: owner.name,
+            seats: [owner],
+            watchers: [],
+            declined: [],
+            status: 'open',
+            createdAt: Date.now(),
+          }
+          this.sessions = [...this.sessions, table]
+          if (table.seats.length >= cap) {
+            table.status = 'playing'
+            this.announceStart(table)
+          }
+          return this.broadcastSessions()
+        }
+
+        case 'mp:session-accept': {
+          const t = find(d.sid)
+          if (!t || t.status !== 'open') return this.broadcastSessions()
+          if (t.seats.some((p) => p.id === fromId)) return this.broadcastSessions()
+          // 已经坐满，晚到的人进不去（先到先得）
+          if (t.seats.length >= t.cap) return this.broadcastSessions()
+          t.seats.push({ id: fromId, name: nameOf(fromId) })
+          t.declined = t.declined.filter((x) => x !== fromId)
+          t.watchers = t.watchers.filter((p) => p.id !== fromId)
+          // 席位一满立刻开局（用户要求：先到先得，满员即开）
+          if (t.seats.length >= t.cap) {
+            t.status = 'playing'
+            this.announceStart(t)
+          }
+          return this.broadcastSessions()
+        }
+
+        case 'mp:session-decline': {
+          const t = find(d.sid)
+          if (!t || t.status !== 'open') return this.broadcastSessions()
+          if (!t.declined.includes(fromId)) t.declined.push(fromId)
+          return this.broadcastSessions()
+        }
+
+        case 'mp:session-watch': {
+          const t = find(d.sid)
+          if (!t) return this.broadcastSessions()
+          if (!t.watchers.some((p) => p.id === fromId)) {
+            t.watchers.push({ id: fromId, name: nameOf(fromId) })
+          }
+          return this.broadcastSessions()
+        }
+
+        // 从后台回来后「重新挂回原来那一桌」。
+        // 为什么需要它：手机切后台时连接会被系统掐掉，服务端随即广播 member-left，
+        // 房主已经把我从座位/观战名单里摘掉了；重连成功后要主动把自己塞回去，
+        // 否则人会「在房间里、却不在任何一桌」，对局页也就收不到后续广播了。
+        // ★ 这里只补位、不 announceStart —— 对局是续着打的，重新喊「开打」会把牌桌重置。
+        case 'mp:session-rejoin': {
+          const t = find(d.sid)
+          if (!t) return this.broadcastSessions()
+          const asWatcher = d.role === 'watcher'
+          if (asWatcher) {
+            if (!t.watchers.some((p) => p.id === fromId)) {
+              t.watchers.push({ id: fromId, name: nameOf(fromId) })
+            }
+          } else if (!t.seats.some((p) => p.id === fromId)) {
+            if (t.seats.length < t.cap) {
+              t.seats.push({ id: fromId, name: nameOf(fromId) })
+            } else if (!t.watchers.some((p) => p.id === fromId)) {
+              // 席位被别人占了：退而观战，总比被挡在门外强
+              t.watchers.push({ id: fromId, name: nameOf(fromId) })
+            }
+          }
+          // 座位重新坐满 → 状态回到 playing（纯展示用，不发 announceStart）
+          if (t.seats.length >= t.cap) t.status = 'playing'
+          return this.broadcastSessions()
+        }
+
+        case 'mp:session-leave': {
+          const t = find(d.sid)
+          if (!t) return this.broadcastSessions()
+          t.seats = t.seats.filter((p) => p.id !== fromId)
+          t.watchers = t.watchers.filter((p) => p.id !== fromId)
+          // 桌主走了、或一个座位都不剩 → 散桌
+          if (fromId === t.ownerId || !t.seats.length) {
+            this.sessions = this.sessions.filter((x) => x.id !== d.sid)
+          } else if (t.status === 'playing' && t.seats.length < t.cap) {
+            // 打到一半有人跑了：退回招人状态，让别人还能补位
+            t.status = 'open'
+            t.declined = t.declined.filter((x) => !t.seats.some((p) => p.id === x))
+          }
+          return this.broadcastSessions()
+        }
+
+        case 'mp:session-end': {
+          const t = find(d.sid)
+          // 只有桌主能散自己的桌；房主也能散（方便清场）
+          if (!t || (fromId !== t.ownerId && fromId !== this.hostId)) return this.broadcastSessions()
+          this.sessions = this.sessions.filter((x) => x.id !== d.sid)
+          return this.broadcastSessions()
+        }
+
+        default:
+          return
+      }
+    },
+
+    // 满员：告诉桌上的人「可以开了」，各游戏页自己决定怎么开
+    announceStart(t) {
+      this.sendRoom({
+        kind: 'mp:session-start',
+        sid: t.id,
+        gameId: t.gameId,
+        seats: t.seats.map((p) => p.id),
+      })
+    },
+
+    // 把全量桌列表广播给房间里的其他人（自己本地已经是最新的，服务端会排除发送者）
+    broadcastSessions() {
+      this.sendRoom({ kind: 'mp:sessions', sessions: JSON.parse(JSON.stringify(this.sessions)) })
+    },
+
+    //  离开房间 
     leaveRoom() {
       const isHost = this.selfIsHost
       const code = this.roomCode
+      // 主动离开：先明确告诉服务端「我走了」，别让它把这当成掉线而给我留宽限期
+      if (socket && socket.readyState === 1) {
+        try { socket.send(JSON.stringify({ type: 'leave' })) } catch (_) { /* ignore */ }
+      }
       this.closeSocket()
       if (isHost && code && window.electronAPI?.mpCloseRoom) {
         window.electronAPI.mpCloseRoom(code)
@@ -496,6 +922,11 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     resetRoom() {
       this.connected = false
       this.connecting = false
+      // 房间已经真的没了（主动离开 / 房主关房 / 前台掉线）：重连凭证一并作废，
+      // 免得从后台回来又拿老凭证去 join 一个不存在的房间。
+      this.backgrounded = false
+      this.reconnectInfo = null
+      pendingReconnect = null
       this.selfId = ''
       this.selfIsHost = false
       this.hostId = ''
@@ -512,15 +943,18 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       // lanIps 不清空：网卡列表与房间无关，下次创建房间可直接复用
       // logs 也不清空：刚断开时的日志正是排障最需要的东西
       this.currentGame = ''
+      // 房间都没了，桌自然也全没了
+      this.sessions = []
+      this.sessionId = ''
+      this.sessionRole = ''
+      this.sessionSetAt = 0
+      this.declinedSids = []
     },
   },
 })
 
 // 解析「穿透地址」输入，统一成可直接连接的 WebSocket 地址。
 // 为什么需要它：内网穿透工具不一定放开明文 HTTP。例如 SakuraFrp 在国内节点上会以合规为由
-// 拦掉明文 HTTP（连 WebSocket 握手的 GET 也是 HTTP）并返回 501，必须走它下发的 TLS，
-// 此时地址要写成 wss://，不能被强行拼成 ws://。
-// 协议头优先顺序：用户显式写的 > forceScheme（探测结论）> 按主机形态猜（见 guessScheme）。
 // 支持以下写法：
 //   example.frp.com            → wss://example.frp.com:8765（域名默认走加密，见 guessScheme）
 //   192.168.1.5                → ws://192.168.1.5:8765（IP 默认明文）
@@ -580,8 +1014,6 @@ export function isIpLiteral(host) {
 }
 
 // 生成候选连接地址。域名同时给出 ws:// 与 wss:// 两个候选，
-// 因为「隧道有没有开加密」从地址字面看不出来 —— 与其让用户来回改地址试，
-// 不如让客户端自己按顺序试一次，第一个连上就停。
 export function buildWsCandidates(input, port = MP_PORT) {
   const raw = (input || '').trim().replace(/\/+$/, '')
   if (!raw) return []

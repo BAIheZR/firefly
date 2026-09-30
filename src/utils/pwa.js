@@ -1,15 +1,4 @@
-/**
- * PWA 离线壳注册。
- *
- * 只在「生产构建 + 安全上下文」下注册，理由：
- *  1. 开发模式下 Vite 的模块 URL 每次 HMR 都在变，SW 缓存会和热更新打架，
- *     表现为改了代码页面不刷新、甚至加载到已删除的模块。这是最容易踩的坑，直接跳过。
- *  2. Electron 桌面端从 file:// 加载，navigator.serviceWorker 不存在，天然跳过。
- *  3. http（非 localhost）下浏览器不提供 SW，提前判掉可避免抛异常。
- *
- * 更新策略：检测到新版本时**不**主动 skipWaiting 触发刷新 —— 本应用可能有正在播放的
- * 音乐、正在进行的对局，中途刷新会打断用户。新版本在下次冷启动自然生效。
- */
+//  PWA 离线壳注册
 export function registerServiceWorker() {
   if (typeof window === 'undefined') return
   if (!('serviceWorker' in navigator)) return

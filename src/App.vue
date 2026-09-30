@@ -13,6 +13,8 @@
     <MobileTabBar v-if="isNarrow" />
     <!-- 全局常驻 audio 元素：不随路由切换销毁，保证退出 Music 页面后歌曲继续播放 -->
     <audio id="global-audio" preload="metadata"></audio>
+    <!-- 移动端竖屏遮罩：切进「玩」的页面时要求横屏（放在启动弹窗之前，见该组件里的 z-index 说明） -->
+    <LandscapeGate />
     <!-- 存档选择界面（首次启动 / 切换角色） -->
     <SlotSelection v-if="saveSlots.showSelector" :first-run="saveSlots.currentSlotId == null" />
     <!-- 使用条款：首次启动强制同意（force 模式不可关闭），设置页可再次查看 -->
@@ -28,6 +30,7 @@ import { useTasksStore } from './config/tasks'
 import { useBackgroundStore } from './config/background'
 import { useAudioSettingsStore } from './config/music'
 import { useSaveSlotsStore } from './config/saveSlots'
+import { useMultiplayerStore } from './config/multiplayer'
 import { clearCurrentChat } from './services/chatHistory'
 import MiniPlayer from './components/MiniPlayer.vue'
 import GreetingToast from './components/GreetingToast.vue'
@@ -35,7 +38,11 @@ import GlobalBackground from './components/GlobalBackground.vue'
 import SlotSelection from './components/SlotSelection.vue'
 import AgreementModal from './components/AgreementModal.vue'
 import MobileTabBar from './components/MobileTabBar.vue'
+import LandscapeGate from './components/LandscapeGate.vue'
 import { isNarrow } from './utils/device'
+// 副作用导入：模块加载时就挂好「切进游戏页锁横屏 / 切出走人还原」的路由钩子。
+// 遮罩组件内部也依赖它，这里显式导入是为了让钩子注册不依赖组件树求值顺序。
+import './composables/useLandscape'
 import { AGREEMENT_ACCEPTED_KEY } from './config/agreement'
 
 const goldStore = useGoldStore()
@@ -43,6 +50,8 @@ const store = useInventoryStore()
 const tasksStore = useTasksStore()
 const bgStore = useBackgroundStore()
 const audioStore = useAudioSettingsStore()
+// 联机 store：只为「从后台回前台自动重连」挂一个监听（见 onVisibility）
+const mp = useMultiplayerStore()
 
 // 存档槽：同步确定当前槽位（首次无存档时显示选择界面）
 const saveSlots = useSaveSlotsStore()
@@ -132,18 +141,26 @@ const onAppExit = () => {
   clearCurrentChat()
 }
 
+// 手机切后台时系统会掐掉联机的 WebSocket；回到前台时自动重连，
+// 用户视角就是「挂后台也没掉线」。具体重连逻辑在 multiplayer store 的 onAppVisible()。
+const onVisibilityChange = () => {
+  if (document.visibilityState === 'visible') mp.onAppVisible()
+}
+
 onMounted(() => {
   applyRecovery()  // 启动时补发离线期间恢复的行动点
   recoverTimer = setInterval(applyRecovery, ACTION_RECOVER_INTERVAL)
   affectionTimer = setInterval(() => changeAffection(1), AFFECTION_INTERVAL)
   window.addEventListener('beforeunload', onAppExit)
   window.addEventListener('pagehide', onAppExit)
+  document.addEventListener('visibilitychange', onVisibilityChange)
 })
 onBeforeUnmount(() => {
   if (recoverTimer) clearInterval(recoverTimer)
   if (affectionTimer) clearInterval(affectionTimer)
   window.removeEventListener('beforeunload', onAppExit)
   window.removeEventListener('pagehide', onAppExit)
+  document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
 

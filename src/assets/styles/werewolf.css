@@ -1,0 +1,1059 @@
+.ww-page {
+  --ww-gold: #ffd966;
+  --ww-gold-soft: rgba(255, 217, 102, 0.16);
+  --ww-text: #e8ecff;
+  --ww-text-dim: #9aa4c8;
+  --ww-text-faint: #6b769c;
+  --ww-line: rgba(170, 190, 255, 0.22);
+  --ww-line-strong: rgba(190, 210, 255, 0.45);
+  --ww-panel: rgba(20, 26, 52, 0.72);
+  --ww-panel-2: rgba(30, 38, 72, 0.72);
+  --ww-accent: #7aa2ff;
+  --ww-wolf: #ff6b81;
+  --ww-good: #6ee7b7;
+  --ww-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+
+  min-height: 100vh;
+  width: 100%;
+  padding: 20px 0 60px;
+  box-sizing: border-box;
+  color: var(--ww-text);
+  font-size: 14px;
+  background: linear-gradient(160deg, #0b1020 0%, #150c2e 55%, #1a1035 100%);
+  transition: background 1s ease, color 1s ease;
+}
+
+/* 梦醒：暖光 */
+.ww-page.is-day {
+  --ww-gold: #a9761a;
+  --ww-gold-soft: rgba(169, 118, 26, 0.14);
+  --ww-text: #3b2f16;
+  --ww-text-dim: #7a6a45;
+  --ww-text-faint: #9c8b62;
+  --ww-line: rgba(150, 115, 50, 0.28);
+  --ww-line-strong: rgba(150, 115, 50, 0.5);
+  --ww-panel: rgba(255, 252, 240, 0.78);
+  --ww-panel-2: rgba(255, 248, 228, 0.82);
+  --ww-accent: #9a6a12;
+  --ww-wolf: #b03a2e;
+  --ww-good: #1f7a5a;
+  --ww-shadow: 0 12px 40px rgba(140, 105, 40, 0.22);
+  background: linear-gradient(160deg, #f5e6c8 0%, #efdcb4 60%, #e8d5a8 100%);
+}
+
+.ww-body {
+  width: min(920px, 95vw);
+  margin: 10px auto 0;
+}
+
+/* 对局中：页面拉宽 + 卡片与侧栏并排 */
+.ww-body.is-wide {
+  width: min(1440px, 96vw);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+@media (min-width: 1080px) {
+  .ww-body.is-wide { grid-template-columns: minmax(0, 1fr) 350px; }
+  /* 侧栏（频道/广播/在场信息）比卡片长得多，让它自己滚，卡片就不会被顶得老远 */
+  .ww-body.is-wide .ww-sidebar {
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    padding-right: 2px;
+  }
+}
+
+.ww-card {
+  background: var(--ww-panel);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--ww-line);
+  border-radius: 20px;
+  padding: 20px 24px 24px;
+  box-shadow: var(--ww-shadow);
+  transition: background 1s ease, border-color 1s ease;
+}
+
+/*  顶部  */
+.ww-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.ww-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ww-gold);
+  text-shadow: 0 0 14px rgba(255, 217, 102, 0.3);
+}
+.ww-page.is-day .ww-title { text-shadow: none; }
+.ww-title small {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ww-text-dim);
+  margin-left: 2px;
+}
+.ww-top-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ww-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--ww-text-dim);
+  background: var(--ww-panel-2);
+  border: 1px solid var(--ww-line);
+  white-space: nowrap;
+}
+.ww-badge.is-mp { color: var(--ww-good); border-color: var(--ww-good); }
+.ww-badge.is-judge { color: var(--ww-gold); border-color: var(--ww-gold); }
+.ww-badge.is-round { color: var(--ww-accent); border-color: var(--ww-accent); }
+/* 联机观战：只看不参战 */
+.ww-badge.is-watch { color: #6b8199; border-color: #6b8199; }
+/* 帕姆头像（判官徽章上的小圆脸） */
+.ww-badge-face {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+  border: 1px solid var(--ww-gold);
+}
+
+/*  按钮（不与 chess.css 共用，这里自成一套）  */
+.ww-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 15px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  border: 1px solid var(--ww-line-strong);
+  background: var(--ww-panel-2);
+  color: var(--ww-text);
+  transition: all 0.22s;
+  font-family: inherit;
+}
+.ww-btn:hover:not(:disabled) {
+  border-color: var(--ww-gold);
+  color: var(--ww-gold);
+  transform: translateY(-1px);
+}
+.ww-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.ww-btn.is-primary {
+  background: var(--ww-gold);
+  border-color: var(--ww-gold);
+  color: #2a2000;
+}
+.ww-btn.is-primary:hover:not(:disabled) { color: #2a2000; filter: brightness(1.08); }
+.ww-btn.is-danger { border-color: var(--ww-wolf); color: var(--ww-wolf); }
+.ww-btn.is-ghost {
+  background: transparent;
+  border-color: var(--ww-line);
+  color: var(--ww-text-dim);
+}
+.ww-btn.is-sm { padding: 5px 11px; font-size: 12px; }
+.ww-icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/*  阶段横幅  */
+.ww-phase {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-radius: 14px;
+  background: var(--ww-panel-2);
+  border: 1px solid var(--ww-line);
+  margin-bottom: 14px;
+}
+.ww-phase-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  flex-shrink: 0;
+  background: var(--ww-gold-soft);
+  color: var(--ww-gold);
+}
+.ww-phase-main { flex: 1 1 160px; min-width: 0; }
+.ww-phase-name {
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.ww-phase-sub {
+  font-size: 12px;
+  color: var(--ww-text-dim);
+  margin-top: 2px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+/* 夜晚分步的小标：第 2 步 · 瓦尔特 · 感应 */
+.ww-step-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: var(--ww-panel-2);
+  border: 1px solid var(--ww-line-strong);
+  color: var(--ww-accent);
+}
+/* 「刚才是什么阶段」 */
+.ww-prev { display: inline-flex; align-items: center; gap: 5px; color: var(--ww-text-faint); }
+/* 单人在等你：整条阶段栏亮一档，并明确写出「梦境暂停中」 */
+.ww-phase.is-waiting {
+  border-color: var(--ww-gold);
+  box-shadow: 0 0 0 1px var(--ww-gold-soft) inset;
+}
+.ww-waiting {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ww-gold);
+}
+.ww-timer {
+  font-variant-numeric: tabular-nums;
+  font-size: 22px;
+  font-weight: 700;
+  min-width: 62px;
+  text-align: right;
+  color: var(--ww-gold);
+}
+.ww-timer.is-urgent { color: var(--ww-wolf); }
+.ww-bar {
+  flex-basis: 100%;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--ww-line);
+  overflow: hidden;
+}
+.ww-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--ww-gold);
+  border-radius: 999px;
+  transition: width 0.4s linear;
+}
+
+/*  对局版式 
+   卡片里放「座位 + 发言 + 身份/行动 + 列车广播」；只有频道与在场信息留在卡片外的
+   .ww-sidebar。页面因此可以铺到 1440px，而不是被卡片挤成中间一条。
+   ★ 列车广播原本也在侧栏里，但页面窄于 1080px 时整条侧栏会掉到卡片下面，
+     播报就跑到「游戏外面」去了 —— 已按用户要求搬回卡片内（并进自我面板那一列）。
+   未开局时 .ww-body 不带 .is-wide，仍是单栏居中的 920px。 */
+.ww-stage-main,
+.ww-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+/* 栏内间距统一交给 flex gap，去掉 .ww-feed 自带的 margin-top（否则第一块会顶出一截） */
+.ww-stage-main > .ww-feed,
+.ww-sidebar > .ww-feed { margin-top: 0; }
+
+.ww-seats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (min-width: 560px) { .ww-seats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 1160px) { .ww-seats { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+.ww-seat {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 10px 11px;
+  border-radius: 12px;
+  background: var(--ww-panel-2);
+  border: 1px solid var(--ww-line);
+  text-align: left;
+  cursor: default;
+  transition: all 0.22s;
+  overflow: hidden;
+  min-height: 64px;
+}
+.ww-seat.is-clickable { cursor: pointer; }
+.ww-seat.is-clickable:hover {
+  border-color: var(--ww-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(255, 217, 102, 0.18);
+}
+.ww-seat.is-self { border-color: var(--ww-accent); box-shadow: 0 0 0 1px var(--ww-accent) inset; }
+.ww-seat.is-dead { opacity: 0.45; }
+.ww-seat.is-dead .ww-seat-name { text-decoration: line-through; }
+.ww-seat.is-mate { border-color: var(--ww-wolf); box-shadow: 0 0 0 1px var(--ww-wolf) inset; }
+.ww-seat.is-picked {
+  border-color: var(--ww-gold);
+  background: var(--ww-gold-soft);
+  box-shadow: 0 0 0 2px var(--ww-gold) inset;
+}
+.ww-seat.is-voted { border-color: var(--ww-wolf); }
+
+.ww-seat-no {
+  position: absolute;
+  right: 8px;
+  top: 7px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ww-text-faint);
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
+}
+/*  座位头像  */
+.ww-seat-avatar {
+  width: 38px;
+  height: 38px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ww-line-strong);
+  background: rgba(0, 0, 0, 0.28);
+}
+.ww-page.is-day .ww-seat-avatar { background: rgba(255, 255, 255, 0.5); }
+.ww-seat-avatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ww-seat-avatar.is-empty { color: var(--ww-text-faint); font-size: 15px; }
+.ww-seat.is-dead .ww-seat-avatar { filter: grayscale(1); }
+.ww-seat.is-mate .ww-seat-avatar { border-color: var(--ww-wolf); }
+.ww-seat.is-picked .ww-seat-avatar { border-color: var(--ww-gold); }
+.ww-seat-main { flex: 1 1 auto; min-width: 0; }
+.ww-seat-name {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 600;
+  padding-right: 26px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ww-seat-role {
+  display: block;
+  font-size: 11px;
+  color: var(--ww-text-dim);
+  margin-top: 3px;
+}
+.ww-seat-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.ww-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  line-height: 1.5;
+}
+.ww-tag.is-wolf { color: var(--ww-wolf); }
+.ww-tag.is-lit { color: var(--ww-gold); }
+.ww-tag.is-good { color: var(--ww-good); }
+.ww-tag.is-plain { color: var(--ww-text-faint); }
+.ww-tag.is-votecount { color: var(--ww-wolf); }
+
+/*  自己面板：窄屏竖排（卡在上、行动面板在下），宽屏横排（卡在左、面板在右）
+    竖排时不显式写 width —— flex column 默认 stretch 就会撑满；
+    写了 width:100% 反而会让横排时侧栏按 100% 计算而溢出。 */
+.ww-self { display: flex; flex-direction: column; gap: 12px; }
+@media (min-width: 640px) {
+  .ww-self { flex-direction: row; align-items: flex-start; }
+  .ww-self > .ww-role-card { flex: 0 0 216px; }
+  .ww-self > .ww-role-side { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+}
+@media (max-width: 639px) {
+  .ww-self > .ww-role-card { align-self: center; }
+}
+
+.ww-role-card {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid var(--ww-line-strong);
+  background: var(--ww-panel-2);
+  width: 100%;
+  max-width: 244px;
+}
+.ww-role-card.is-firefly {
+  border-color: var(--ww-gold);
+  box-shadow: 0 0 0 1px var(--ww-gold) inset, 0 0 26px rgba(255, 217, 102, 0.25);
+}
+/* 流萤专属：上升的萤火粒子（纯 CSS，不引入 canvas） */
+.ww-role-card.is-firefly::before,
+.ww-role-card.is-firefly::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 18% 100%, rgba(255, 217, 102, 0.85) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 44% 100%, rgba(255, 232, 160, 0.7) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 71% 100%, rgba(255, 217, 102, 0.75) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 88% 100%, rgba(255, 240, 190, 0.6) 0 1.5px, transparent 2px);
+  opacity: 0;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ww-role-card.is-firefly::before { animation: ww-ember 4.2s linear infinite; }
+  .ww-role-card.is-firefly::after { animation: ww-ember 6.4s linear 1.6s infinite; opacity: 0; }
+}
+@keyframes ww-ember {
+  0%   { opacity: 0;    transform: translateY(12%) scale(0.9); }
+  25%  { opacity: 0.85; }
+  75%  { opacity: 0.5; }
+  100% { opacity: 0;    transform: translateY(-100%) scale(1.1); }
+}
+
+/*  卡面：竖长方形，比例直接取素材原始尺寸（277×598）。
+     遮罩是「正常流」的孩子并贴底（不是 absolute），这样文字多的时候卡会自然长高，
+     不会被 overflow 从顶部裁掉；比例只是首选值，素材比例下信息正好装得下。  */
+.ww-role-face {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 277 / 598;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+  background: linear-gradient(160deg, #1d2a4d 0%, #2a2144 100%);
+}
+.ww-role-img {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+}
+/* 开拓者没有整张立绘，用小图标 + 文字兜底，别把小图拉伸成卡面 */
+.ww-role-img.is-empty {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: linear-gradient(160deg, #1d2a4d 0%, #2a2144 100%);
+}
+.ww-page.is-day .ww-role-img.is-empty { background: linear-gradient(160deg, #fdf3d8 0%, #f0e2bd 100%); }
+.ww-role-img.is-empty img { width: 56px; height: 56px; }
+.ww-role-img.is-empty i { font-size: 34px; color: var(--ww-gold); }
+.ww-role-img.is-empty span { font-size: 11.5px; color: var(--ww-text-dim); text-align: center; }
+
+/*  遮罩：从卡面底部往上渐隐，角色牌信息全压在这一层里  */
+.ww-role-mask {
+  position: relative;
+  width: 100%;
+  padding: 40px 12px 12px;
+  background: linear-gradient(
+    to top,
+    rgba(8, 11, 24, 0.97) 0%,
+    rgba(8, 11, 24, 0.9) 40%,
+    rgba(8, 11, 24, 0.55) 72%,
+    rgba(8, 11, 24, 0) 100%
+  );
+  color: #f2ecdc;
+}
+.ww-page.is-day .ww-role-mask {
+  background: linear-gradient(
+    to top,
+    rgba(44, 30, 8, 0.96) 0%,
+    rgba(44, 30, 8, 0.88) 40%,
+    rgba(44, 30, 8, 0.5) 72%,
+    rgba(44, 30, 8, 0) 100%
+  );
+}
+
+/* 职业标签：狼人 / 预言家 / 女巫 / 猎人 / 平民 / 萤火使 */
+.ww-role-job {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--ww-gold);
+  border: 1px solid var(--ww-gold);
+  background: rgba(255, 217, 102, 0.14);
+}
+.ww-role-name {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 7px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--ww-gold);
+}
+.ww-role-name small { font-size: 11.5px; font-weight: 500; color: rgba(242, 236, 220, 0.72); }
+.ww-role-camp {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: rgba(242, 236, 220, 0.75);
+  margin-top: 3px;
+}
+.ww-role-camp i { color: var(--ww-gold); font-size: 10.5px; }
+.ww-role-skill {
+  font-size: 12px;
+  color: rgba(242, 236, 220, 0.92);
+  line-height: 1.62;
+  margin-top: 7px;
+}
+.ww-role-motto {
+  font-size: 11.5px;
+  color: var(--ww-gold);
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.55;
+  opacity: 0.9;
+}
+
+/* 还没发牌时的空卡：同样保持竖长方形 */
+.ww-role-empty {
+  aspect-ratio: 277 / 598;
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  padding: 16px;
+  border: 1px dashed var(--ww-line-strong);
+  border-radius: 16px;
+}
+.ww-role-empty i { font-size: 28px; color: #9aa4c8; }
+.ww-role-empty span { font-size: 12px; color: var(--ww-text-dim); text-align: center; }
+
+/*  行动面板  */
+.ww-action {
+  border-radius: 14px;
+  border: 1px solid var(--ww-gold);
+  background: var(--ww-gold-soft);
+  padding: 12px 13px;
+}
+/* 「本阶段你没事做」这种纯提示，不要抢视觉 */
+.ww-action.is-plain { border-color: var(--ww-line); background: transparent; }
+.ww-action-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ww-gold);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.ww-action-hint { font-size: 11.5px; color: var(--ww-text-dim); line-height: 1.6; }
+.ww-action-choices { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.ww-targets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 7px;
+  margin-top: 10px;
+}
+.ww-target {
+  padding: 7px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 9px;
+  border: 1px solid var(--ww-line-strong);
+  background: var(--ww-panel-2);
+  color: var(--ww-text);
+  cursor: pointer;
+  transition: all 0.18s;
+  font-family: inherit;
+  text-align: center;
+  min-height: 38px;
+}
+.ww-target:hover:not(:disabled) { border-color: var(--ww-gold); color: var(--ww-gold); }
+/* 银狼点同伴时的「同伴」小标：只是提醒，不再禁用 */
+.ww-target-mark {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  border-radius: 999px;
+  color: var(--ww-wolf);
+  border: 1px solid var(--ww-wolf);
+  vertical-align: 1px;
+}
+.ww-target.is-active {
+  background: var(--ww-gold);
+  border-color: var(--ww-gold);
+  color: #2a2000;
+}
+.ww-target:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/*  轮到你时的提示条 
+   ★ 卡片里不再有独立的「发言面板」和「投票栏」—— 投票 / 轮流发言 / 遗言 / 反击
+     的出口都收进这一条，而所有的话一律去右侧频道说（用户要求）。 */
+.ww-action.is-mine-turn {
+  border-color: var(--ww-accent);
+  background: var(--ww-panel-2);
+  box-shadow: 0 0 0 1px var(--ww-line) inset;
+}
+.ww-action.is-mine-turn .ww-action-title { color: var(--ww-accent); }
+
+/*  赛后复盘：最后一夜明细（谁被骇入 / 谁被感应 / 谁被照亮）  */
+.ww-judge-grid { display: flex; flex-direction: column; gap: 6px; }
+.ww-judge-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 12.5px;
+  padding: 6px 9px;
+  border-radius: 9px;
+  background: var(--ww-panel-2);
+  border: 1px solid var(--ww-line);
+}
+.ww-judge-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ww-text-dim);
+  flex-shrink: 0;
+}
+.ww-judge-row b { margin-left: auto; text-align: right; word-break: break-all; }
+.ww-judge-row.is-kill { border-color: rgba(255, 107, 129, 0.35); }
+.ww-judge-row.is-kill b { color: var(--ww-wolf); }
+.ww-judge-row.is-seer b { color: var(--ww-accent); }
+.ww-judge-row.is-witch b { color: var(--ww-good); }
+.ww-judge-row.is-firefly b { color: var(--ww-gold); }
+
+/*  频道区  */
+.ww-channels { display: flex; flex-direction: column; gap: 10px; }
+.ww-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.ww-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 999px;
+  border: 1px solid var(--ww-line);
+  background: transparent;
+  color: var(--ww-text-dim);
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.ww-tab.active { border-color: var(--ww-gold); color: var(--ww-gold); background: var(--ww-gold-soft); }
+.ww-tab.is-wolf.active { border-color: var(--ww-wolf); color: var(--ww-wolf); background: rgba(255, 107, 129, 0.12); }
+
+.ww-chat-list {
+  height: 190px;
+  overflow-y: auto;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--ww-panel-2);
+  border: 1px solid var(--ww-line);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ww-chat-list > * { flex-shrink: 0; }
+.ww-chat-empty { color: var(--ww-text-faint); font-size: 12.5px; text-align: center; padding: 22px 0; }
+.ww-msg { display: flex; flex-direction: column; gap: 2px; }
+.ww-msg-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: var(--ww-text-faint);
+}
+.ww-msg-head b { color: var(--ww-text-dim); font-weight: 600; }
+.ww-msg-body {
+  font-size: 13px;
+  line-height: 1.6;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--ww-line);
+  word-break: break-word;
+}
+.ww-page.is-day .ww-msg-body { background: rgba(255, 255, 255, 0.6); }
+.ww-msg.is-mine .ww-msg-body { border-color: var(--ww-accent); }
+.ww-msg.is-wolf .ww-msg-body { border-color: var(--ww-wolf); background: rgba(255, 107, 129, 0.1); }
+/* 流萤的发言气泡带萤火边 */
+.ww-msg.is-firefly .ww-msg-body {
+  border-color: var(--ww-gold);
+  box-shadow: 0 0 12px rgba(255, 217, 102, 0.25);
+}
+
+.ww-chat-input { display: flex; gap: 8px; }
+.ww-input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: inherit;
+  border-radius: 10px;
+  border: 1px solid var(--ww-line);
+  background: var(--ww-panel-2);
+  color: var(--ww-text);
+  outline: none;
+}
+.ww-input::placeholder { color: var(--ww-text-faint); }
+.ww-input:focus { border-color: var(--ww-gold); }
+
+/*  播报（列车广播）  */
+.ww-feed {
+  margin-top: 14px;
+  border-radius: 14px;
+  border: 1px solid var(--ww-line);
+  background: var(--ww-panel-2);
+  padding: 12px 14px;
+}
+.ww-feed-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ww-text-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.ww-feed-list { display: flex; flex-direction: column; gap: 6px; max-height: 170px; overflow-y: auto; }
+.ww-feed-list > * { flex-shrink: 0; }
+.ww-line-item {
+  font-size: 13px;
+  line-height: 1.6;
+  padding-left: 11px;
+  position: relative;
+  color: var(--ww-text-dim);
+}
+.ww-line-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ww-line-strong);
+}
+.ww-line-item.is-good { color: var(--ww-good); }
+.ww-line-item.is-good::before { background: var(--ww-good); }
+.ww-line-item.is-bad { color: var(--ww-wolf); }
+.ww-line-item.is-bad::before { background: var(--ww-wolf); }
+.ww-line-item.is-night { color: var(--ww-accent); }
+.ww-line-item.is-night::before { background: var(--ww-accent); }
+.ww-line-item.is-gold { color: var(--ww-gold); }
+.ww-line-item.is-gold::before { background: var(--ww-gold); }
+
+/* 列车广播：每条播报前挂一张帕姆头像（听它念公告的感觉） */
+.ww-line-item.has-face {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding-left: 0;
+}
+.ww-line-item.has-face::before { display: none; }
+.ww-feed-face {
+  width: 21px;
+  height: 21px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  border-radius: 7px;
+  object-fit: cover;
+  object-position: top center;
+  border: 1px solid var(--ww-line-strong);
+}
+
+/*  列车广播搬回卡片内（用户要求）：并进自我面板那一列。
+    这一列比原来的 310px 侧栏宽得多，所以把列表放高，最近几条一次看完不用来回滚。 */
+.ww-cast-count {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--ww-text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.ww-feed-list.is-cast { max-height: 320px; }
+.ww-line-text { min-width: 0; word-break: break-word; }
+@media (min-width: 640px) {
+  /* 宽屏时 .ww-role-side 已是 flex column + gap，去掉 .ww-feed 自带的 14px（否则叠成 26px） */
+  .ww-self > .ww-role-side > .ww-feed { margin-top: 0; }
+}
+
+/* 播报里的重点：重要时间用金色，关键事件用狼色，都加粗。
+   分段由引擎 pushFeed 算好（parts），视图只负责贴类名，没有 v-html。 */
+.ww-hl { font-weight: 700; }
+.ww-hl.is-time { color: var(--ww-gold); }
+.ww-hl.is-event { color: var(--ww-wolf); }
+
+/*  底部信息条  */
+.ww-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--ww-panel-2);
+  border: 1px solid var(--ww-line);
+  font-size: 12.5px;
+  color: var(--ww-text-dim);
+}
+.ww-info b { color: var(--ww-text); font-variant-numeric: tabular-nums; }
+/* 提示语另起一行：右栏只有 310px，挤在同一行会被压得很窄 */
+.ww-info .is-tip { flex-basis: 100%; color: var(--ww-text-faint); }
+/* 开拓者进度 = 狼人的胜利进度，用狼色标出来 */
+.ww-info .is-villager { color: var(--ww-wolf); }
+.ww-info .is-villager b { color: var(--ww-wolf); }
+.ww-info .is-villager em {
+  font-style: normal;
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/*  开场 / 结算弹层  */
+.ww-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(6, 8, 20, 0.72);
+  backdrop-filter: blur(6px);
+  overflow-y: auto;
+}
+.ww-modal {
+  width: min(460px, 94vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  border-radius: 18px;
+  padding: 24px 22px;
+  background: linear-gradient(165deg, rgba(24, 30, 60, 0.98), rgba(30, 20, 58, 0.98));
+  border: 1px solid var(--ww-gold);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+  color: #e8ecff;
+  text-align: center;
+}
+.ww-modal > * { flex-shrink: 0; }
+.ww-modal-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ww-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.ww-modal-sub { font-size: 13px; color: #9aa4c8; line-height: 1.7; margin-top: 10px; }
+.ww-modal-btns {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.ww-modal .ww-btn { border-color: rgba(190, 210, 255, 0.35); background: rgba(40, 48, 84, 0.7); color: #e8ecff; }
+.ww-modal .ww-btn:hover:not(:disabled) { border-color: var(--ww-gold); color: var(--ww-gold); }
+.ww-modal .ww-btn.is-primary { background: var(--ww-gold); border-color: var(--ww-gold); color: #2a2000; }
+
+/* 开场 / 复盘出口的按钮容器 */
+.ww-choice { text-align: left; margin-top: 16px; }
+
+/* 结算：奖励流水 */
+.ww-reward-list { text-align: left; margin-top: 16px; }
+.ww-reward-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  padding: 7px 0;
+  border-bottom: 1px dashed rgba(190, 210, 255, 0.16);
+  color: #cfd6f2;
+}
+.ww-reward-row b { color: #ffd966; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.ww-reward-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 700;
+  padding-top: 12px;
+  color: #ffd966;
+}
+.ww-reveal-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 14px; text-align: left; }
+.ww-reveal-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border-radius: 9px;
+  background: rgba(40, 48, 84, 0.6);
+  border: 1px solid rgba(190, 210, 255, 0.18);
+  font-size: 12px;
+}
+.ww-reveal-item.is-wolf { border-color: rgba(255, 107, 129, 0.6); }
+.ww-reveal-item.is-dead { opacity: 0.5; }
+.ww-reveal-item img { width: 22px; height: 22px; border-radius: 5px; object-fit: cover; }
+.ww-avatar-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  background: rgba(255, 217, 102, 0.18);
+  color: #ffd966;
+  flex-shrink: 0;
+}
+
+/* 流萤离场：全屏暗一下再消散 */
+.ww-firefly-fade {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 60%, rgba(255, 217, 102, 0.35), rgba(0, 0, 0, 0.55) 70%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .ww-firefly-fade { animation: ww-fade 1.6s ease forwards; }
+}
+@keyframes ww-fade {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/*  移动端  */
+@media (max-width: 768px) {
+  .ww-page {
+    min-height: var(--app-vh, 100vh);
+    padding: 12px 10px;
+    padding-bottom: calc(var(--tabbar-h, 56px) + 14px);
+  }
+  .ww-body { width: 100%; margin-top: 6px; }
+  /* 窄屏：卡片与侧栏改为上下叠（频道/广播自然落到卡片下面） */
+  .ww-body.is-wide { width: 100%; gap: 12px; }
+  /* 提示条上的按钮在窄屏放不下就换行 */
+  .ww-action-choices { gap: 6px; }
+  .ww-action-choices .ww-btn { flex: 1 1 auto; }
+  .ww-card { padding: 14px 12px 18px; border-radius: 14px; }
+  .ww-title { font-size: 17px; }
+  .ww-title small { display: none; }
+  .ww-seats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .ww-seat { min-height: 58px; padding: 8px 9px; }
+  .ww-seat-name { font-size: 12.5px; }
+  .ww-seat-avatar { width: 32px; height: 32px; border-radius: 8px; }
+  /* 竖长方形身份卡在窄屏收窄，避免一张卡就占掉整屏高度 */
+  .ww-role-card { max-width: 196px; }
+  .ww-role-empty { max-width: 196px; }
+  .ww-chat-list { height: 160px; }
+  /* 行动按钮在窄屏要够大，避免误触 */
+  .ww-btn { min-height: 40px; }
+  .ww-target { min-height: 42px; }
+  .ww-reveal-grid { grid-template-columns: 1fr; }
+}
+
+
+/*  开场：流萤 + 对话气泡  */
+.ww-hero {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  margin: 4px 0 16px;
+}
+.ww-hero img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  object-position: bottom center;
+  border-radius: 12px;
+  flex-shrink: 0;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--ww-line-strong);
+  padding: 4px;
+}
+.ww-page.is-day .ww-hero img { background: rgba(255, 255, 255, 0.6); }
+.ww-hero-bubble {
+  position: relative;
+  flex: 1 1 auto;
+  padding: 13px 16px;
+  border-radius: 14px;
+  background: var(--ww-panel-2);
+  border: 1px solid var(--ww-gold);
+  color: var(--ww-text);
+  font-size: 14px;
+  line-height: 1.65;
+  font-weight: 500;
+  min-height: 56px;
+  box-shadow: 0 4px 18px rgba(255, 217, 102, 0.12);
+}
+.ww-hero-bubble::before {
+  content: '';
+  position: absolute;
+  left: -13px;
+  bottom: 28px;
+  width: 0;
+  height: 0;
+  border: 7px solid transparent;
+  border-right-color: var(--ww-gold);
+}
+@media (max-width: 560px) {
+  .ww-hero img { width: 72px; height: 72px; }
+  .ww-hero-bubble { font-size: 13px; padding: 10px 13px; }
+}
+
+/* 已离场的玩家座位在白天要能看清「谁走了」 */
+.ww-seat.is-ghost {
+  border-style: dashed;
+  background: transparent;
+}

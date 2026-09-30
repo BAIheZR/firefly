@@ -17,6 +17,8 @@ dist-electron
 src/images/
 public/models/
 public/animations/
+# Live2D 模型资产（体积较大，走私有 Release 分发，命名规范见 README）
+public/live2d/
 
 # IDE / 本地配置
 .trae/

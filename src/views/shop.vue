@@ -25,7 +25,7 @@
             
             <ViewSwitcher v-model="itemView" :options="viewOptions">
               <template #default="{ current }">
-                <div v-if="current === 'card'" class="item-cards">
+                <div v-if="current === 'card'" key="card" class="item-cards">
                   <div v-for="item in itemData" :key="item.id" class="item-card">
                     <div class="card-icon">
                       <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
@@ -45,7 +45,7 @@
                   </div>
                 </div>
                 <!-- 列表式 -->
-                <div v-else class="item-list">
+                <div v-else key="list" class="item-list">
                   <div v-for="item in itemData" :key="item.id" class="list-item">
                     <div class="list-icon">
                       <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
@@ -84,7 +84,7 @@
                 </div>
               </template>
               <template #default="{ current }">
-                <div v-if="current === 'card'" class="clothing-cards">
+                <div v-if="current === 'card'" key="card" class="clothing-cards">
                   <div v-for="item in clothingData" :key="item.id" class="clothing-card">
                     <div class="clothing-portrait">
                       <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="portrait-img" :class="{ 'portrait-img-hanld': item.id === 108, 'portrait-img-xbd': item.id === 103 }" />
@@ -109,7 +109,7 @@
                     </div>
                   </div>
                 </div>
-                <div v-else class="item-list">
+                <div v-else key="list" class="item-list">
                   <div v-for="item in clothingData" :key="item.id" class="list-item">
                     <div class="list-icon">
                       <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />

@@ -27,7 +27,7 @@
             <span class="mp-room-bar-code">
               <i class="fa-solid fa-key"></i> 房间 {{ mp.roomCode }}
             </span>
-            <span class="mp-room-bar-count">{{ mp.memberCount }}/{{ mp.roomCapacity }} 人</span>
+            <span class="mp-room-bar-count">{{ mp.capacityText }}</span>
           </div>
           <div class="mp-member-list">
             <span v-for="m in mp.members" :key="m.id" class="mp-member">
@@ -44,11 +44,85 @@
           </div>
         </div>
 
+        <!-- 邀请：开一张桌默认等于邀请房间里所有人 -->
+        <div v-if="mp.pendingInvites.length" class="mp-invites">
+          <div v-for="t in mp.pendingInvites" :key="t.id" class="mp-invite">
+            <div class="mp-invite-text">
+              <i class="fa-solid fa-bell"></i>
+              <b>{{ t.ownerName }}</b> 开了「{{ t.gameName }}」，还差
+              <b>{{ Math.max(0, t.cap - t.seats.length) }}</b> 人
+            </div>
+            <div class="mp-invite-actions">
+              <button class="btn-primary" @click="accept(t)">
+                <i class="fa-solid fa-check"></i> 接受
+              </button>
+              <button class="btn-secondary" @click="watchTable(t)">
+                <i class="fa-solid fa-eye"></i> 先观战
+              </button>
+              <button class="btn-secondary" @click="decline(t)">
+                <i class="fa-solid fa-xmark"></i> 拒绝
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 当前对局（桌）：房间里可以同时开着好几局，谁先坐满谁先开 -->
+        <div v-if="mp.connected && mp.sessions.length" class="mp-section">
+          <div class="mp-section-label">
+            <i class="fa-solid fa-table-cells-large"></i> 当前对局
+            <em class="mp-section-hint">（可同时开好几局，席位满了自动开打）</em>
+          </div>
+          <div class="mp-tables">
+            <div v-for="t in mp.sessions" :key="t.id" class="mp-table">
+              <div class="mp-table-head">
+                <span class="mp-table-name">
+                  <i class="fa-solid fa-gamepad"></i> {{ t.gameName }}
+                </span>
+                <span class="mp-table-seats">{{ t.seats.length }}/{{ t.cap }}</span>
+                <span
+                  class="mp-table-status"
+                  :class="t.status === 'playing' ? 'is-playing' : 'is-open'"
+                >{{ t.status === 'playing' ? '进行中' : '招人中' }}</span>
+              </div>
+              <div class="mp-table-people">
+                <span v-for="p in t.seats" :key="p.id" class="mp-seat">
+                  <i class="fa-solid fa-user"></i> {{ p.name }}<em v-if="p.id === t.ownerId">（桌主）</em>
+                </span>
+                <span v-if="t.watchers.length" class="mp-watchers">
+                  <i class="fa-solid fa-eye"></i> 观战 {{ t.watchers.length }}
+                </span>
+                <span v-if="t.declined.length" class="mp-declined">
+                  {{ t.declined.length }} 人拒绝
+                </span>
+              </div>
+              <div class="mp-table-actions">
+                <button v-if="t.id === mp.sessionId" class="btn-secondary" @click="enterTable(t)">
+                  <i class="fa-solid fa-play"></i> {{ mp.isWatcher ? '继续观战' : '回到对局' }}
+                </button>
+                <template v-else>
+                  <button v-if="t.status === 'playing'" class="btn-secondary" @click="watchTable(t)">
+                    <i class="fa-solid fa-eye"></i> 观战
+                  </button>
+                  <button v-else-if="canJoin(t)" class="btn-primary" @click="accept(t)">
+                    <i class="fa-solid fa-check"></i> 加入
+                  </button>
+                </template>
+                <button v-if="t.id === mp.sessionId" class="btn-secondary" @click="leaveTable">
+                  <i class="fa-solid fa-right-from-bracket"></i> 退出
+                </button>
+                <button v-if="t.ownerId === mp.selfId" class="btn-secondary" @click="endTable(t)">
+                  <i class="fa-solid fa-xmark"></i> 散桌
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- 游戏列表 -->
         <div class="mp-section">
           <div class="mp-section-label">
             <i class="fa-solid fa-gamepad"></i> 可游玩游戏
-            <em v-if="mp.connected && !mp.selfIsHost" class="mp-section-hint">（只有房主可以选择游戏）</em>
+            <em class="mp-section-hint">（谁都能开一桌，开桌即邀请房间里的所有人）</em>
           </div>
           <div class="mp-games">
             <div
@@ -61,7 +135,9 @@
                 <i :class="g.icon"></i>
               </div>
               <div class="mp-game-info">
-                <div class="mp-game-name">{{ g.name }}</div>
+                <div class="mp-game-name">
+                  {{ g.name }}<em class="mp-game-cap">{{ g.cap }} 人一桌</em>
+                </div>
                 <div class="mp-game-desc">{{ g.desc }}</div>
               </div>
               <div class="mp-game-status">
@@ -136,11 +212,14 @@
 
         <!-- 创建房间表单 -->
         <div v-if="activeTab === 'create'">
+          <!-- 房间不再限制人数：限流的是「桌」，不是房间 -->
           <div class="mp-field">
-            <label class="mp-field-label">房间容量 <em>（2~8 人）</em></label>
-            <el-select v-model="hostForm.capacity" class="mp-select" placeholder="选择房间容量">
-              <el-option v-for="n in 7" :key="n" :label="`${n + 1} 人`" :value="n + 1" />
-            </el-select>
+            <label class="mp-field-label">房间容量 <em>（无上限）</em></label>
+            <div class="mp-field-tip">
+              <i class="fa-solid fa-circle-info"></i>
+              <span>来多少人都进得来。一局游戏的席位由「桌」管：谁都能开一桌并邀请全房间，
+                先到先得坐满就开打，没座位的人可以观战，或者自己再开一桌。</span>
+            </div>
           </div>
           <div class="mp-field">
             <label class="mp-field-label">房间口令 <em>（选填，设置后加入者需输入）</em></label>
@@ -315,9 +394,8 @@ const router = useRouter()
 const userStore = useUserStore()
 const mp = useMultiplayerStore()
 
-// 房主表单
+// 房主表单（房间本身无上限，所以没有「容量」这一项了）
 const hostForm = reactive({
-  capacity: 2,        // 房间容量 2~8
   roomPassword: '',   // 房间口令（选填）
   tunnelAddr: '',     // 内网穿透地址（选填，留空 = 本机局域网地址）
 })
@@ -393,22 +471,36 @@ async function probeTunnel() {
 }
 
 // 只保留已实现的两个游戏：石头剪刀布、海龟汤尚未实现，已移除
+// cap = 一桌几个座位。房间本身无上限，限流的是「桌」：
+// 谁先坐满谁先开打，没座位的人可以观战，或者自己再开一桌。
 const games = [
   {
     id: 'gomoku',
     name: '五子棋',
-    desc: '房主执黑先行，对方执白，32 路棋盘抢五连',
+    desc: '桌主执黑先行，另一个人执白，32 路棋盘抢五连',
     icon: 'fa-solid fa-chess',
     color: 'linear-gradient(135deg,#3fa98a,#5bc9a0)',
     route: '/chess',
+    cap: 2,
   },
   {
     id: 'guessword',
-    name: '猜字游戏',
+    name: '猜字谜',
     desc: '同一道题同时开猜，先答对的拿金币',
     icon: 'fa-solid fa-font',
     color: 'linear-gradient(135deg,#e6a23c,#f0c674)',
     route: '/guess-word',
+    cap: 2,
+  },
+  {
+    id: 'werewolf',
+    name: '萤火夜话',
+    desc: '6 人梦境局，找出潜藏的星核猎手；流萤每局必出',
+    icon: 'fa-solid fa-fire-flame-simple',
+    color: 'linear-gradient(135deg,#6b4fd8,#ffd966)',
+    route: '/werewolf',
+    cap: 6,
+    minCapacity: 6,
   },
 ]
 
@@ -430,15 +522,17 @@ onMounted(() => {
     mp.refreshLocalIps()
   }
 
-  // 房间/游戏消息：房主选游戏 → 全员进入；非房主点游戏 → 房主收到提醒
+  // 兜底：回到大厅就代表那一局结束了。残留的桌号会让「点别的游戏」被
+  // 「你已经在『xx』里了，先退出才能开别的桌」拦住 —— 这里统一清掉。
+  // （对局页卸载时也会清一次；这里兜住「桌被别人解散了但我的桌号还在」这类情况）
+  if (mp.sessionId) mp.leaveSession()
+
+  // 房间级消息：别的桌凑齐人开打了 —— 我不在那一桌，提示可以去观战
   offGame = mp.onGame((data) => {
-    if (data.kind === 'mp:select-game') {
-      const g = games.find((x) => x.id === data.gameId)
-      if (!g) return
-      ElMessage.info(`房主开始了「${data.gameName}」`)
-      enterGameRoute(g)
-    } else if (data.kind === 'mp:game-click') {
-      ElMessage.info(`${data.name} 想玩「${data.gameName}」`)
+    if (data.kind === 'mp:session-start') {
+      if (data.sid === mp.sessionId) return   // 我在这桌上，游戏页自己会处理
+      const t = mp.sessions.find((x) => x.id === data.sid)
+      if (t) ElMessage.info(`「${t.gameName}」人齐开打了 —— 你可以去观战`)
     }
   })
 })
@@ -461,11 +555,20 @@ function openJoin() {
   configDialogVisible.value = true
 }
 
-// 房主创建房间
+// 房主创建房间（0 = 房间无上限）
 async function createRoom() {
-  await mp.createRoom(hostForm.capacity, hostForm.roomPassword.trim(), hostForm.tunnelAddr)
-  if (mp.connected || mp.connecting) configDialogVisible.value = false
+  await mp.createRoom(0, hostForm.roomPassword.trim(), hostForm.tunnelAddr)
 }
+
+// 连接成功 → 自动收起联机配置弹框。
+// ★ 统一放在这里，而不是各按钮的回调里：「创建房间」和「加入房间」两条路径都得管，
+//   之前只有创建那条手动关，加入房间连上了弹框还杵着，得自己点叉。
+//   放在 watch 里还顺带保证「正在连接」时弹框仍然开着 —— 连不上时的报错
+//   与排障日志都还在眼前，不会一按按钮就没了。
+watch(
+  () => mp.connected,
+  (v) => { if (v) configDialogVisible.value = false }
+)
 
 // 加入者加入房间
 // 地址协议写反（ws:// 与 wss:// 弄混）时，store 内部会自动回退另一种协议再试一次，
@@ -548,33 +651,76 @@ function confirmLeave() {
   }).then(() => true).catch(() => false)
 }
 
-// 进入对局：只有房主能选游戏
-async function enterGame(g) {
+//  桌（= 一局游戏） 
+// 房间无上限，限流的是桌：房间里谁都能开一桌，开桌即邀请全员；
+// 先到先得，席位坐满就开打；没座位的人可以观战，或者自己再开一桌。
+function canJoin(t) {
+  return t.status === 'open' && t.ownerId !== mp.selfId && !t.seats.some((p) => p.id === mp.selfId)
+}
+
+// 从游戏卡片点进来 = 自己开一桌
+function enterGame(g) {
   if (!mp.connected) {
-    ElMessage.info('请先创建或加入房间，连接成功后再选择游戏')
+    ElMessage.info('请先创建或加入房间，连接成功后再开一桌')
     openCreate()
     return
   }
-  if (!mp.selfIsHost) {
-    // 非房主：弹框告知，并把「谁想玩哪个游戏」发给房主
-    mp.sendGame(
-      { kind: 'mp:game-click', gameId: g.id, gameName: g.name, name: username.value },
-      mp.hostId || null
-    )
-    ElMessageBox.alert(`只有房主才能选择游戏，已把你想玩「${g.name}」告诉房主啦`, '只有房主才能选择游戏', {
-      confirmButtonText: '知道了',
-      type: 'warning',
-    }).catch(() => {})
+  if (mp.sessionId) {
+    ElMessage.warning(`你已经在「${mp.mySession?.gameName || '对局'}」里了，先退出才能开别的桌`)
     return
   }
-  mp.selectGame(g)
-  enterGameRoute(g)
+  const sid = mp.openSession(g, g.cap)
+  if (!sid) return
+  enterTable({ id: sid, gameId: g.id, route: g.route })
 }
 
-// 跳进对局页（带 mp=1 标记，游戏内据此切到联机模式）
-function enterGameRoute(g) {
+// 接受邀请 → 占一个座位（先到先得）
+function accept(t) {
+  if (mp.sessionId && mp.sessionId !== t.id) {
+    ElMessage.warning('你已经在另一桌里了，先退出再加入')
+    return
+  }
+  mp.acceptSession(t.id)
+  enterTable(t)
+}
+
+// 拒绝邀请 → 留在大厅
+function decline(t) {
+  mp.declineSession(t.id)
+  ElMessage.info(`已拒绝「${t.gameName}」，你可以观战或自己开一桌`)
+}
+
+// 观战：不占座位，只看
+function watchTable(t) {
+  if (mp.sessionId && mp.sessionId !== t.id) {
+    ElMessage.warning('你已经在另一桌里了，先退出再观战')
+    return
+  }
+  mp.watchSession(t.id)
+  enterTable(t)
+}
+
+function leaveTable() {
+  mp.leaveSession()
+}
+
+function endTable(t) {
+  mp.endSession(t.id)
+}
+
+// 跳进对局页：mp=1 切联机，sid 定位到哪一桌，watch=1 表示只读旁观
+function enterTable(t) {
+  const g = games.find((x) => x.id === t.gameId)
+  const route = g?.route || t.route
+  if (!route) {
+    ElMessage.error('找不到这个游戏的页面')
+    return
+  }
   configDialogVisible.value = false
-  router.push({ path: g.route, query: { mp: '1' } })
+  router.push({
+    path: route,
+    query: { mp: '1', sid: t.id, watch: mp.isWatcher ? '1' : '0' },
+  })
 }
 
 // 返回上一个页面

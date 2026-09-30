@@ -26,9 +26,13 @@ import model_4 from "@/images/item/medel_4.png";
 import model_samu from "@/images/item/medel_samu.png";
 // 主页人物立绘
 import fireflySpring from "@/images/game/firefly_spring.png";
-import smallBd from "@/images/game/small_bd.png";
+import smallBd from "@/images/game/small_loli.png";
 import fireflyZx from "@/images/game/firefly_zx.png";
-const ALL_ITEMS =[
+import fireflyWar from "@/images/game/firefly_war.png";
+import { AFFECTION_STAGES, getAffectionStageIndex } from "./affectionStages";
+import { loadMemory, saveMemory, appendMilestone } from "@/services/chatHistory";
+// 商品总表（供商店 / 仓库 / 开箱等模块共用）
+export const ALL_ITEMS =[
     // 物品
     {id:1,name:'橡木蛋糕卷',desc:'爱吃',price:1000,icon: xmdgj, category: 'item',decs2:"+50好感度,+20行动点",affection:50,actionPoint:20},
     {id:2,name:'垃圾袋',desc:'有奇效',price:200,icon: trash, category: 'item',decs2:"-100好感度,+10行动点",affection:-100,actionPoint:10},
@@ -41,20 +45,39 @@ const ALL_ITEMS =[
     {id:9,name:'苏乐达',desc:'似乎味道和可乐一样呢（bushi）',price:50,icon: suled, category: 'item',decs2:"+10点行动点",affection:0,actionPoint:10},
     {id:10,name:'限定彩妆⌈夕颜⌋',desc:'在离开匹诺康尼前，给萤宝的小小纪念品，希望流萤会喜欢',price:50,icon: xy, category: 'item',decs2:"+50点好感度",affection:50,actionPoint:0},
     {id:11,name:'知更鸟的演唱会门票（bushi）',desc:'流萤想去看知更鸟的演唱会好久了呢，上一次看还是在上一次',price:580,icon: concert_tickets, category: 'item',decs2:"+150点好感度",affection:150,actionPoint:0},
-    {id:13,name:'苏乐达Pro',desc:'苏乐达的升级版，气泡更足了',price:120,icon: suledp, category: 'item',decs2:"+25点行动点",affection:0,actionPoint:25},
-    {id:14,name:'星穹列车模型',desc:'摆在桌上的精致小摆件',price:8000,icon: model_1, category: 'item',tag:'decorations',allowedBuffTypes:['ap'],affection:0,actionPoint:0},
-    {id:15,name:'知更鸟‘周边’？',desc:'据说能带来好运的小物件',price:8000,icon: model_2, category: 'item',tag:'decorations',allowedBuffTypes:['affection'],affection:0,actionPoint:0},
-    {id:16,name:'迷迷头套',desc:'复古风格的桌面装饰',price:8000,icon: model_3, category: 'item',tag:'decorations',allowedBuffTypes:['luck','affection'],affection:0,actionPoint:0},
-    {id:17,name:'流萤猫猫糕',desc:'带着淡淡微光的装饰',price:10000,icon: model_4, category: 'item',tag:'decorations',allowedBuffTypes:['luck','ap'],affection:0,actionPoint:0},
-    {id:18,name:'萨姆模型',desc:'一个看起来很温暖的摆件',price:12000,icon: model_samu, category: 'item',tag:'decorations',allowedBuffTypes:['ap','affection'],affection:0,actionPoint:0},
+    {id:13,name:'苏乐达瓶盖',desc:'？，苏乐达的瓶盖怎么在这里',price:10,icon: suledp, category: 'item',decs2:"+25点行动点",affection:0,actionPoint:1},
+
+    {id:14,name:'星穹列车模型',desc:'据说是1:148的列车模型，不过为什么一个模型这么贵啊',price:8000,icon: model_1, category: 'item',tag:'decorations',allowedBuffTypes:['ap'],affection:0,actionPoint:0,decs2:"提供行动点随机加成"},
+    {id:15,name:'知更鸟‘周边’？',desc:'听说流萤想要这个好久了',price:8000,icon: model_2, category: 'item',tag:'decorations',allowedBuffTypes:['affection'],affection:0,actionPoint:0,decs2:"提供好感度随机加成"},
+    {id:16,name:'迷迷头套',desc:'带上去有神奇的事情发生',price:8000,icon: model_3, category: 'item',tag:'decorations',allowedBuffTypes:['luck','affection'],affection:0,actionPoint:0,decs2:"提供好感度，运气值等随机加成"},
+    {id:17,name:'流萤猫猫糕',desc:'猫猫糕也有啊？买回去萤宝一定很喜欢吧？',price:10000,icon: model_4, category: 'item',tag:'decorations',allowedBuffTypes:['luck','ap'],affection:0,actionPoint:0,decs2:"提供行动点，运气值随机加成"},
+    {id:18,name:'萨姆模型',desc:'1:72的萨姆模型，这么精致，买回去流萤会怎么说呢？',price:12000,icon: model_samu, category: 'item',tag:'decorations',allowedBuffTypes:['ap','affection'],affection:0,actionPoint:0,decs2:"提供好感度，行动点随机加成"},
 
     // 服装
     {id:101,name:'流萤&春日手信',desc:'据说很多人都喜欢这个服装',price:15000,icon: firefly_one, category: 'clothing', gameImg: fireflySpring},
-    {id:103,name:'流萤&小不点',desc:'萝莉控？死刑o((>ω< ))o!',price:15000,icon: xbd, category: 'clothing', gameImg: smallBd},
-    {id:107,name:'流萤&仲夏萤火之约',desc:'与萤火虫共舞的约定',price:15000,icon: zxyhzy, category: 'clothing',gameImg: fireflyZx},
-    {id:108,name:'流萤&战斗服',desc:'老兵烧烤？',price:15000,icon: 'fa-solid fa-bread-slice', category: 'clothing'},
+    {id:102,name:'流萤&小不点',desc:'萝莉控？死刑o((>ω< ))o!',price:15000,icon: xbd, category: 'clothing', gameImg: smallBd},
+    {id:103,name:'流萤&仲夏萤火之约',desc:'与萤火虫共舞的约定',price:15000,icon: zxyhzy, category: 'clothing',gameImg: fireflyZx},
+    {id:104,name:'流萤&战斗服',desc:'老兵烧烤？',price:15000,icon: 'fa-solid fa-bread-slice', category: 'clothing',gameImg: fireflyWar},
 
 ]
+// 好感度上升跨阶段时，把新阶段写入长期记忆的「关系历程」
+// 只记录上升跨越（掉档不回删里程碑，因为它代表「曾经抵达过」）；
+// 全流程 try/catch，记忆写入失败绝不影响好感度主流程
+function recordAffectionMilestones(prev, next) {
+  try {
+    const from = getAffectionStageIndex(prev)
+    const to = getAffectionStageIndex(next)
+    if (to <= from) return
+    const mem = loadMemory()
+    for (let i = from + 1; i <= to; i++) {
+      appendMilestone(mem, AFFECTION_STAGES[i])
+    }
+    saveMemory(mem)
+  } catch (e) {
+    // 记里程碑失败不应影响好感度变更
+  }
+}
+
 export const useInventoryStore = defineStore('inventory', {
   state: () => ({
     inventory: {},
@@ -194,6 +217,24 @@ export const useInventoryStore = defineStore('inventory', {
       }))
     },
 
+    // 发放/增加物品（开箱奖励、活动赠送等场景）
+    // itemId：商品 id；quantity：数量（默认 1）
+    // 返回 true=成功（含部分成功），false=商品不存在
+    grantItem(itemId, quantity = 1) {
+      const item = ALL_ITEMS.find(i => i.id === itemId)
+      if (!item) return false
+      const qty = Math.max(0, Math.floor(Number(quantity) || 0))
+      if (qty <= 0) return false
+      this.inventory[itemId] = (this.inventory[itemId] || 0) + qty
+      this.saveData()
+      return true
+    },
+
+    // 按 id 读取商品定义（开箱池构建等场景需要全量商品表）
+    getItemById(itemId) {
+      return ALL_ITEMS.find(i => i.id === itemId) || null
+    },
+
     // 穿戴服装（仅允许已拥有且带主页立绘的服装）
     equipClothing(itemId) {
       const item = ALL_ITEMS.find(i => i.id === itemId)
@@ -276,17 +317,16 @@ export const useInventoryStore = defineStore('inventory', {
     },
 
     // 内部：根据物品的 affection / actionPoint 字段更新玩家状态
-    // - 字段支持 数值（固定）或 [min,max] 数组（在该范围随机整数）
-    // - 直接更新 store 响应式 state（Home 页面用 computed 自动响应）并持久化
-    // - 好感度默认 100，无上限，下限 0；行动点加成累加
     _applyPlayerStats(item) {
       const aff = this._resolveStat(item.affection)
       const ap = this._resolveStat(item.actionPoint)
       if (aff === 0 && ap === 0) return
       // 好感度
       if (aff !== 0) {
+        const prevAff = this.affection
         this.affection = Math.max(0, this.affection + aff)
         localStorage.setItem('player_affection', String(this.affection))
+        recordAffectionMilestones(prevAff, this.affection)
       }
       // 行动点加成
       if (ap !== 0) {
@@ -401,7 +441,6 @@ export const useInventoryStore = defineStore('inventory', {
 })
 
 // 读取某类永久加成的总倍率（1 + sum(value)/100），typeKey: 'affection' | 'ap' | 'gold' | 'luck'
-// 从 localStorage 的 player_selected_buffs 累加同类加成数值
 export const getBuffMultiplier = (typeKey) => {
   if (typeof window === 'undefined' || !window.localStorage) return 1
   const raw = localStorage.getItem('player_selected_buffs')
@@ -424,8 +463,10 @@ export const changeAffection = (amount) => {
   if (typeof amount !== 'number' || amount === 0) return store.affection
   let delta = amount
   if (amount > 0) delta = Math.round(amount * getBuffMultiplier('affection'))
+  const prevAff = store.affection
   store.affection = Math.max(0, store.affection + delta)
   localStorage.setItem('player_affection', String(store.affection))
+  recordAffectionMilestones(prevAff, store.affection)
   return store.affection
 }
 

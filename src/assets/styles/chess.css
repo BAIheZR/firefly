@@ -1,4 +1,4 @@
-/* ====== 棋子对决（五子棋） ====== */
+/* = 棋子对决（五子棋） = */
 .chess-page {
   min-height: 100vh;
   width: 100%;
@@ -171,6 +171,25 @@
   cursor: not-allowed;
 }
 
+/* 自适应开关：与难度按钮区分开 —— 在青绿主色里用紫色点出「AI 会学习」这个新概念 */
+.diff-btn.is-adapt {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-color: rgba(124, 92, 214, 0.55);
+  color: #5b3fa8;
+}
+.diff-btn.is-adapt:hover:not(:disabled) {
+  border-color: #7c5cd6;
+  color: #7c5cd6;
+}
+.diff-btn.is-adapt.active {
+  background: #7c5cd6;
+  border-color: #7c5cd6;
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(124, 92, 214, 0.35);
+}
+
 .status-line {
   display: inline-flex;
   align-items: center;
@@ -245,6 +264,14 @@
 .chess-info .info-item i { color: #3FA98A; margin-right: 4px; }
 .chess-info .info-item b { color: #1a1a1a; font-weight: 700; font-variant-numeric: tabular-nums; }
 .chess-info .tip { color: #888; font-size: 12px; margin-left: auto; }
+/* 「AI 眼中的你」：独占一行并弱化权重 —— 它是说明性信息，不该跟操作提示抢视线 */
+.chess-info .tip.is-profile {
+  flex-basis: 100%;
+  margin-left: 0;
+  color: #7c5cd6;
+  opacity: 0.85;
+}
+.chess-info .tip.is-profile i { color: #7c5cd6; }
 
 /* 棋盘 */
 .board-wrap {
@@ -374,7 +401,7 @@
   .board-wrap   { overflow-x: auto; }
 }
 
-/* ====== 联机相关（五子棋 / 猜字游戏共用） ====== */
+/* = 联机相关（五子棋 / 猜字谜共用） = */
 
 /* 标题右侧的联机标记 */
 .mp-badge {
@@ -414,6 +441,18 @@
 .mp-role-tag.is-black i { color: #111; }
 .mp-role-tag.is-white i { color: #b9b9b9; }
 .mp-role-tag.is-opponent i { color: #3FA98A; }
+/* 旁观者：不参与落子，用中性灰蓝标出来，跟「执黑/执白」区分开 */
+.mp-role-tag.is-watcher {
+  color: #46566b;
+  background: rgba(120, 150, 180, 0.16);
+  border-color: rgba(120, 150, 180, 0.5);
+}
+.mp-role-tag.is-watcher i { color: #6b8199; }
+/* 标题上的「观战中」徽章 */
+.mp-badge.is-watch {
+  color: #46566b;
+  background: rgba(120, 150, 180, 0.18);
+}
 
 /* 联机控制栏：难度组隐藏后只剩状态 + 两个按钮 */
 .chess-controls.is-mp {
@@ -475,11 +514,11 @@
   margin-left: 6px;
 }
 
-/* ==========================================================================
+/* ====
    移动端（窄视口）—— 本文件被 Chess.vue 与 GuessWord.vue 共用
    内部布局（控制栏两列、卡片内边距等）已有 680/820 断点覆盖，
    这里只补「全局容器」层面的两件事：视口高度与底部导航占位。
-   ========================================================================== */
+   ==== */
 @media (max-width: 768px) {
   .chess-page {
     min-height: var(--app-vh, 100vh);
@@ -534,4 +573,5 @@
     padding: 6px 16px;
   }
 }
+
 

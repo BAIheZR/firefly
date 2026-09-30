@@ -1,13 +1,13 @@
-// ======== 设备与视口判定 ========
-// 两类判定分开，不要混用：
-//   isNarrow       —— 视口宽度是否处于移动端断点（响应式，随 resize 变化）→ 用于「布局」
-//   isTouchDevice  —— 是否触屏设备（不随视口变化）→ 用于「交互方式」
-//   isMobileDevice —— 是否移动端设备（UA/触屏，不随视口变化）→ 用于「性能降级」
-// 这样桌面端把窗口拖窄只影响布局（仍用鼠标交互），移动端则同时降级性能。
+// 设备与视口判定
 import { ref } from 'vue'
 
 // 与 CSS 里的 @media (max-width: 768px) 保持严格一致 —— 改一处必须改另一处
 export const MOBILE_BREAKPOINT = 768
+
+// 「矮视口」断点：手机横屏（游戏页强制横屏）可用高度只有 350~430px，
+// 竖屏手机与桌面窗口都远高于它。与各游戏页 CSS 里的
+// @media (max-height: 620px) 保持严格一致 —— 改一处必须改另一处。
+export const SHORT_VIEWPORT_PX = 620
 
 const ua = (typeof navigator !== 'undefined' && navigator.userAgent) || ''
 
@@ -29,18 +29,39 @@ export const isLowPowerDevice = isMobileDevice
 // 是否处于「视口窄」状态 —— 布局跟随它，而不是跟随设备类型
 export const isNarrow = ref(false)
 
-function syncNarrow() {
+// 视口是不是「矮」的（手机横屏 / 小窗口）。
+// 布局（CSS）与棋盘格宽的换算（JS）都要用它，所以必须来自同一处判定，
+// 否则会出现「CSS 已经按一屏排好、JS 还按宽屏算格宽」导致棋盘高过容器。
+export const isShortViewport = ref(false)
+
+// 视口是不是「竖着」的 —— 横屏遮罩靠它触发。
+// ★ 用 innerHeight > innerWidth，而不是 screen.orientation.type：
+//   后者在桌面浏览器上反映的是**物理屏幕**方向（显示器恒为 landscape），
+//   拿它判断会把「窗口被拖成竖条」误判成横屏。
+export const isPortrait = ref(false)
+
+function syncViewport() {
   if (typeof window === 'undefined') return
   // 用 innerWidth 而非 screen.width：分屏、折叠屏、桌面拖窄窗口都要正确响应
   isNarrow.value = window.innerWidth <= MOBILE_BREAKPOINT
+  isPortrait.value = window.innerHeight > window.innerWidth
+  isShortViewport.value = window.innerHeight <= SHORT_VIEWPORT_PX
 }
 
 if (typeof window !== 'undefined') {
-  syncNarrow()
+  syncViewport()
   // passive: true —— 滚动/旋转时这个回调不能阻塞手势
-  window.addEventListener('resize', syncNarrow, { passive: true })
-  window.addEventListener('orientationchange', syncNarrow, { passive: true })
+  window.addEventListener('resize', syncViewport, { passive: true })
+  window.addEventListener('orientationchange', syncViewport, { passive: true })
 }
+
+// 浏览器能不能「锁定屏幕方向」。
+// Android Chrome 有，但要求页面处于全屏或已安装 PWA；iOS Safari 完全没有这个 API。
+// 不支持时只能靠 LandscapeGate 的遮罩提示用户手动转手机，所以这里要单独暴露出来。
+export const canLockOrientation =
+  typeof screen !== 'undefined' &&
+  !!screen.orientation &&
+  typeof screen.orientation.lock === 'function'
 
 // 用户是否要求减少动效（系统级无障碍设置，移动端省电模式下也会命中）
 export const prefersReducedMotion =
@@ -50,5 +71,8 @@ export const prefersReducedMotion =
 
 // 便捷组合：需要同时拿布局与性能判定的组件用这个
 export function useDevice() {
-  return { isNarrow, isTouchDevice, isMobileDevice, isLowPowerDevice }
+  return {
+    isNarrow, isPortrait, isShortViewport,
+    isTouchDevice, isMobileDevice, isLowPowerDevice, canLockOrientation,
+  }
 }

@@ -2,7 +2,7 @@
   min-height: 100vh;
 }
 
-/* ===== 欢迎卡 ===== */
+/*  欢迎卡  */
 .guess-welcome {
   text-align: center;
   padding: 36px 24px 30px;
@@ -78,7 +78,7 @@
   box-shadow: 0 4px 10px rgba(63,169,138,0.35);
 }
 
-/* ===== 题板 ===== */
+/*  题板  */
 .guess-stage {
   position: relative;
   min-height: 320px;
@@ -217,7 +217,7 @@
 .reward-hint i { color: #DAA520; margin-right: 4px; }
 .reward-hint b { color: #DAA520; font-weight: 700; }
 
-/* ===== 候选答案 chips ===== */
+/*  候选答案 chips  */
 .candidate-section {
   margin-top: 12px;
   padding: 12px 12px 8px;
@@ -273,7 +273,7 @@
 }
 .result-reward i { margin-right: 8px; }
 
-/* ===== 历史记录 ===== */
+/*  历史记录  */
 .history-section {
   margin-top: 22px;
   padding: 14px 16px 12px;
@@ -427,7 +427,7 @@
   .hi-meta { flex-direction: row; gap: 10px; }
 }
 
-/* ====== 移动端（窄视口）：容器层面的补充，页面骨架 .chess-* 在 chess.css 里 ====== */
+/* = 移动端（窄视口）：容器层面的补充，页面骨架 .chess-* 在 chess.css 里 = */
 @media (max-width: 768px) {
   .guess-welcome {
     padding: 22px 14px 18px;
@@ -438,4 +438,74 @@
     min-height: var(--tap-min, 44px);
     font-size: 16px; /* ≥16px 可阻止 iOS 聚焦时自动放大页面 */
   }
+}
+
+
+/* = 歧义选择弹框（输入通用名命中多答案时） = */
+.pick-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  backdrop-filter: blur(2px);
+}
+.pick-box {
+  width: min(420px, 90vw);
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 22px 24px 18px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(155, 123, 255, 0.35);
+}
+.pick-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #3a2f6b;
+  margin-bottom: 6px;
+}
+.pick-title i { color: #7c62dd; margin-right: 6px; }
+.pick-desc {
+  font-size: 13px;
+  color: #8a829e;
+  margin-bottom: 14px;
+}
+.pick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pick-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px 14px;
+  background: rgba(155, 123, 255, 0.08);
+  border: 1px solid rgba(155, 123, 255, 0.4);
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #4a3a9f;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.pick-item:hover {
+  background: rgba(155, 123, 255, 0.22);
+  border-color: #7c62dd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 98, 221, 0.2);
+}
+.pick-variant {
+  font-size: 12px;
+  color: #8a7fc4;
+  font-weight: 500;
+}
+.pick-foot {
+  display: flex;
+  justify-content: flex-end;
 }

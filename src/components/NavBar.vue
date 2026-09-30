@@ -38,13 +38,13 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 const router = useRouter()
-// ====== 头像 ======
+// = 头像 =
 const avatarData = ref(localStorage.getItem('avatarData') || '')
 onMounted(() => {
   avatarData.value = localStorage.getItem('avatarData') || ''
 })
 
-// ====== 当前时间 ======
+// = 当前时间 =
 const now = ref(new Date())
 let timer = null
 
@@ -71,7 +71,7 @@ onUnmounted(() => {
   clearInterval(timer)
 })
 
-// ====== 右侧按钮 ======
+// = 右侧按钮 =
 const rightButtons = ref([
   { key: 'notify', title: '通知', icon: 'fa-solid fa-bell', action: 'notify' },
   { key: 'music', title: '音乐播放器', icon: 'fa-solid fa-music', action: 'music' },

@@ -66,6 +66,8 @@ import {
   CONTEXT_WINDOW,
   SUMMARY_TRIGGER,
 } from '@/services/chatHistory'
+import { getCurrentAffection } from '@/config/inventory'
+import { getAffectionStageInfo } from '@/config/affectionStages'
 
 const emit = defineEmits(['close'])
 
@@ -159,6 +161,27 @@ async function maybeSummarize(force = false) {
   }
 }
 
+// 按实时好感度生成「关系状态」文本，注入 system prompt，
+// 让流萤的语气/称呼随关系阶段自然变化（打通好感度与对话的断层）
+function buildRelationText() {
+  let aff = 100
+  try {
+    aff = getCurrentAffection()
+  } catch (e) {
+    const raw = Number(localStorage.getItem('player_affection'))
+    aff = Number.isFinite(raw) ? raw : 100
+  }
+  const info = getAffectionStageInfo(aff)
+  const lines = [
+    `当前关系阶段：${info.title}（好感度 ${aff}）`,
+    `对开拓者的称呼：${info.call}`,
+    `语气倾向：${info.tone}`,
+  ]
+  const journey = (memory.value.milestones || []).map((m) => m.title)
+  if (journey.length > 1) lines.push(`关系历程：${journey.join(' → ')}`)
+  return lines.join('。') + '。'
+}
+
 async function send() {
   const text = inputText.value.trim()
   if (!text || loading.value) return
@@ -167,9 +190,9 @@ async function send() {
   loading.value = true
   scrollToBottom()
   try {
-    // 近期原文窗口（当前对话连贯性）+ 长期记忆（档案卡/近期事件/往事纪要/近期摘要）
+    // 近期原文窗口（当前对话连贯性）+ 长期记忆（关系状态/档案卡/近期事件/往事纪要/近期摘要）
     const windowMessages = messages.value.slice(-CONTEXT_WINDOW)
-    const rawReply = await chatWithAI(windowMessages, buildMemoryText(memory.value))
+    const rawReply = await chatWithAI(windowMessages, buildMemoryText(memory.value, buildRelationText()))
     // 剥离 AI 回复中的 [emotion:xxx] 标签，只显示正文
     messages.value.push({ role: 'assistant', content: stripEmotionTag(rawReply) })
   } catch (err) {
@@ -406,7 +429,7 @@ defineExpose({
   cursor: not-allowed;
 }
 
-/* ===== 移动端适配 ===== */
+/*  移动端适配  */
 @media (max-width: 768px) {
   .chat-header { padding: 10px 12px; }
   .chat-messages { padding: 10px 12px; gap: 8px; }

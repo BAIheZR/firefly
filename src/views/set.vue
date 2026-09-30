@@ -873,7 +873,7 @@ const handleContentOpacityChange = () => {
   bgStore.setContentOpacity(contentOpacityLocal.value)
 }
 
-// ====== 首页专属背景相关方法 ======
+// = 首页专属背景相关方法 =
 const handleToggleHomeBg = () => {
   if (homeBgEnabledLocal.value) {
     // 启用：如果没有设置过首页背景，默认选第一个预设
@@ -1180,7 +1180,7 @@ const onImageWheel = (e) => {
   imgState.scale = Math.max(0.1, Math.min(3, imgState.scale * delta))
 }
 
-// ===== 双指捏合缩放（移动端没有滚轮）=====
+//  双指捏合缩放（移动端没有滚轮）
 // 单独用 touch 事件实现，而不是往上面的 pointer 逻辑里塞：
 // TouchEvent 直接给出 e.touches 列表，取两指距离一步到位，
 // 不必自己按 pointerId 维护集合；且双指落下时把拖动标志关掉即可避免冲突。

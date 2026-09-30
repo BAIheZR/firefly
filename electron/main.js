@@ -31,6 +31,25 @@ if (!gotTheLock) {
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const VITE_DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL
 
+// 是否为开发模式：只有「连着 Vite dev server 跑」才算开发。
+// 打包后的客户端、或直接 electron 跑已构建的 dist，都视为生产 → 屏蔽开发者工具。
+const IS_DEV = !!VITE_DEV_SERVER_URL
+// 兜底开关：排查线上问题时可用 YG_ALLOW_DEVTOOLS=1 临时放行开发者工具
+const ALLOW_DEVTOOLS = IS_DEV || process.env.YG_ALLOW_DEVTOOLS === '1'
+
+// 会触发开发者工具 / 查看源码的快捷键（key 统一小写比较）
+function isDevToolsShortcut(input) {
+  const key = String(input.key || '').toLowerCase()
+  const ctrlOrCmd = input.control || input.meta
+  return (
+    key === 'f12' ||
+    // Ctrl/Cmd + Shift + I / J / C：开发者工具、控制台、元素选择器
+    !!(ctrlOrCmd && input.shift && (key === 'i' || key === 'j' || key === 'c')) ||
+    // Ctrl/Cmd + U：查看网页源码
+    !!(ctrlOrCmd && key === 'u')
+  )
+}
+
 // 固定用户数据目录为 %APPDATA%\yingguangjiyou（卸载重装不丢档）
 // 打包版默认目录是 %APPDATA%\萤光纪游，这里统一固定并做一次迁移，老玩家数据自动搬过来
 const preferredUserData = join(app.getPath('appData'), 'yingguangjiyou')
@@ -101,6 +120,9 @@ function createWindow() {
       sandbox: false,
       // 允许加载本地文件资源
       webSecurity: false,
+      // 客户端（打包 / 已构建）彻底关闭开发者工具，玩家打不开控制台。
+      // 这是最硬的一层：devTools=false 时连 openDevTools() 都无效。
+      devTools: ALLOW_DEVTOOLS,
     },
   })
   // Windows 任务栏图标：在窗口 ready-to-show 后设置，避免被 electron.exe 默认图标覆盖
@@ -116,16 +138,33 @@ function createWindow() {
     } catch (_) { /* ignore older Electron APIs */ }
   })
 
-  // F12 / Ctrl+Shift+I 打开开发者工具（打包后如仍白屏，按 F12 查看控制台错误）
-  mainWindow.webContents.on('before-input-event', (_e, input) => {
+  // 开发者工具快捷键：
+  //   生产（客户端）→ 一律吞掉，玩家按 F12 / Ctrl+Shift+I/J/C / Ctrl+U 无任何反应
+  //   开发         → 保留 F12 / Ctrl+Shift+I 开关，方便调试
+  // 注意：Electron 无内建右键菜单，所以不存在「检查元素」入口；
+  //      菜单栏也已由 Menu.setApplicationMenu(null) 移除，没有「切换开发者工具」菜单项。
+  mainWindow.webContents.on('before-input-event', (e, input) => {
     if (input.type !== 'keyDown') return
-    const f12 = input.key === 'F12'
-    const csi = (input.control || input.meta) && input.shift && (input.key === 'I' || input.key === 'i')
-    if (f12 || csi) {
+    if (!isDevToolsShortcut(input)) return
+
+    if (!ALLOW_DEVTOOLS) {
+      e.preventDefault()
+      return
+    }
+    const key = String(input.key || '').toLowerCase()
+    if (key === 'f12' || ((input.control || input.meta) && input.shift && key === 'i')) {
       if (mainWindow.webContents.isDevToolsOpened()) mainWindow.webContents.closeDevTools()
       else mainWindow.webContents.openDevTools({ mode: 'detach' })
     }
   })
+
+  // 第三道保险：万一有人绕过快捷键把开发者工具打开（例如调试协议），立刻关掉
+  if (!ALLOW_DEVTOOLS) {
+    mainWindow.webContents.on('devtools-opened', () => {
+      try { mainWindow.webContents.closeDevTools() } catch (_) { /* ignore */ }
+    })
+  }
+
   mainWindow.on('closed', () => {
     try { mainWindow.webContents.closeDevTools() } catch (_) { /* ignore */ }
   })
@@ -784,7 +823,9 @@ ipcMain.handle('mp:probe-tunnel', async (_event, addr) => {
 
 ipcMain.handle('mp:create-room', async (_event, { capacity, password }) => {
   try {
-    const result = await createRoom({ capacity, password })
+    // capacity 传 0（或不传）= 房间无上限。房间只聚人，
+    // 「一局游戏几个座位」由前端的「桌」管，见 src/config/multiplayer.js。
+    const result = await createRoom({ capacity: Number(capacity) || 0, password })
     const lanIps = listLocalIps()
     // lanIp 保留为「最佳猜测」，供旧逻辑兜底；界面主要用 lanIps 让用户挑选
     return { success: true, ...result, lanIps, lanIp: lanIps[0]?.address || '' }

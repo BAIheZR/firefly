@@ -443,7 +443,7 @@ function formatGold(n) {
   margin-top: 24px;
 }
 
-/* ====== 移动端：存档选择是全屏弹窗，窄屏要充分利用高度 ====== */
+/* = 移动端：存档选择是全屏弹窗，窄屏要充分利用高度 = */
 @media (max-width: 768px) {
   .slot-select-overlay {
     padding: 10px;

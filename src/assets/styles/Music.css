@@ -40,7 +40,7 @@ audio {
   overflow: hidden;
 }
 
-/* ===== 主容器 ===== */
+/*  主容器  */
 .player-main {
   display: flex;
   width: 100%;
@@ -52,7 +52,7 @@ audio {
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
 }
 
-/* ===== 左侧：唱片 + 歌曲信息 + 操作栏（竖版窄列） ===== */
+/*  左侧：唱片 + 歌曲信息 + 操作栏（竖版窄列）  */
 .player-left {
   width: 380px;
   flex-shrink: 0;
@@ -73,7 +73,7 @@ audio {
 
 /* 左侧无需额外伪元素，渐变由右侧 ::before 实现 */
 
-/* ===== 唱片 ===== */
+/*  唱片  */
 .disc-wrap {
   position: relative;
   display: flex;
@@ -195,7 +195,7 @@ audio {
   border-radius: 3px 3px 2px 2px;
 }
 
-/* ===== 歌曲信息 ===== */
+/*  歌曲信息  */
 .player-info {
   display: flex;
   flex-direction: column;
@@ -227,7 +227,7 @@ audio {
   max-width: 100%;
 }
 
-/* ===== 操作栏 ===== */
+/*  操作栏  */
 .player-ops {
   display: flex;
   flex-direction: column;
@@ -390,7 +390,7 @@ audio {
   background: linear-gradient(135deg, #5BC9A0, #2E8B6F);
 }
 
-/* ===== 右侧：壁纸背景（宽区域） ===== */
+/*  右侧：壁纸背景（宽区域）  */
 .player-right {
   flex: 1;
   display: flex;
@@ -544,7 +544,7 @@ audio {
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== 音频可视化柱状条 ===== */
+/*  音频可视化柱状条  */
 .visualizer {
   display: flex;
   align-items: flex-end;
@@ -566,7 +566,7 @@ audio {
   transition: height 0.06s linear;
 }
 
-/* ===== 播放列表浮层 ===== */
+/*  播放列表浮层  */
 .playlist-overlay {
   position: fixed;
   inset: 0;
@@ -850,12 +850,12 @@ audio {
   }
 }
 
-/* ==========================================================================
+/* ====
    移动端（窄视口）
    注意断点取 768 而不是沿用上面的 760：与 device.js 的 MOBILE_BREAKPOINT 对齐，
    否则 761~768px 这段会出现「JS 认为窄屏、CSS 还按桌面排」的错位。
    —— 上面 760 那段负责内部两栏拆解，这里只处理整页容器。
-   ========================================================================== */
+   ==== */
 @media (max-width: 768px) {
   .music-page {
     min-height: var(--app-vh, 100vh);

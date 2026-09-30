@@ -328,7 +328,7 @@ function stopListenHeartbeat() {
   }
 }
 
-// ============== Audio 元素事件兜底：无论状态怎么变，都正确启/停计时 ==============
+// ==== Audio 元素事件兜底：无论状态怎么变，都正确启/停计时 ====
 function onAudioPlay() {
   // audio play() 被调用 → 浏览器准备开始播（可能还会 waiting，但不要等 playing 才启）
   startListenTimer()
@@ -347,7 +347,7 @@ function onAudioEmptied() { stopListenTimer() }   // 清空 src / 换歌
 function onAudioSuspend() { stopListenTimer() }   // 切后台挂起
 function onAudioAbort()   { stopListenTimer() }   // 中断
 function onAudioStalled() { stopListenTimer() }   // 网络卡住
-// ============== END Audio 事件兜底 ==============
+// ==== END Audio 事件兜底 ====
 
 
 // 面板透明度
