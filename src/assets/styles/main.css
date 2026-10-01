@@ -70,6 +70,38 @@ body {
   background: transparent;
 }
 
+/* = 滚动条：全部隐藏 = 
+   系统默认那条又粗又黑、还带上下箭头，压在窗口最右侧非常碍眼（联机大厅这类
+   长页面一眼就能看到）。这里把它整个抹掉。
+   ★ 滚动能力一点没少，只是不再画出来：滚轮 / 触控板 / 触屏滑动 / 键盘
+     PageUp·PageDown·Home·End·空格 都能继续滚，只是没法用鼠标「拖」那条条了。
+   ★ 没有 scrollbar-gutter 之类的占位补偿，所以隐藏后内容不会被挤动 1px。 */
+html,
+body {
+  /* Firefox / 新版标准属性：宽度归零，滚动条不占布局 */
+  scrollbar-width: none;
+  -ms-overflow-style: none;        /* 旧 Edge / IE 内核 */
+}
+#app,
+* {
+  scrollbar-width: none;
+}
+::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track,
+::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb,
+::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  background: transparent;
+  border: none;
+}
+
 /* Popover*/
 .gold-popover.el-popover.el-popper {
   /* background: linear-gradient(135deg, rgba(63, 169, 138, 0.15), rgba(91, 201, 160, 0.1)); */

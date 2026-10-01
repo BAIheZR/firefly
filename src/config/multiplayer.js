@@ -69,13 +69,15 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     localAddr: '',
     lanIps: [],           // 主进程枚举出的本机 IPv4，含网卡名，供房主挑选
     port: MP_PORT,
-    currentGame: '',      // 房主选中的游戏 id，全员同步
     lastError: '',
     // 最近一次失败的详细信息（地址、每轮尝试结果、耗时），排障时直接看界面上这一行
     lastErrorDetail: '',
     // 排障日志：联机相关问题（连不上、证书被拒、服务端报错）都会记到这里，
     // 既打到控制台，也留在界面上，方便异地好友截图反馈而不必开开发者工具
     logs: [],
+    // 大厅文字聊天记录。放在 store 而不是组件里：进对局页再退回大厅时聊天还在。
+    // 服务端是盲中继不落盘，所以这条纯本地、各端各存一份，离开房间清空。
+    chatMessages: [],
     // 穿透地址探测结果：{ reachable, scheme:'wss'|'ws', tls, blocked, error }
     tunnelProbe: null,
     probing: false,
@@ -175,6 +177,26 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     clearLogs() {
       this.logs = []
       this.lastErrorDetail = ''
+    },
+
+    //  大厅文字聊天 
+    // 追加一条记录。上限 200 条：长时间挂机的房间不该把内存一直撑着，
+    // 老消息自然被挤掉（对聊天连续性没影响，历史本来也不落盘）。
+    addChat(msg) {
+      const text = String(msg?.text ?? '').slice(0, 200)
+      if (!text) return
+      this.chatMessages = [
+        ...this.chatMessages,
+        {
+          name: String(msg.name || '玩家').slice(0, 16),
+          text,
+          // 自己发的：服务端广播时会把我排除在外，这条由发送方本地补上，
+          // 所以 self 只用于「靠右显示」，不参与去重
+          self: !!msg.self,
+          isSys: !!msg.isSys,   // 系统提示（谁进了房间），不带头像色块
+          at: msg.at || 0,
+        },
+      ].slice(-200)
     },
 
     //  连接管理 
@@ -940,9 +962,10 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.localAddr = ''
       this.port = MP_PORT
       this.tunnelProbe = null
+      // 房间都没了，聊天记录跟着清掉，别留到下个房间
+      this.chatMessages = []
       // lanIps 不清空：网卡列表与房间无关，下次创建房间可直接复用
       // logs 也不清空：刚断开时的日志正是排障最需要的东西
-      this.currentGame = ''
       // 房间都没了，桌自然也全没了
       this.sessions = []
       this.sessionId = ''

@@ -1,7 +1,34 @@
 <template>
   <div class="mp-page">
-    <div class="mp-body">
-      <div class="mp-card">
+    <div class="mp-stage">
+      <!-- 左栏：房间里的人。头像在上、名字在下，一列两个往下排 -->
+      <aside class="mp-side mp-side-left">
+        <div class="mp-side-title">
+          <i class="fa-solid fa-users"></i> 房间里的人
+        </div>
+        <div v-if="mp.connected" class="mp-member-list">
+          <div
+            v-for="m in mp.members"
+            :key="m.id"
+            class="mp-member"
+            :title="m.isHost ? `${m.name}（房主）` : m.name"
+          >
+            <span
+              class="mp-avatar"
+              :class="{ 'is-host': m.isHost }"
+              :style="{ background: avatarColor(m.name) }"
+            >
+              {{ avatarText(m.name) }}
+              <em v-if="m.isHost" class="mp-avatar-crown"><i class="fa-solid fa-crown"></i></em>
+            </span>
+            <span class="mp-member-name">{{ m.name }}</span>
+          </div>
+        </div>
+        <div v-else class="mp-side-empty">加入房间<br />后显示成员</div>
+      </aside>
+
+      <div class="mp-body">
+        <div class="mp-card">
         <!-- 顶部标题 -->
         <div class="mp-top">
           <h2 class="mp-title"><i class="fa-solid fa-tower-broadcast"></i> 多人游戏</h2>
@@ -28,11 +55,6 @@
               <i class="fa-solid fa-key"></i> 房间 {{ mp.roomCode }}
             </span>
             <span class="mp-room-bar-count">{{ mp.capacityText }}</span>
-          </div>
-          <div class="mp-member-list">
-            <span v-for="m in mp.members" :key="m.id" class="mp-member">
-              <i class="fa-solid fa-user"></i> {{ m.name }}<em v-if="m.isHost">（房主）</em>
-            </span>
           </div>
           <div class="mp-room-bar-actions">
             <button v-if="mp.selfIsHost" class="btn-secondary" @click="copyInvite">
@@ -150,7 +172,7 @@
         <!-- 说明 -->
         <div class="mp-notice">
           <i class="fa-solid fa-circle-info"></i>
-          <span>联机功能采用房主模式：创建房间者的设备同时作为服务器，需保持软件运行。异地联机请填写内网穿透地址（需 TCP 隧道），同一局域网可留空。游戏由房主选择，选择后全员自动进入对局。</span>
+          <span>联机功能采用房主模式：创建房间者的设备同时作为服务器，需保持软件运行。异地联机请填写内网穿透地址（需 TCP 隧道），同一局域网可留空。</span>
         </div>
 
         <!-- 排障日志：连不上时每一步的尝试结果都记在这里，异地好友截图即可反馈，不必开开发者工具 -->
@@ -171,6 +193,46 @@
           <span>{{ mp.lastErrorDetail }}</span>
         </div>
       </div>
+      </div>
+
+      <!-- 右栏：大厅文字聊天。消息按时间往下堆，最下面永远是最新的一条 -->
+      <aside class="mp-side mp-side-right">
+        <div class="mp-side-title">
+          <i class="fa-solid fa-comments"></i> 大厅聊天
+        </div>
+        <div ref="chatBoxRef" class="mp-chat-list">
+          <div v-if="!mp.chatMessages.length" class="mp-chat-empty">
+            还没有人说话<br />加入房间后就能在这里聊天
+          </div>
+          <div
+            v-for="(c, i) in mp.chatMessages"
+            :key="i"
+            class="mp-chat-msg"
+            :class="{ 'is-self': c.self, 'is-sys': c.isSys }"
+          >
+            <span v-if="!c.isSys" class="mp-chat-name">{{ c.name }}</span>
+            <span class="mp-chat-text">{{ c.text }}</span>
+          </div>
+        </div>
+        <div class="mp-chat-form">
+          <input
+            v-model="chatDraft"
+            class="mp-input mp-chat-input"
+            placeholder="说点什么…"
+            maxlength="120"
+            :disabled="!mp.connected"
+            @keydown.enter.prevent="sendChat"
+          />
+          <button
+            class="mp-chat-send"
+            title="发送"
+            :disabled="!mp.connected || !chatDraft.trim()"
+            @click="sendChat"
+          >
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </aside>
     </div>
 
     <!-- 联机房间弹框：创建房间 / 加入房间 -->
@@ -384,7 +446,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, watch, onMounted, onBeforeUnmount, ref } from 'vue'
+import { reactive, computed, watch, onMounted, onBeforeUnmount, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/config/user'
@@ -413,6 +475,54 @@ const activeTab = ref('create')
 
 // 游戏内已设置的名称
 const username = computed(() => userStore.currentUser)
+
+//  大厅文字聊天 
+// 草稿与消息列表都放在这里，消息本体在 store（mp.chatMessages）里 ——
+// 这样进对局页再退回来，聊天记录还在，不用重新翻。
+const chatBoxRef = ref(null)
+const chatDraft = ref('')
+
+// 头像底色：按昵称算一个稳定色，同一个人在不同机器上颜色一致
+const AVATAR_COLORS = ['#3FA98A', '#E6A23C', '#6B4FD8', '#E8917A', '#4A90D9', '#C8982E']
+function avatarColor(name) {
+  const s = String(name || '玩家')
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return AVATAR_COLORS[h % AVATAR_COLORS.length]
+}
+// 头像里的字：取昵称第一个字符（中文、英文都吃）
+function avatarText(name) {
+  const s = String(name || '玩家').trim()
+  return s ? [...s][0] : '?'
+}
+
+// 消息一进来就把列表顶到底：最下面那条永远是最新发出的
+function scrollChatToBottom() {
+  const box = chatBoxRef.value
+  if (!box) return
+  box.scrollTop = box.scrollHeight
+}
+
+watch(
+  () => mp.chatMessages.length,
+  () => { nextTick(scrollChatToBottom) }
+)
+
+// 发送：走房间级消息（sendRoom），服务端是盲中继，会把这条转给房间里其他人。
+// 自己这条服务端不会回发（它只广播给「除发送者以外」的人），所以本地先补一条。
+function sendChat() {
+  const text = chatDraft.value.trim()
+  if (!text) return
+  if (!mp.connected) {
+    ElMessage.info('先加入房间，才能在大厅聊天')
+    return
+  }
+  const name = username.value || '我'
+  mp.addChat({ name, text, self: true })
+  mp.sendRoom({ kind: 'mp:chat', name, text })
+  chatDraft.value = ''
+  nextTick(scrollChatToBottom)
+}
 
 // 穿透地址是否自带协议头。不带时协议由代码判定（探测结论 > 主机形态），不再一律按明文处理，
 // 所以这里只提示"会自动判定成什么"，不再是"你写错了"的警告。
@@ -529,12 +639,29 @@ onMounted(() => {
 
   // 房间级消息：别的桌凑齐人开打了 —— 我不在那一桌，提示可以去观战
   offGame = mp.onGame((data) => {
+    // 大厅聊天：服务端转回来的是别人的那一条（我的在发送时本地补过了）
+    if (data.kind === 'mp:chat') {
+      mp.addChat({
+        name: data.name || '玩家',
+        text: data.text,
+        self: data.from === mp.selfId,
+      })
+      return
+    }
+    // 进人的系统提示，让聊天区有个自然的开场
+    if (data.kind === 'mp:member-joined' && data.member) {
+      mp.addChat({ isSys: true, text: `${data.member.name} 加入了房间` })
+      return
+    }
     if (data.kind === 'mp:session-start') {
       if (data.sid === mp.sessionId) return   // 我在这桌上，游戏页自己会处理
       const t = mp.sessions.find((x) => x.id === data.sid)
       if (t) ElMessage.info(`「${t.gameName}」人齐开打了 —— 你可以去观战`)
     }
   })
+
+  // 从对局页退回大厅时聊天记录还在，进页面先顶到底（没有新消息，watch 不会触发）
+  nextTick(scrollChatToBottom)
 })
 
 onBeforeUnmount(() => {

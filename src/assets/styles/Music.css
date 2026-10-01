@@ -712,12 +712,11 @@ audio {
   gap: 3px;
   min-height: 0;
 }
+/* 全应用统一不画滚动条（见 main.css 的「滚动条：全部隐藏」）。
+   这条带类名，特异性比通用伪元素高、盖不住，所以就地抹平 —— 滚动照样能用 */
 .pl-scroll::-webkit-scrollbar {
-  width: 5px;
-}
-.pl-scroll::-webkit-scrollbar-thumb {
-  background: rgba(63, 169, 138, 0.3);
-  border-radius: 3px;
+  width: 0;
+  display: none;
 }
 
 .pl-item {

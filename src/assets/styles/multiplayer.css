@@ -5,9 +5,54 @@
   padding: 20px 0 60px;
   box-sizing: border-box;
 }
+/* 三栏骨架：左（房间里的人） / 中（主卡片） / 右（大厅聊天）。
+   左右两栏跟中间卡片等高，聊天区才有一块固定的、能一直顶到底的消息区。 */
+.mp-stage {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 16px;
+}
+/* 侧栏：与 .mp-card 同一套材质，视觉上像三块拼在一起的卡片 */
+.mp-side {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 18px 14px;
+  background: var(--page-content-bg);
+  backdrop-filter: blur(var(--page-blur, 16px));
+  -webkit-backdrop-filter: blur(var(--page-blur, 16px));
+  border: 1px solid rgba(63, 169, 138, 0.35);
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  opacity: var(--page-content-opacity, 1);
+}
+.mp-side-left { flex: 0 0 96px; width: 96px; }
+.mp-side-right { flex: 0 0 296px; width: 296px; }
+.mp-side-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-bottom: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #2c3e35;
+}
+.mp-side-title i { color: #3fa98a; }
+.mp-side-empty {
+  text-align: center;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #9aa9a0;
+}
+
 .mp-body {
-  width: min(920px, 95vw);
-  margin: 10px auto 0;
+  flex: 1 1 520px;
+  width: 100%;
+  max-width: 920px;
+  min-width: 0;
 }
 .mp-card {
   background: var(--page-content-bg);
@@ -497,38 +542,160 @@
   color: #4a5a52;
   font-weight: 600;
 }
+/* 成员：头像在上、名字在下，一列两个往下排；人多时这一列自己滚 */
 .mp-member-list {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 16px;
   flex: 1;
-  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
 }
 .mp-member {
-  display: inline-flex;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(63, 169, 138, 0.3);
-  border-radius: 999px;
-  font-size: 13px;
-  color: #2c3e35;
+  gap: 6px;
+  min-width: 0;
 }
-.mp-member i {
-  color: #3fa98a;
-  font-size: 12px;
+.mp-avatar {
+  position: relative;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 19px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
 }
-.mp-member em {
+/* 房主：头像外圈套一道暖金描边（原来的「（房主）」文字标签撤了） */
+.mp-avatar.is-host {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgba(200, 152, 46, 0.9), 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+.mp-avatar-crown {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  background: var(--c-gold, #C8982E);
+  color: #fff;
+  font-size: 8px;
   font-style: normal;
-  font-size: 11px;
-  color: #e6a23c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.mp-member-name {
+  max-width: 84px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  color: #4a5a52;
+  user-select: text;
 }
 .mp-room-bar-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* = 右栏：大厅聊天 = */
+.mp-chat-list {
+  flex: 1;
+  min-height: 0;          /* 必须给，否则 flex 子项不肯收缩，消息区会无限撑高 */
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-right: 4px;
+  margin-bottom: 12px;
+}
+.mp-chat-empty {
+  text-align: center;
+  padding: 28px 6px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: #9aa9a0;
+}
+.mp-chat-msg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  max-width: 100%;
+}
+/* 自己发的靠右，别人发的靠左 —— 一眼分得清谁说了啥 */
+.mp-chat-msg.is-self { align-items: flex-end; }
+.mp-chat-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  color: #9aa9a0;
+}
+.mp-chat-msg.is-self .mp-chat-name { color: #3fa98a; }
+.mp-chat-text {
+  max-width: 100%;
+  padding: 6px 11px;
+  border-radius: 12px;
+  background: var(--c-cream-deep, #F5F1E8);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #2f3a33;
+  word-break: break-word;
+}
+.mp-chat-msg.is-self .mp-chat-text {
+  background: rgba(63, 169, 138, 0.16);
+  color: #2c3e35;
+}
+/* 系统提示（谁进了房间）：居中、无气泡 */
+.mp-chat-msg.is-sys { align-items: center; }
+.mp-chat-msg.is-sys .mp-chat-text {
+  background: transparent;
+  padding: 2px 4px;
+  font-size: 11.5px;
+  color: #9aa9a0;
+}
+.mp-chat-form {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  flex-shrink: 0;
+}
+.mp-chat-input {
+  flex: 1;
+  min-width: 0;
+  min-height: 38px;
+}
+.mp-chat-send {
+  flex: 0 0 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #3fa98a, #5bc9a0);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.2s;
+}
+.mp-chat-send:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(63, 169, 138, 0.35);
+}
+.mp-chat-send:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 /* 响应式 */
@@ -547,12 +714,17 @@
     padding-bottom: calc(var(--tabbar-h, 56px) + 6px);
   }
 
+  /* 宽度交给三栏骨架去分（.mp-stage / .mp-side），这里只调间距 */
   .mp-body {
-    width: 96vw;
     margin-top: 6px;
   }
 
   .mp-card {
+    border-radius: 14px;
+  }
+
+  .mp-side {
+    padding: 14px 12px;
     border-radius: 14px;
   }
 
@@ -561,6 +733,38 @@
   .mp-select {
     min-height: var(--tap-min, 44px);
     font-size: 16px;
+  }
+}
+
+/* = 中窄屏（≤1180px）：三栏并排放不下，改成上下堆叠 ——
+   成员列变成卡片上方的一横排，聊天落到卡片下方，各自还能滚。 = */
+@media (max-width: 1180px) {
+  .mp-stage {
+    flex-direction: column;
+    align-items: center;
+  }
+  .mp-side-left,
+  .mp-side-right {
+    width: 100%;
+    max-width: 920px;
+    flex: 0 0 auto;
+  }
+  /* 成员排回一横排，别竖着挤成一条长龙 */
+  .mp-member-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 18px 22px;
+    overflow: visible;
+  }
+  .mp-member-name {
+    max-width: 120px;
+  }
+  /* 堆叠时右侧栏不再被卡片拉高，自己给一个定高，消息多了才滚得动 */
+  .mp-chat-list {
+    max-height: 240px;
+  }
+  .mp-side-empty {
+    padding: 6px 0;
   }
 }
 

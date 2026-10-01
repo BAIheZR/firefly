@@ -72,10 +72,15 @@ export async function enterLandscape() {
 // 遮罩上那个按钮的出口：一次点击同时要下全屏和方向锁。
 // ★ 全屏请求先同步发出去，别在它前面 await 任何东西，否则手势就过期了。
 export function enterLandscapeByGesture() {
-  if (!isFsApiAvailable() || document.fullscreenElement) {
-    lockLandscape()
-    return
-  }
+  // ★ 第一枪同步打出去：此刻还在用户点击的手势里，lock() 成功率最高。
+  //   原先是 await 完全屏才锁，await 让「瞬时用户激活」过期后 lock() 会被拒，
+  //   再叠加 webview 拦全屏，遮罩就再也等不到 isPortrait 变 false —— 用户被永久卡死
+  //   在「请把手机横过来」那个页面上，按钮点了也没反应。
+  lockLandscape()
+
+  // 已经是全屏（或直接不支持全屏 API）就只补这一枪，不必再请求全屏
+  if (document.fullscreenElement || !isFsApiAvailable()) return
+
   const p = requestFullscreen()
   if (!p || typeof p.then !== 'function') {
     weOpenedFullscreen = true
@@ -86,7 +91,9 @@ export function enterLandscapeByGesture() {
     weOpenedFullscreen = true
     lockLandscape()
   }).catch(() => {
-    // 全屏被拒（部分 iPad / 权限策略）—— 仍然再试一次锁方向
+    // 全屏被拒（微信/部分 Android 浏览器会拦、权限策略）—— 仍再锁一次（多半无效但无害）。
+    // 由 LandscapeGate 检测到没转成后，给出「请手动旋转」的诚实提示，
+    // 不再让用户对着一个点了没反应的按钮反复点。
     lockLandscape()
   })
 }

@@ -14,9 +14,18 @@ import { createRoom, closeRoom, stopServer } from './multiplayer/wsServer.js'
 let mainWindow = null
 
 // 单实例锁：防止玩家多开游戏导致存档互相覆盖
-const gotTheLock = app.requestSingleInstanceLock()
+// GPU 崩溃自动降级后，本实例是由旧实例 relaunch 唤起的「恢复实例」，旧实例即将退出，
+// 无需再抢锁（否则抢锁失败会被静默退出 → 表现为「闪白屏后马上自动退出」）
+const isGpuRecovery = app.commandLine.hasSwitch('disable-gpu') || process.argv.includes('--disable-gpu')
+const gotTheLock = isGpuRecovery ? true : app.requestSingleInstanceLock()
 if (!gotTheLock) {
-  // 已有实例在运行，直接退出当前实例
+  // 已有实例在运行：不再静默退出，留痕便于排查闪白屏
+  try {
+    const logsDir = path.join(app.getPath('userData'), 'Logs')
+    fs.mkdirSync(logsDir, { recursive: true })
+    fs.appendFileSync(path.join(logsDir, '单实例锁.log'), `[${new Date().toISOString()}] 已有实例占用单实例锁，本实例退出\n`, 'utf8')
+  } catch (_) { /* 诊断日志写入失败不影响退出 */ }
+  console.warn('[main] 已有实例在运行，本实例退出（单实例锁被占用）')
   app.quit()
 } else {
   // 第二个实例被启动时，聚焦到已打开的主窗口

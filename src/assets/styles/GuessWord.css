@@ -411,10 +411,12 @@
   font-weight: 500;
 }
 
-/* 滚动条美化 */
-.history-list::-webkit-scrollbar { width: 6px; }
-.history-list::-webkit-scrollbar-thumb { background: rgba(63,169,138,0.4); border-radius: 3px; }
-.history-list::-webkit-scrollbar-track { background: transparent; }
+/* 全应用统一不画滚动条（见 main.css 的「滚动条：全部隐藏」）。
+   这条带类名，特异性比通用伪元素高、盖不住，所以就地抹平 —— 滚动照样能用 */
+.history-list::-webkit-scrollbar {
+  width: 0;
+  display: none;
+}
 
 /* 响应式 */
 @media (max-width: 680px) {

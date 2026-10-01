@@ -9,7 +9,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const KEEP_LOG_DAYS = 7        // 日志保留天数
 const MAX_RECENT = 300         // 内存中保留的最近日志条数
-const WHITE_SCREEN_MS = 5000   // 白屏看门狗超时（渲染进程迟迟不上报心跳）
+const WHITE_SCREEN_MS = 15000  // 白屏看门狗超时（渲染进程迟迟不上报心跳）；有存档时启动较重，放宽到 15s 避免误杀
 const DEDUPE_MS = 60000        // 同一类错误弹窗去重间隔
 
 let logsDir = ''
@@ -323,9 +323,14 @@ function handleGpuCrash(details) {
   if (!fs.existsSync(gpuFlagFile)) {
     // 第一次 GPU 崩溃：写入标记 → 自动以禁用硬件加速方式重启（标记存在，不会死循环）
     try { fs.writeFileSync(gpuFlagFile, new Date().toISOString()) } catch (_) {}
-    log('WARN', 'GPU', '已写入禁用硬件加速标记，正在自动重启游戏…')
-    app.relaunch({ args: [...process.argv.slice(1), '--disable-gpu'] })
-    app.exit(0)
+    log('WARN', 'GPU', '已写入禁用硬件加速标记，即将以禁用硬件加速方式重启…')
+    // 退避 500ms 再重启：先让当前进程彻底退出并释放单实例锁，
+    // 避免新旧实例抢锁导致恢复实例静默退出（表现为「闪白屏后自动退出」）
+    setTimeout(() => {
+      try { app.relaunch({ args: [...process.argv.slice(1), '--disable-gpu'] }) } catch (_) {}
+      app.exit(0)
+    }, 500)
+    return
   } else {
     // 已降级仍崩溃：交给错误弹窗分析
     reportCritical({

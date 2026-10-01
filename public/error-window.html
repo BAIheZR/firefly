@@ -6,7 +6,11 @@
 <title>萤光纪游 - 错误报告</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { height: 100%; }
+  /* 统一不画滚动条：那条竖条压在窗口右边很碍眼。
+     滚动能力完全保留（滚轮 / 触控板 / 触屏 / 键盘 PageUp·PageDown·Home·End），只是不再显示。
+     本页是独立窗口，加载不到 main.css 里的全局规则，所以就地写一份。 */
+  html, body { height: 100%; scrollbar-width: none; -ms-overflow-style: none; }
+  ::-webkit-scrollbar, *::-webkit-scrollbar { width: 0; height: 0; display: none; }
   body {
     font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif;
     background: linear-gradient(160deg, #eef7f3 0%, #f7fbf9 60%, #fdf6ec 100%);

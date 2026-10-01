@@ -15,6 +15,15 @@
         <i class="fa-solid fa-hand-pointer"></i>
         这台设备不支持自动转屏，请手动把手机转成横向
       </div>
+      <!-- 点了「横屏进入」却仍是竖屏 = 这台设备/浏览器不让锁方向
+           （微信等 webview 会拦全屏、部分平板受权限策略限制）。
+           这种情况必须把话说明白并指出出路，否则按钮会变成一个点了没反应的死按钮，
+           用户就被永久困在遮罩里了。 -->
+      <div v-if="canLock && lockFailed" class="lg-tip">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        已尝试自动横屏，但这台设备/浏览器不允许锁定方向。请把手机<b>手动</b>转成横向即可继续；
+        若转了还是进不去，请点下面的「先回去」。
+      </div>
 
       <button class="lg-btn is-ghost" @click="onBack">
         <i class="fa-solid fa-arrow-left"></i> 先回去
@@ -31,7 +40,7 @@
 //
 // ★ 桌面端（含 Electron）永远不会出现：isMobileDevice 为 false。
 //   窄窗口被拖成竖条也不会误触发。
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { canLockOrientation, isMobileDevice, isPortrait } from '@/utils/device'
 import { enterLandscapeByGesture } from '@/composables/useLandscape'
@@ -43,9 +52,16 @@ const show = computed(() => isMobileDevice && isPortrait.value && !!route.meta.l
 const title = computed(() => route.meta.landscapeTitle || '这个页面')
 // 常量，不是响应式的：能力探测只在启动时做一次
 const canLock = canLockOrientation
+// 点了「横屏进入」之后到底锁上没有 —— 没锁上就换提示文案，别留死按钮
+const lockFailed = ref(false)
 
-function onEnter() {
+async function onEnter() {
+  lockFailed.value = false
   enterLandscapeByGesture()
+  // 浏览器切方向是异步的，留一点时间让它生效；
+  // 800ms 后仍是竖屏，判定为「这台设备锁不上」（多半是 webview 拦了全屏）
+  await new Promise((resolve) => setTimeout(resolve, 800))
+  if (isPortrait.value) lockFailed.value = true
 }
 
 // 不能把用户困在遮罩里 —— 竖屏时也得有路可走。

@@ -345,12 +345,11 @@ watch(
   padding: 18px 22px;
   min-height: 0;
 }
+/* 全应用统一不画滚动条（见 main.css 的「滚动条：全部隐藏」）。
+   这条带类名，特异性比通用伪元素高、盖不住，所以就地抹平 —— 滚动照样能用 */
 .agree-body::-webkit-scrollbar {
-  width: 8px;
-}
-.agree-body::-webkit-scrollbar-thumb {
-  background: rgba(63, 169, 138, 0.4);
-  border-radius: 4px;
+  width: 0;
+  display: none;
 }
 .agree-text {
   font-size: 13px;
