@@ -2603,9 +2603,7 @@ export const CATEGORY_LABELS = {
   other:  { name: '其他', icon: 'fa-solid fa-star' },
 }
 
-// 奖励规则：初始 100 金币，每揭示一条提示扣 10 金币，最低 10 金币
-// idx = 已揭示的提示词数量（1~10）
-// 第 1 条提示默认不扣（开局即给）
+// 奖励规则：初始 100 金币，每揭示一条提示扣 10 金币，最低 10；idx = 已揭示的提示数（1~10，第 1 条不扣）
 export function rewardForHintCount(idx) {
   return Math.max(10, 100 - (idx - 1) * 10)
 }

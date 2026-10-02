@@ -13,9 +13,7 @@ import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js'
 import { isMobileDevice } from '@/utils/device'
 
 //  移动端渲染预算 
-// 本组件的主线是 OutlineEffect —— 它要把整个场景渲染两遍（一遍描边、一遍本体）。
-// 在 90/120Hz 的手机上，RAF 会按屏幕刷新率驱动，等于每秒 120~240 次场景渲染，
-// 发热、掉帧、耗电全部来自这里。人物动作对 30fps 完全够看，故移动端限帧。
+// 主线是 OutlineEffect（场景渲染两遍），90/120Hz 手机上 RAF 会按刷新率驱动，故移动端限帧
 const FRAME_INTERVAL_MS = isMobileDevice ? 1000 / 30 : 0
 let lastRenderAt = 0
 let lastFrameAt = 0
@@ -105,10 +103,7 @@ let hasVmdAnimation = false // 是否有 VMD 在驱动骨骼（用于冲突协�
 // 默认 VMD 动作路径（public 目录映射到根）
 const DEFAULT_VMD_PATH = '/animations/背手.vmd'
 
-// 资源路径适配：开发时页面基准是 http://localhost:3000/，打包后是 file://。
-// file:// 下以 "/" 开头的路径会被当成**磁盘根目录**（/models/1/x.pmx → C:/models/1/x.pmx），
-// 文件根本不存在，three 的 fetch 直接失败 —— 离线包"模型加载失败"就是这么来的。
-// 这里统一转成"相对页面基准"的 URL，两种环境下都能落到正确位置（中文名由 URL 自动编码）。
+// 资源路径适配：打包后 file:// 下以 "/" 开头的路径会被当成磁盘根目录，统一转成相对页面基准的 URL
 const toRuntimeUrl = (p) => {
   if (!p) return p
   if (/^[a-z][a-z0-9+.-]*:/i.test(p)) return p // 已是完整 URL（http: / file: / data: / blob: …），原样返回
@@ -174,10 +169,8 @@ const loadSavedTransform = () => {
 let dragging = false // false | 'move' | 'rotate'
 let dragStart = { px: 0, py: 0, x: 0, y: 0, ry: 0 }
 
-//  双指捏合缩放（移动端没有滚轮，靠这个改大小）
-// 复用 pointer 事件而不另写一套 touchstart：触屏下 pointerdown/move/up 同样会触发，
-// 且自带 pointerId —— 用它数「几根手指按着」，比维护两套监听稳。
-// 双指落下时必须立刻终止拖动，否则两根手指的位移会同时改写 modelTransform，模型会抖。
+//  双指捏合缩放（移动端没有滚轮） 
+// 复用 pointer 事件自带 pointerId 来数手指；双指落下时必须立刻终止拖动，否则模型会抖
 const activePointers = new Map() // pointerId -> { x, y }
 let pinchStartDist = 0
 let pinchStartScale = 1
@@ -278,9 +271,7 @@ let bulbLight = null
 let fillLight = null
 let lightTimer = null
 
-// 根据当前时间应用昼夜光照
-// 白天 6:00 ~ 18:00 用太阳（方向光，顶光略偏）
-// 夜晚 18:00 ~ 次日 6:00 用灯泡（点光源，暖黄，正上方打下）
+// 根据当前时间应用昼夜光照：白天 6:00~18:00 用太阳，夜晚用灯泡
 const applyDayNightLighting = () => {
   const h = new Date().getHours()
   const isDay = h >= 6 && h < 18
@@ -709,9 +700,7 @@ const HAIR_SPRING_PROFILES = {
   side: { response: 0.70, stiffness: 0.085, damping: 0.86, maxAngle: 0.20, wind: 0.006 },
   // 后发/马尾：柔软大摆幅、滞后甩出慢回弹，风噪主要给这里（长发鞭梢效应）
   tail: { response: 0.60, stiffness: 0.060, damping: 0.88, maxAngle: 0.20, wind: 0.003 },
-  // 猫耳流萤 服装（有真实骨骼链）
-  // 呼吸/眨眼等微动画每帧约 0.0002 rad，被阈值挡住 → 肩带在人物静止时绝对不飘；
-  // 转身/拖动模型时每帧增量远超阈值，正常甩动。
+  // 猫耳流萤 服装（有真实骨骼链）；gate 阈值挡住呼吸/眨眼等微动画，人物静止时绝不飘
   // 肩带（背后两条）：无风噪，静止时纹丝不动，只有身体大幅转动/移动才滞后摆动
   sash: { response: 0.90, stiffness: 0.070, damping: 0.88, maxAngle: 0.35, wind: 0, gate: 0.015, posSens: 0.10, posGate: 0.01 },
   // 铃铛：硬挺快回正，转身时有「叮当」小弹跳；静止时同样不动
@@ -1038,9 +1027,7 @@ const updateBlink = () => {
   }
 }
 
-// 强制闭嘴：每帧将嘴巴相关 morph influence 归零
-// 覆盖 VMD 动作驱动的嘴型，让模型始终保持闭嘴状态
-// 常见嘴巴 morph 名（日文/中文）：あいうえお（元音嘴型）、口開、口角、笑い 等
+// 强制闭嘴：每帧将嘴巴相关 morph influence 归零，覆盖 VMD 动作驱动的嘴型
 const MOUTH_MORPH_KEYWORDS = ['あ', 'い', 'う', 'え', 'お', '口', '口角', '笑い', 'ワ', 'ア', 'イ', 'ウ', 'エ', 'オ']
 const forceCloseMouth = () => {
   if (!morphMesh) return
@@ -1081,9 +1068,7 @@ const updateIdleHeadMovement = (dt = 0.016) => {
   }
 }
 
-// 呼吸动画：胸口起伏（骨骼级），优先缩放上半身/胸部骨骼，极轻微整体浮动
-// dt：真实帧间隔（秒）。移动端限帧到 30fps 后，若仍按固定 0.016 累加，
-// 呼吸会变成实际一半速度 —— 故改由调用方传入；默认值保持桌面端原有行为。
+// 呼吸动画：胸口起伏（骨骼级），优先缩放上半身/胸部骨骼，极轻微整体浮动。dt 为真实帧间隔（秒）
 const updateBreathing = (dt = 0.016) => {
   if (!currentModel.value) return
   if (hasVmdAnimation) return // VMD 待机自带呼吸，叠加会双倍

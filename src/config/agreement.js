@@ -1,7 +1,4 @@
-// 「萤光纪游」软件使用同意条款（含免责声明）
-// 用于：首次启动强制同意弹框、设置页查看入口
-// GitHub 官方发布页：https://github.com/BAIheZR/firefly
-
+// 「萤光纪游」软件使用同意条款（含免责声明），用于首次启动强制同意弹框与设置页查看入口
 export const AGREEMENT_REPO_URL = 'https://github.com/BAIheZR/firefly'
 export const AGREEMENT_ACCEPTED_KEY = 'agreement_accepted_v2'
 

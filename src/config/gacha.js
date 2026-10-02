@@ -63,8 +63,7 @@ export function getAllChests() {
 }
 
 //  概率计算 
-// 读取运气值（0 起，无上限；这里按百分比口径，100 = +100%）
-// 返回非负数字
+// 读取运气值（0 起无上限，按百分比口径 100 = +100%），返回非负数字
 export function normalizeLuck(luck) {
   const v = Number(luck)
   if (!Number.isFinite(v) || v <= 0) return 0

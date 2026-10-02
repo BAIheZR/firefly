@@ -74,10 +74,8 @@ if (initResult.needSelect) {
   audioStore.init()      // 加载用户音量并应用到全局 audio（BGM）
 }
 
-// 行动点恢复：每 3 分钟恢复 1 点，享受「行动点恢复」永久加成倍率
-// 恢复上限 = 当前等级的行动点上限（50 + 等级×10）
-// 若当前行动点已达或超过上限（如使用了加行动点物品），则不恢复；只有缺少才恢复
-// 离线恢复：退出游戏后，依据「上次结算时间」到现在的真实流逝时间补发行动点
+// 行动点恢复：每 3 分钟恢复 1 点（乘「行动点恢复」加成倍率），上限 = 50 + 等级×10，
+// 已满则不恢复；离线时按上次结算到现在的真实流逝时间补发
 const ACTION_RECOVER_INTERVAL = 3 * 60 * 1000
 const BASE_ACTION_POINT = 50
 const ACTION_POINT_PER_LEVEL = 10 // 50 * 20% = 10
@@ -134,9 +132,7 @@ let recoverTimer = null
 const AFFECTION_INTERVAL = 5 * 60 * 1000
 let affectionTimer = null
 
-// 退出游戏（关闭窗口）时自动清空本次聊天原文：下次启动从问候语重新开始。
-// 长期记忆卡（ai_chat_memory）不受影响——流萤对开拓者的记忆永久保留，
-// 聊天原文仅在本次游戏会话内展示（关闭抽屉时已整理进记忆卡）。
+// 退出游戏（关闭窗口）时自动清空本次聊天原文，下次启动从问候语重新开始；长期记忆卡不受影响
 const onAppExit = () => {
   clearCurrentChat()
 }

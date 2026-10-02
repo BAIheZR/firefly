@@ -108,11 +108,7 @@ export function recordOpening(profile, r, c) {
   return profile
 }
 
-//  记录：一局结束 
-// winner: 'human' | 'ai' | 'draw'
-// moves: 本局总步数
-// winDirection: 玩家取胜那条线的方向索引（-1 表示未知/非玩家胜）
-// byDoubleThreat: 玩家这局是否靠组合威胁（而非单纯连四）取胜
+//  记录：一局结束（winner 'human'|'ai'|'draw'、moves 总步数、winDirection 玩家取胜线方向 -1 未知、byDoubleThreat 是否靠组合威胁取胜）
 export function recordGame(profile, { winner, moves = 0, winDirection = -1, byDoubleThreat = false }) {
   if (!profile) return profile
   profile.games += 1
@@ -132,13 +128,7 @@ export function recordGame(profile, { winner, moves = 0, winDirection = -1, byDo
   return profile
 }
 
-//  分析：从画像里读出「该怎么调整 AI」
-// 返回 { ready, humanRate, tierShift, habit, comboAware }
-//   ready      画像是否已足够可信（局数够）
-//   humanRate  最近一批对局的玩家胜率
-//   tierShift  +1 加强 / 0 不变 / -1 收手
-//   habit      { r, c, count, dir } 惯用开局点与主导方向；无习惯则为 null
-//   comboAware 是否已学到「此人会用双威胁」
+//  分析：读出该怎么调整 AI，返回 { ready, humanRate, tierShift, habit, comboAware }；habit 为 { r, c, count, dir }
 export function analyzeProfile(profile) {
   const idle = { ready: false, humanRate: 0, tierShift: 0, habit: null, comboAware: false }
   if (!profile) return idle

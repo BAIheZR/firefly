@@ -13,9 +13,7 @@ export const EVENT_INJECT_LIMIT = 30
 export const FACT_TAGS = ['profile', 'preference', 'promise', 'event', 'other']
 // 注入时全量携带的标签（稳定事实，数量少）
 export const ALWAYS_INJECT_TAGS = ['profile', 'preference', 'promise']
-// 当前会话（原文全量保留 + 已整理水位线）
-// 消息原文永久保留在聊天界面中，不再裁剪；summarizedCount 之前的消息已沉淀为长期记忆卡
-// 返回 { messages, summarizedCount }
+// 当前会话：消息原文永久保留不再裁剪，summarizedCount 之前的消息已沉淀为长期记忆卡
 export function loadCurrentChat() {
   try {
     const raw = localStorage.getItem(CURRENT_KEY)
@@ -40,9 +38,8 @@ export function clearCurrentChat() {
   localStorage.removeItem(CURRENT_KEY)
 }
 
-// 长期记忆
-// 结构：{ summary, chronicle, facts: [{ id, text, tag, at, archived }], milestones: [{ key, title, at }], updatedAt }
-// milestones：好感度跨阶段时记录的「关系历程」，供记事本展示与对话注入
+// 长期记忆：{ summary, chronicle, facts: [{ id, text, tag, at, archived }], milestones: [{ key, title, at }], updatedAt }
+// milestones 是好感度跨阶段时记录的「关系历程」，供记事本展示与对话注入
 export function loadMemory() {
   try {
     const raw = localStorage.getItem(MEMORY_KEY)
@@ -134,8 +131,7 @@ export function toggleFactArchived(facts, id) {
 }
 
 //  关系里程碑（好感度跨阶段时写入，形成「关系历程」） 
-// stageInfo：affectionStages.js 的阶段对象（取 key / title）
-// 按 key 去重：同一阶段只记一次（即便好感度掉档后再次跨入，也不重复）
+// stageInfo 取 affectionStages.js 的 key / title；按 key 去重，同一阶段只记一次
 export function appendMilestone(memory, stageInfo) {
   if (!memory || !stageInfo) return memory
   const key = stageInfo.key

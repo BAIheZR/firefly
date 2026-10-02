@@ -759,9 +759,7 @@ const replaySeats = computed(() =>
 const replayLog = computed(() => (view.nightLog || []).slice(-60))
 
 //  赛后复盘素材 
-// 最后一夜：谁被骇入 / 瓦尔特验了谁（好人还是坏人）/ 姬子用了什么 / 流萤照亮了谁。
-// ★ view.judgeInfo 对局进行中恒为 null —— 引擎在 getSnapshot 里只在 phase === OVER 时才填，
-//   所以这里不需要（也不该）再做一次权限判断。
+// 最后一夜：谁被骇入 / 瓦尔特验了谁 / 姬子用了什么 / 流萤照亮了谁（view.judgeInfo 仅在对局结束后才有值）
 const replayRow = computed(() => {
   const g = view.judgeInfo || {}
   const who = (seat, name) => (name ? `${seat} 号 ${name}` : '—')

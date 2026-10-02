@@ -11,9 +11,7 @@ import { installErrorReporting } from '@/services/errorReport'
 import { installDisableCopy } from '@/utils/disableCopy'
 import { isMobileDevice, isTouchDevice, isNarrow } from '@/utils/device'
 
-// 把设备判定结果挂到 <html> 上，供 CSS 走降级分支（详见 assets/styles/main.css 第 6 节）。
-// 之所以用类而不是纯媒体查询：毛玻璃、阴影这类「性能降级」要看设备本身，
-// 桌面端把窗口拖窄不该触发；而布局要看视口宽度，由媒体查询负责。
+// 把设备判定结果挂到 <html> 上供 CSS 走降级分支：性能降级看设备本身（桌面端拖窄不该触发），布局看视口宽度
 const rootEl = document.documentElement
 if (isMobileDevice) rootEl.classList.add('is-mobile')
 if (isTouchDevice) rootEl.classList.add('is-touch')

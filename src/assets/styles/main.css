@@ -196,9 +196,7 @@ html.dark .info-item {
   background: #2a2a2a;
 }
 
-/* = MorphIcon 图标适配 = */
-/* morphicons/vue 的根元素就是 <svg>，class 直接落在 svg 上 */
-/* 让 SVG 继承父元素 font-size，与 Font Awesome 图标尺寸行为一致 */
+/* MorphIcon 图标适配：morphicons/vue 根元素就是 <svg>，让 SVG 继承 font-size 与其他图标一致 */
 svg.morph-icon {
   width: 1em !important;
   height: 1em !important;

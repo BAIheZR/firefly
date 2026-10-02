@@ -60,9 +60,7 @@ export const ALL_ITEMS =[
     {id:104,name:'流萤&战斗服',desc:'老兵烧烤？',price:15000,icon: 'fa-solid fa-bread-slice', category: 'clothing',gameImg: fireflyWar},
 
 ]
-// 好感度上升跨阶段时，把新阶段写入长期记忆的「关系历程」
-// 只记录上升跨越（掉档不回删里程碑，因为它代表「曾经抵达过」）；
-// 全流程 try/catch，记忆写入失败绝不影响好感度主流程
+// 好感度上升跨阶段时把新阶段写入长期记忆的「关系历程」；只记上升（掉档不回删里程碑）
 function recordAffectionMilestones(prev, next) {
   try {
     const from = getAffectionStageIndex(prev)
@@ -217,9 +215,7 @@ export const useInventoryStore = defineStore('inventory', {
       }))
     },
 
-    // 发放/增加物品（开箱奖励、活动赠送等场景）
-    // itemId：商品 id；quantity：数量（默认 1）
-    // 返回 true=成功（含部分成功），false=商品不存在
+    // 发放/增加物品（开箱、活动赠送等）；true=成功（含部分成功），false=商品不存在
     grantItem(itemId, quantity = 1) {
       const item = ALL_ITEMS.find(i => i.id === itemId)
       if (!item) return false
@@ -454,10 +450,7 @@ export const getBuffMultiplier = (typeKey) => {
   return 1 + sum / 100
 }
 
-// 修改玩家好感度（默认 100，无上限，下限 0）
-// 通过 store 响应式 state 更新（Home 页面 computed 自动响应）并持久化
-// 正向增长享受「好感度增长」加成倍率，负向减少不放大
-// 供签到 / 每日上线等场景调用，返回最新好感度
+// 修改玩家好感度（下限 0 无上限，正向增长享受「好感度增长」加成倍率），返回最新好感度
 export const changeAffection = (amount) => {
   const store = useInventoryStore()
   if (typeof amount !== 'number' || amount === 0) return store.affection

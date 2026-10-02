@@ -13,9 +13,8 @@ import { createRoom, closeRoom, stopServer } from './multiplayer/wsServer.js'
 // 主窗口引用（模块级，供单实例 second-instance 回调聚焦使用）
 let mainWindow = null
 
-// 单实例锁：防止玩家多开游戏导致存档互相覆盖
-// GPU 崩溃自动降级后，本实例是由旧实例 relaunch 唤起的「恢复实例」，旧实例即将退出，
-// 无需再抢锁（否则抢锁失败会被静默退出 → 表现为「闪白屏后马上自动退出」）
+// 单实例锁：防止玩家多开游戏导致存档互相覆盖。
+// GPU 崩溃降级后的恢复实例由旧实例 relaunch 唤起，无需再抢锁，否则会被静默退出
 const isGpuRecovery = app.commandLine.hasSwitch('disable-gpu') || process.argv.includes('--disable-gpu')
 const gotTheLock = isGpuRecovery ? true : app.requestSingleInstanceLock()
 if (!gotTheLock) {
@@ -147,11 +146,7 @@ function createWindow() {
     } catch (_) { /* ignore older Electron APIs */ }
   })
 
-  // 开发者工具快捷键：
-  //   生产（客户端）→ 一律吞掉，玩家按 F12 / Ctrl+Shift+I/J/C / Ctrl+U 无任何反应
-  //   开发         → 保留 F12 / Ctrl+Shift+I 开关，方便调试
-  // 注意：Electron 无内建右键菜单，所以不存在「检查元素」入口；
-  //      菜单栏也已由 Menu.setApplicationMenu(null) 移除，没有「切换开发者工具」菜单项。
+  // 开发者工具快捷键：生产一律吞掉（F12 / Ctrl+Shift+I/J/C / Ctrl+U 无反应），开发保留 F12 与 Ctrl+Shift+I
   mainWindow.webContents.on('before-input-event', (e, input) => {
     if (input.type !== 'keyDown') return
     if (!isDevToolsShortcut(input)) return

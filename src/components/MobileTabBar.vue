@@ -28,9 +28,7 @@ import { isNarrow } from '@/utils/device'
 const route = useRoute()
 const router = useRouter()
 
-// 与 NavBar 的右侧按钮保持同一份入口，避免两套导航内容不一致。
-// 比桌面端多一个「主页」：移动端没有顶部 logo 可点，需要明确的回主页入口，
-// 且部分页面（如五子棋、猜字）的返回是回到上一级而不是主页。
+// 与 NavBar 右侧按钮同一份入口；比桌面端多一个「主页」（移动端没有顶部 logo 可点）
 const buttons = [
   { key: 'home', text: '主页', icon: 'fa-solid fa-house', path: '/' },
   { key: 'notify', text: '通知', icon: 'fa-solid fa-bell', path: '/notify' },
@@ -39,9 +37,7 @@ const buttons = [
   { key: 'menu', text: '菜单', icon: 'fa-solid fa-bars', path: '/set' },
 ]
 
-// 高亮判定：主页要精确匹配（否则任何路径都会点亮它），其余用前缀匹配，
-// 这样 /chess、/guess-word 这类从主页进入的子页面仍算在「主页」语义下不亮任何项，
-// 而是由各页自己的返回栏负责导航。
+// 高亮判定：主页精确匹配（否则任何路径都会点亮它），其余用前缀匹配，子页面由各自返回栏导航
 function isActive(btn) {
   if (btn.path === '/') return route.path === '/'
   return route.path === btn.path || route.path.startsWith(btn.path + '/')

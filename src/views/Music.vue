@@ -608,9 +608,7 @@ async function togglePlay() {
   }
 }
 
-// 根据 playMode 计算下一首/上一首索引
-// - order：顺序，越界则回绕（受 loopMode 控制是否真的播末尾/到末尾停）
-// - random：随机选一首（避免连续重复同一首，列表 >1 时）
+// 按 playMode 计算下一首/上一首索引：order 顺序越界回绕（受 loopMode 控制），random 随机避免连重
 function nextIndex() {
   const n = tracks.value.length
   if (n === 0) return -1

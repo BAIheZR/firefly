@@ -15,10 +15,7 @@ let socket = null
 let pendingReconnect = null
 const listeners = new Set()
 
-// 设备级的「客户端身份」。join 时带上它，服务端在宽限期内就能把同一个人认回来
-// （复用同一个 memberId）—— 于是同桌其他人的对局状态（按 memberId 索引）不用重建，
-// 手机切后台再回来在别人眼里就是「没断过」。
-// 用 localStorage 但**不进存档白名单**：它是设备级的，不属于任何存档槽。
+// 设备级的客户端身份，join 时带上它服务端才能在宽限期内认回同一个人
 const CLIENT_ID_KEY = 'mp_client_id'
 function getClientId() {
   try {
@@ -41,44 +38,33 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     selfIsHost: false,
     hostId: '',           // 房主成员 id，非房主上报用
     roomCode: '',
-    // 0 = 房间无上限（默认）。房间只负责把人聚在一起，
-    // 「一局游戏几个座位」由下面的 sessions（桌）管。
+    // 0 = 房间无上限，「一局几个座位」由下面的 sessions 管
     roomCapacity: 0,
     members: [],
-    //  桌（session）：房间里可以同时开着好几局 
-    // 服务端是盲中继、不存任何对局状态，所以桌列表由「房主」当唯一权威：
-    // 所有人把 开桌 / 接受 / 拒绝 / 观战 / 离桌 发给房主，房主算完广播全量 sessions。
-    // 房主永远在线（他掉线房间就关了），所以这个权威不会缺位。
+    // 桌（session）：房间里可以同时开着好几局，桌列表以房主为唯一权威
     sessions: [],
-    // [{ id, gameId, gameName, route, cap, ownerId, ownerName,
-    //    seats:[{id,name}], watchers:[{id,name}], declined:[id],
-    //    status:'open'|'playing', createdAt }]
-    sessionId: '',      // 我当前所在的桌（玩家与旁观者都填它）
+    // 桌结构：[{ id, gameId, gameName, route, cap, ownerId, ownerName, seats, watchers, declined, status, createdAt }]
+    sessionId: '',      // 我当前所在的桌
     sessionRole: '',    // 'player' | 'watcher'
-    // 记下「什么时候进的这一桌」。开桌 / 接受 / 观战都是先本地记桌号、
-    // 再等房主把全量桌列表广播回来，中间那一小段时间里 sessions 里还查不到这一桌 ——
-    // 用它把「刚进的桌」和「已经没了的桌」区分开（见 staleSession）。
+    // 记录进桌时间，用于区分「刚进的桌」和「已经没了的桌」
     sessionSetAt: 0,
-    // 我拒绝过的桌（本地记一份，房主广播回来之前界面就能立刻不弹）
+    // 我拒绝过的桌（本地记一份，房主广播回来前界面就能立刻不弹）
     declinedSids: [],
     hostToken: '',
     inviteLink: '',
-    // 房主对外地址相关：穿透地址优先；留空时用 localAddr（局域网 / 虚拟局域网卡地址）
+    // 房主对外地址：穿透地址优先，留空时用 localAddr
     tunnelAddr: '',
     roomPassword: '',
     localAddr: '',
-    lanIps: [],           // 主进程枚举出的本机 IPv4，含网卡名，供房主挑选
+    lanIps: [],           // 本机 IPv4 列表（含网卡名）
     port: MP_PORT,
     lastError: '',
-    // 最近一次失败的详细信息（地址、每轮尝试结果、耗时），排障时直接看界面上这一行
+    // 最近一次失败的详细信息（地址、每轮尝试结果、耗时）
     lastErrorDetail: '',
-    // 排障日志：联机相关问题（连不上、证书被拒、服务端报错）都会记到这里，
-    // 既打到控制台，也留在界面上，方便异地好友截图反馈而不必开开发者工具
+    // 排障日志：连不上、证书被拒、服务端报错等，留界面上一行方便截图反馈
     logs: [],
-    // 大厅文字聊天记录。放在 store 而不是组件里：进对局页再退回大厅时聊天还在。
-    // 服务端是盲中继不落盘，所以这条纯本地、各端各存一份，离开房间清空。
+    // 大厅文字聊天记录，放 store 里以便进对局页再退回时还在
     chatMessages: [],
-    // 穿透地址探测结果：{ reachable, scheme:'wss'|'ws', tls, blocked, error }
     tunnelProbe: null,
     probing: false,
     // 被系统挂起（切后台）导致断线时的「软挂起」标记：保留房间/桌状态、
@@ -123,10 +109,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     // 正在进行的桌（给别人观战用）
     playingSessions: (s) => s.sessions.filter((x) => x.status === 'playing'),
 
-    // ★ 残留桌号：本地还记着「我在某一桌」，但那张桌在房间里已经不存在了。
-    // 成因很常见：桌主退了对局页 → 整桌解散 → 但其他人手上的桌号还在。
-    // 不识别出来的后果就是死锁：想开新桌时被自己那句「你已经在「XX」里了，先退出」挡住，
-    // 而房间里其实早就没有那张桌了，用户只能重启应用。
+    // 残留桌号：本地记着某桌但房间里已不存在（桌主退页导致整桌解散）
     staleSession: (s) =>
       !!s.sessionId &&
       !s.sessions.some((x) => x.id === s.sessionId) &&
@@ -134,8 +117,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
   },
 
   actions: {
-    //  订阅：对局页与大厅页都通过它接收房间/游戏消息 
-    // fn(data, fromId)；返回取消订阅函数
+    // 订阅房间 / 游戏消息，fn(data, fromId)，返回取消订阅函数
     onGame(fn) {
       listeners.add(fn)
       return () => listeners.delete(fn)
@@ -146,19 +128,14 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       })
     },
 
-    //  发送 
-    // 房间级信令：永远不带桌号，房间里所有人（包括还待在大厅没开局的人）都会收到。
-    // 开桌 / 接受 / 拒绝 / 观战 / 散桌 这类「不属于任何一局」的信令全走这里。
+    // 房间级信令：不带桌号，房间里所有人都会收到
     sendRoom(data, to = null) {
       if (!socket || socket.readyState !== 1) return false
       socket.send(JSON.stringify({ type: 'game', data, to }))
       return true
     },
 
-    // 桌内消息：自动带上当前桌号。
-    // ★ 这是「房间里同时开好几局」的关键：游戏页照旧调 sendGame，一行都不用改，
-    //   消息就自动只落在我所在的那一桌；收端按同一个桌号过滤（见 handleMessage），
-    //   于是几张桌各打各的，互不串台。
+    // 桌内消息：自动带上当前桌号，其余几张桌互不串台
     sendGame(data, to = null) {
       if (!socket || socket.readyState !== 1) return false
       const payload = this.sessionId ? { ...data, sid: this.sessionId } : data
@@ -166,7 +143,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       return true
     },
 
-    //  排障日志 
+    // 排障日志
     pushLog(level, message) {
       const time = new Date().toLocaleTimeString('zh-CN', { hour12: false })
       const line = `[${time}] ${level.toUpperCase()} ${message}`
@@ -179,9 +156,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.lastErrorDetail = ''
     },
 
-    //  大厅文字聊天 
-    // 追加一条记录。上限 200 条：长时间挂机的房间不该把内存一直撑着，
-    // 老消息自然被挤掉（对聊天连续性没影响，历史本来也不落盘）。
+    // 大厅文字聊天：追加一条记录，上限 200 条
     addChat(msg) {
       const text = String(msg?.text ?? '').slice(0, 200)
       if (!text) return
@@ -190,10 +165,9 @@ export const useMultiplayerStore = defineStore('multiplayer', {
         {
           name: String(msg.name || '玩家').slice(0, 16),
           text,
-          // 自己发的：服务端广播时会把我排除在外，这条由发送方本地补上，
-          // 所以 self 只用于「靠右显示」，不参与去重
+          // 自己发的消息：服务端广播时会排除我，这条由发送方本地补上
           self: !!msg.self,
-          isSys: !!msg.isSys,   // 系统提示（谁进了房间），不带头像色块
+          isSys: !!msg.isSys,   // 系统提示（谁进了房间）
           at: msg.at || 0,
         },
       ].slice(-200)
@@ -212,9 +186,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       try { old.close() } catch (_) { /* ignore */ }
     },
 
-    // 按候选地址依次尝试，前一个失败自动换下一个。
-    // 存在的意义：穿透地址该写 ws:// 还是 wss:// 取决于隧道有没有开加密，
-    // 用户不该为此反复试错 —— 写错协议时自动回退一次，连上就完事。
+    // 按候选地址依次尝试，协议写错时自动回退一次
     async connectWithFallback(urls, payload, hint = '') {
       this.closeSocket()
       this.connecting = true
@@ -366,14 +338,10 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       return this.connectWithFallback([url], payload)
     },
 
-    //  从后台回到前台：自动重连 
-    // 手机切后台时系统会掐掉 WebSocket（见 tryConnect 里的 onclose 软挂起分支）。
-    // 回到前台时若处于「软挂起」且手里还有重连凭证，就原地重连 —— 用户视角就是「没断过」。
-    // 由 App.vue 的 visibilitychange 监听调用。
+    // 从后台回到前台：软挂起且有凭证时原地重连，由 App.vue 的 visibilitychange 调用
     onAppVisible() {
       if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return
-      // ★ 这里刻意不清 backgrounded：要留到收到 joined 时再读它，才能判定这次是
-      //   「从后台恢复」，进而做「重新挂回原桌 + 重拉快照」。清它由 joined / 连接失败 / resetRoom 负责。
+      // 刻意不清 backgrounded，留到收到 joined 时再读它
       if (this.reconnectInfo && !this.connected && !this.connecting) {
         this.pushLog('info', '从后台返回，自动重连房间')
         this.connectWithFallback(
@@ -384,9 +352,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }
     },
 
-    //  房主：对外地址 
-    // 拉取本机 IPv4 列表（含虚拟局域网卡）。创建房间前就拉一次，
-    // 房主可以先看清"对方该填哪个地址"再开房。
+    // 房主：拉取本机 IPv4 列表（含虚拟局域网卡），创建房间前先拉一次
     async refreshLocalIps() {
       if (!window.electronAPI?.mpListIps) return this.lanIps
       try {
@@ -646,16 +612,12 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           break
         case 'game': {
           const d = msg.data || {}
-          // 桌内消息按桌过滤：房间里可能同时开着好几局，不是我这桌的包直接丢掉，
-          // 免得别桌的落子 / 发言污染我这一局。
-          // ★ 但「桌信令」必须豁免：它们虽然带着 sid（要指明是哪一桌），却是发给全房间的
-          //   （开桌 / 满员开打 / 全量桌列表）。房主此刻可能正坐在另一桌上打牌，
-          //   若按 sid 一滤，这些信令会被房主自己丢弃，桌列表就再也更新不了了。
+          // 桌内消息按桌过滤，但「桌信令」必须豁免（它们带 sid 却发给全房间）
           const kind = typeof d.kind === 'string' ? d.kind : ''
           const isTableSignal = kind === 'mp:sessions' || kind.startsWith('mp:session')
           // 桌内流量必须「桌号完全对得上」：待在大厅（没桌号）的人也不该收到别桌的落子 / 快照
           if (!isTableSignal && d.sid && d.sid !== this.sessionId) return
-          // 房主广播回来的全量桌列表：所有人（含房主自己）以它为准
+          // 房主广播回来的全量桌列表以它为准
           if (d.kind === 'mp:sessions') {
             this.sessions = Array.isArray(d.sessions) ? d.sessions : []
           }
@@ -672,19 +634,8 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }
     },
 
-    //  桌（session）：房间里可以同时开着好几局 
-    //
-    // 为什么需要「桌」：房间已经无上限了，可一局游戏的座位是有限的
-    // （五子棋 2 人、萤火夜话 6 人）。房间只负责把人聚在一起，真正限流的是桌。
-    // 于是：房主在打牌，其他人也能自己开一桌；谁先坐满谁先开局；
-    // 没进去的人可以观战，或者再开一桌。
-    //
-    // 服务端是盲中继、不存任何对局状态，所以桌列表由「房主」当唯一权威：
-    // 大家把 开桌/接受/拒绝/观战/离桌 发给房主，房主算完广播全量 sessions。
-    // 房主永远在线（他掉线房间就关了），这个权威不会缺位。
-
-    // 开一张桌。开桌即等于向房间内所有人发出邀请（用户要求：默认全员收到）。
-    // 开桌人自动占第一个座位（先到先得）。返回桌号，调用方拿它跳转对局页。
+    // 桌（session）：房间聚人、桌限流，桌列表由房主当唯一权威（服务端是盲中继）
+    // 开一张桌（等于向房间内所有人发出邀请），开桌人自动占第一个座位
     openSession(game, cap) {
       if (!this.connected) return ''
       const sid = `s${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
@@ -753,10 +704,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       }
     },
 
-    //  离开对局页 = 关掉这张桌 
-    // 用户要求：玩家只要退了对局、回到游戏大厅，这张桌就直接关掉。
-    // 不这么做会留下一张没人管的空桌，把所有人卡在「你已经在某桌里了」上。
-    // 分工：自己开的桌 → 散桌（整桌连带清掉）；坐别人的桌 / 观战 → 让出席位。
+    // 离开对局页即关桌：自己开的桌散桌，坐别人的桌让出席位
     exitSession() {
       const sid = this.sessionId
       if (!sid) return
@@ -855,11 +803,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           return this.broadcastSessions()
         }
 
-        // 从后台回来后「重新挂回原来那一桌」。
-        // 为什么需要它：手机切后台时连接会被系统掐掉，服务端随即广播 member-left，
-        // 房主已经把我从座位/观战名单里摘掉了；重连成功后要主动把自己塞回去，
-        // 否则人会「在房间里、却不在任何一桌」，对局页也就收不到后续广播了。
-        // ★ 这里只补位、不 announceStart —— 对局是续着打的，重新喊「开打」会把牌桌重置。
+        // 从后台回来后重新挂回原桌：只补位，不重开
         case 'mp:session-rejoin': {
           const t = find(d.sid)
           if (!t) return this.broadcastSessions()
@@ -962,11 +906,9 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       this.localAddr = ''
       this.port = MP_PORT
       this.tunnelProbe = null
-      // 房间都没了，聊天记录跟着清掉，别留到下个房间
+      // 房间都没了，聊天记录跟着清掉
       this.chatMessages = []
-      // lanIps 不清空：网卡列表与房间无关，下次创建房间可直接复用
-      // logs 也不清空：刚断开时的日志正是排障最需要的东西
-      // 房间都没了，桌自然也全没了
+      // lanIps 与 logs 都不清：网卡列表与房间无关，刚断开的日志正是排障所需
       this.sessions = []
       this.sessionId = ''
       this.sessionRole = ''
@@ -976,16 +918,7 @@ export const useMultiplayerStore = defineStore('multiplayer', {
   },
 })
 
-// 解析「穿透地址」输入，统一成可直接连接的 WebSocket 地址。
-// 为什么需要它：内网穿透工具不一定放开明文 HTTP。例如 SakuraFrp 在国内节点上会以合规为由
-// 支持以下写法：
-//   example.frp.com            → wss://example.frp.com:8765（域名默认走加密，见 guessScheme）
-//   192.168.1.5                → ws://192.168.1.5:8765（IP 默认明文）
-//   example.frp.com:20000      → wss://example.frp.com:20000
-//   ws://example.frp.com:20000 → 原样
-//   wss://example.frp.com:443  → wss://example.frp.com:443
-//   https://example.frp.com    → wss://example.frp.com（https 归一到 wss）
-//   wss://example.frp.com:37515/mp-ws → 保留路径
+// 解析穿透地址：域名默认走 wss、IP 默认 ws，显式协议头原样保留（https 归一到 wss）
 export function resolveTunnelUrl(input, port = MP_PORT, forceScheme = '') {
   const raw = (input || '').trim().replace(/\/+$/, '')
   if (!raw) return ''
@@ -993,7 +926,7 @@ export function resolveTunnelUrl(input, port = MP_PORT, forceScheme = '') {
   let rest = raw
   const m = raw.match(/^(wss?|https?):\/\//i)
   if (m) {
-    // https 与 wss 都对应加密的 WebSocket；http 与 ws 对应明文
+    // https 与 wss 都对应加密的 WebSocket
     scheme = /^(wss|https)$/i.test(m[1]) ? 'wss' : 'ws'
     rest = raw.slice(m[0].length)
   }
@@ -1006,10 +939,7 @@ export function resolveTunnelUrl(input, port = MP_PORT, forceScheme = '') {
   return `${scheme}://${hostPort}${path}`
 }
 
-// 没写协议头时按主机形态猜一个默认值。
-// 依据是实测出来的规律：IP 直连（局域网 / 虚拟局域网）不可能有 TLS，
-// 而域名基本都是穿透隧道，国内节点八成开了「自动 HTTPS」——
-// 猜错也无妨，加入侧会自动回退另一种协议试一次（见 buildWsCandidates）。
+// 没写协议头时按主机形态猜默认值：IP 直连走 ws，域名走 wss（猜错会由加入侧自动回退）
 export function guessScheme(input) {
   const host = extractHost(input)
   if (!host) return 'ws'

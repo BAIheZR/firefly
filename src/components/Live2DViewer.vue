@@ -71,12 +71,7 @@ const headScreenPos = computed(() => {
   }
 })
 
-/**
- * 等 ticker 真正走过 n 帧。
- * 不能用 requestAnimationFrame 代替：maxFPS 限到 30 时 ticker 比 rAF 慢一半，
- * 等 2 个 rAF 很可能一帧都没渲染到，量出来的内容外框就是空的。
- * 另配一个超时兜底，万一 ticker 没跑起来（外部把 active 关了）也不会卡在 loading。
- */
+// 等 ticker 真正走过 n 帧（限帧后 ticker 比 rAF 慢，不能等 rAF）；另配超时兜底防止卡在 loading
 function waitTicks(n, timeoutMs = 800) {
   if (!app) return Promise.resolve()
   const ticker = app.ticker
@@ -95,12 +90,8 @@ function waitTicks(n, timeoutMs = 800) {
   ])
 }
 
-/**
- * 懒加载运行时。
- * 注意 cubism4 入口**顶层**就会检查 window.Live2DCubismCore，缺了就 throw，
- * 所以这里必须动态 import：让「缺核心文件」只影响 Live2D 这一块，
- * 不至于把整个 App 的启动一起带崩；顺带 pixi(≈500KB) 也只在真正用到时才加载。
- */
+// 懒加载运行时：cubism4 入口顶层就会检查 window.Live2DCubismCore，缺了直接 throw，
+// 故必须动态 import，让缺核心文件只影响 Live2D 而不把整个 App 启动带崩（顺带 pixi 也按需加载）
 async function ensureRuntime() {
   if (Live2DModelRef) return
   if (typeof window === 'undefined' || !window.Live2DCubismCore) {
@@ -120,13 +111,8 @@ function hostSize() {
   return { w: el.clientWidth, h: el.clientHeight }
 }
 
-/**
- * 量出「内容外框」——即真正被画出来的部件所占的矩形，而不是整张画布。
- * 为什么需要：Live2D 的 CanvasWidth/Height 往往比角色本身大一圈（PSD 底板尺寸），
- * 直接按画布缩放会让角色偏小；按内容缩放才能在任意屏幕上都大小合适。
- * getDrawableVertices 已经把顶点换算到「画布像素空间」（且已翻转 Y 轴），
- * 与 pixi 的局部坐标同向，所以 getDrawableBounds 的结果可以直接用。
- */
+// 量出「内容外框」——真正被画出来的部件所占矩形，而不是整张画布。
+// Live2D 的 CanvasWidth/Height 往往比角色本身大一圈，按内容缩放才能在任意屏幕上都大小合适
 function measureContent() {
   const im = model.internalModel
   const core = im.coreModel
@@ -200,8 +186,7 @@ function handleResize() {
   layout()
 }
 
-// 尺寸监听要跟着 mount 走，不能只放在 onMounted：
-// 切服装会走 mount() → teardown() 把 observer 断开，不重建的话之后就再也不跟随 resize 了
+// 尺寸监听要跟着 mount 走，不能只放在 onMounted（切服装会重挂，observer 会被断开）
 function setupResizeObserver() {
   if (!hostEl.value || typeof ResizeObserver === 'undefined') return
   if (resizeObserver) resizeObserver.disconnect()
@@ -209,28 +194,15 @@ function setupResizeObserver() {
   resizeObserver.observe(hostEl.value)
 }
 
-/**
- * 修一个「第三方偷改 GL 全局状态、pixi 却不知情」的坑 —— 白屏根因。
- *
- * pixi 的 GlRenderTargetAdaptor 缓存了清屏色（_clearColorCache），只在「缓存值 ≠ 目标值」
- * 时才真正调 gl.clearColor()，否则直接 gl.clear()（见 GlRenderTargetAdaptor.clear）。
- * 而 Live2D 插件渲染 clip mask 时会对离屏 FBO 调 gl.clearColor(1, 1, 1, 0)
- * （cubism4.es.js 里 2 处），把 GL 的全局清屏色改成「白 + 全透明」，却没告诉 pixi。
- * 于是下一帧 pixi 以为 GL 里还是 (0,0,0,0) → 跳过 gl.clearColor → 拿残留的白色去清主画布
- * → 整块 canvas 变成不透明白 rgba(255,255,255,255)，把背景和顶栏全盖住。
- *
- * 这里给 gl.clearColor 套一层，调用完顺手把 pixi 的缓存同步成真值，让缓存重新「说真话」；
- * 下一帧 pixi 自己就会发现不一致并把清屏色掰回透明，主画布恢复正常。
- * 注意：mask 那边照旧用 (1,1,1,0)，Live2D 的裁剪行为一点没动。
- */
+// 修一个「第三方偷改 GL 全局状态、pixi 却不知情」的坑 —— 白屏根因：Live2D 渲染 clip mask 时
+// 调 gl.clearColor(1,1,1,0) 没告诉 pixi，缓存失真后拿残留白色清主画布。这里套一层并同步缓存
 function patchClearColorSync(application) {
   const gl = application?.renderer?.gl
   const cache = application?.renderer?.renderTarget?.adaptor?._clearColorCache
   if (!gl) return false
 
   if (!Array.isArray(cache)) {
-    // 兜底：拿不到 pixi 的内部缓存（例如升级后改了字段名）时，改为每帧渲染前主动
-    // 把清屏色掰回透明。pixi 的 render 挂在 ticker 的 UPDATE_PRIORITY.LOW(-25) 上，
+    // 兜底：拿不到 pixi 的内部缓存时，改为每帧渲染前主动把清屏色掰回透明
     // 这里用 NORMAL(0) 注册，一定比它先跑。本组件固定 backgroundAlpha: 0，所以安全。
     clearColorFallback = () => gl.clearColor(0, 0, 0, 0)
     application.ticker.add(clearColorFallback, undefined, 0)
@@ -365,25 +337,8 @@ function teardown(clearStatus = true) {
   if (clearStatus) status.value = 'idle'
 }
 
-//  视线跟随 
-// canvas 是 pointer-events:none（不能挡住下层 UI），拿不到 pointermove，
-// 所以挂在 window 上，再把屏幕坐标换算成 [-1,1] 的归一化注视点。
-//
-// 为什么不用 model.focus(x, y)：这个 fork 的 focus() 收世界坐标，内部会
-//   ① 用「整张画布」（含 PSD 底板留白）而不是角色内容做归一化；
-//   ② 把结果经 atan2 + cos/-sin 压到「单位圆」上 —— 幅值恒为 1，只剩方向。
-// 于是注视点退化成「画布中心 → 指针」的方向向量：沿屏幕中轴移动时表现为一条
-// 硬翻转线（线以上满幅上看、线以下满幅下看），完全没有比例响应；而这条翻转线
-// 就是画布中心的屏幕位置，会随缩放上下移动 —— 放大后大半个屏幕都落在「上看」
-// 一侧，就成了「鼠标移到屏幕底部、眼睛还看上去」。
-//
-// 所以改为自己算归一化目标，直接喂 lookTo()（它的 x/y 就是 [-1,1] 线性语义）：
-// 以「视口中心」为原点、以半个视口为量程 —— 指针贴到哪条屏幕边就对应那一侧的满偏。
-//
-// 注意：原点必须固定在视口中心，不要叠加 props.offsetX/offsetY、也不要跟角色位置走 ——
-//   原点一旦跟角色绑定，用户把角色放大后拖到只见脸时，原点会被拖出屏幕，
-//   整块屏幕就都落进「原点上方」→ 眼睛死盯上方（这正是「鼠标在屏幕底部还往上看」的成因）。
-//   固定在视口中心后，跟随与缩放/位移彻底解耦，任何构图下都是「贴边满偏、中心平视」。
+//  视线跟随：canvas 是 pointer-events:none 拿不到 pointermove，故挂在 window 上换算 [-1,1] 注视点。
+// 不用 model.focus（收世界坐标、用整张画布归一化并压到单位圆，只剩方向没有比例响应），改为自己算
 function onPointerMove(e) {
   if (!props.followPointer || !props.active || !model || !app) return
   const canvas = app.canvas

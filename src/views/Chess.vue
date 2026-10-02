@@ -227,10 +227,8 @@ const MIN_SHORT_CELL_PX = 11     // 手机横屏的下限：高度本来就紧�
 const BOARD_PAD = 24             // 棋盘四周留白（与 chess.css 的 padding 一致，命中判定用）
 const SOLO_STARS = [[3,3],[3,11],[11,3],[11,11],[7,7]]  // 15 路五个星位
 
-// 棋盘容器的可用宽 / 高，由 ResizeObserver 量得（见下方 watch(boardWrapEl)）。
-// 高度只在「矮视口」下参与格宽换算：那时容器高度由 flex 给定、恒定，
-// 因此不会出现「格子变小 → 容器变矮 → 格子再变小」的塌缩；
-// 桌面端容器高度是内容撑开的，拿它反推会一路缩到底，所以必须靠 isShortViewport 挡住。
+// 棋盘容器的可用宽 / 高，由 ResizeObserver 量得。高度只在「矮视口」下参与换算，
+// 否则桌面端会用内容撑开的高度反推格宽，一路缩到底
 const boardAvailW = ref(0)
 const boardAvailH = ref(0)
 
@@ -239,21 +237,12 @@ const boardAvailH = ref(0)
 const isMp = computed(() => route.query.mp === '1')
 // ?watch=1 = 联机观战：只接收广播看棋，不落子、不能开新局
 const isWatcher = computed(() => isMp.value && route.query.watch === '1')
-// 联机时「谁执黑」看的是**这一桌的桌主**，不是房间的房主 ——
-// 房间里可以同时开着好几张桌，房主可能正在别桌下棋，所以不能再拿 mp.selfIsHost 判定。
-//（直接刷新页面时 query 里带着 sid，restoreSession 会把 store 的桌号补回来）
+// 联机时「谁执黑」看的是这一桌的桌主，不是房间房主（房间可同时开多桌）
 const amTableOwner = computed(() => mp.amTableOwner)
 const boardSize = computed(() => (isMp.value ? MP_BOARD_SIZE : BOARD_SIZE))
 
-// 格宽。桌面端固定 38px，整盘 38×14+48 = 580px；
-// 但 375px 手机上原本只能看到约 9 列，必须横向滚动才能下棋 —— 对棋类来说
-// 「看不到全盘」是硬伤（看不出自己的连子，也没法判断对手意图）。
-// 这里按容器实际宽度反推格宽，让整盘恰好放得下。
-//
-// 为什么改格宽、而不是给棋盘加 transform: scale 缩放：
-// 落子命中判定算的是 (clientX - rect.left) / CELL_PX。用 transform 缩放后
-// rect 是缩放后的尺寸、而 CELL_PX 没变，两者不再同尺度，落子位置会系统性地偏移；
-// 改格宽则所有派生尺寸（网格线、星位、棋子槽、坐标）都从 CELL_PX 推导，天然一致。
+// 格宽：桌面端固定 38px，窄屏按容器实际宽度反推，让整盘恰好放得下。改格宽而非用 transform 缩放：
+// 落子命中判定直接算 (clientX - rect.left) / CELL_PX，缩放后 rect 与 CELL_PX 不同尺度会导致落子偏移
 const CELL_PX = computed(() => {
   // 联机 32 路棋盘本来就是「固定格宽 + 容器内滚动拖动」，保持原样
   if (isMp.value) return MP_CELL_PX
@@ -266,37 +255,31 @@ const CELL_PX = computed(() => {
   if (isShortViewport.value && availH > 0) {
     fit = Math.min(fit, Math.floor((availH - BOARD_PAD * 2) / span))
   }
-  // 矮视口下必须允许比 MIN_SOLO_CELL_PX 更小的格子：手机横屏的高度只够放
-  // 十来个像素的格宽，硬撑到 16px 反而会把页面顶出滚动条（那正是要修的问题）。
-  // 棋子小一点还能点，棋盘被推出屏幕就完全没法玩了。
+  // 矮视口下允许比 MIN_SOLO_CELL_PX 更小的格子，否则硬撑会把页面顶出滚动条
   const floor = isShortViewport.value ? MIN_SHORT_CELL_PX : MIN_SOLO_CELL_PX
   return Math.max(floor, Math.min(SOLO_CELL_PX, fit))
 })
 const stars = computed(() => (isMp.value ? [] : SOLO_STARS))
-// 黑棋固定为 HUMAN，白棋固定为 AI；联机时桌主执黑先行、另一个人执白。
-// 旁观者哪一方都不是 —— 他只是看，落子入口会被挡在 handleClick 之外。
+// 黑棋固定为 HUMAN、白棋固定为 AI；联机时桌主执黑先行，旁观者哪一方都不是
 const myColor = computed(() => {
   if (!isMp.value) return HUMAN
   return amTableOwner.value ? HUMAN : AI
 })
-// 对手 = 同一张桌上除我之外的那个座位。房间无上限后「房间里的另一个人」
-// 已经没有意义了（房间里可能有好几桌、好多人在观战）。
+// 对手 = 同一张桌上除我之外的那个座位（房间里可能有好几桌）
 const opponent = computed(() => mp.mySession?.seats.find((p) => p.id !== mp.selfId) || null)
 
 // 游戏状态
 // idle: 未开始 / player: 对局中 / ai: AI思考中（仅单人） / finishing: 结算等待 / over: 结束
 const state = ref('idle')
 const difficulty = ref('normal')
-// 对手画像：记录玩家的对局习惯（见 utils/gomokuProfile.js），让 AI 能「学人」——
-// 表现是自适应升降档 + 记住你的惯用开局与连子方向。随存档槽隔离。
+// 对手画像：记录玩家的对局习惯，让 AI 自适应升降档并记住惯用开局与连子方向（随存档槽隔离）
 const profile = ref(loadProfile())
 // 自适应开关（设备级偏好）：关掉后 AI 完全按所选难度来，不做任何升降档
 const adaptive = ref(loadAdaptive())
 // 本局是否已记过「玩家首手」/「对局结果」，避免一局重复计入画像
 let openingRecorded = false
 let gameRecorded = false
-// 每局一个随机种子：喂给 AI 决定「分数相近时选哪个点」。
-// 局内固定 → 组件重绘不会让 AI 换手；跨局变化 → 你用同一个套路也不会每局收到同一个应手。
+// 每局一个随机种子：喂给 AI 决定「分数相近时选哪个点」，局内固定、跨局变化
 const aiSeed = ref(0)
 // 棋盘数据必须与 boardSize 对齐：初值按当前模式建，否则模板按 boardSize 取值会越界报错（曾导致联机五子棋白屏）
 const board = ref(createBoard(isMp.value ? MP_BOARD_SIZE : BOARD_SIZE))
@@ -309,9 +292,7 @@ let finishTimer = null
 const hoverCell = ref(null)
 const boardWrapEl = ref(null)
 
-// 量取棋盘容器可用宽度，供 CELL_PX 反推格宽。
-// 用 ResizeObserver 而不是只监听 window.resize：旋屏、窗口改尺寸、
-// 以及将来若有侧栏/抽屉改变布局，都能覆盖到。
+// 量取棋盘容器可用宽度供 CELL_PX 反推格宽；用 ResizeObserver 以覆盖旋屏与布局变化
 let boardRo = null
 function measureBoardAvail() {
   const el = boardWrapEl.value
@@ -417,10 +398,8 @@ function kickIdle() {
 }
 function onIdleActivity() { kickIdle() }
 
-// 离开对局页就把这一桌关掉（用户要求：退回游戏大厅时别留着一张空桌）。
-// ★ 必须用路由守卫而不是 onBeforeUnmount：卸载阶段 route 已经切到新页面，
-//   `route.query.mp` 早就不是 '1' 了 —— 原来那句 `if (isMp.value) mp.leaveSession()`
-//   在真机上是**永远不会执行**的，这正是「所有人都退了、桌还在」的根因。
+// 离开对局页就把这一桌关掉。必须用路由守卫而不是 onBeforeUnmount：
+// 卸载阶段 route 已切到新页面，route.query.mp 早就不是 '1' 了
 onBeforeRouteLeave(() => {
   if (isMp.value) mp.exitSession()
 })

@@ -42,9 +42,7 @@
 </template>
 
 <script setup>
-// 频道区：列车广播（公开）/ 暗网频道（银狼）。
-// 判官固定是帕姆，不再有判官频道 —— 夜间明细收进「赛后复盘」。
-// 只负责显示与输入，不知道任何规则；能不能说话由父组件用 canSend 决定。
+// 频道区：列车广播（公开）/ 暗网频道（银狼），判官固定帕姆，只负责显示与输入，不含任何规则
 import { computed, nextTick, ref, watch } from 'vue'
 
 const props = defineProps({
@@ -84,9 +82,7 @@ const inputPlaceholder = computed(() => {
   return '说点什么，按 Enter 发送'
 })
 
-// 新消息进来后滚到底部。
-// ★ 这里用 el.scrollTop 而不是 scrollIntoView —— 后者会把**所有**可滚动祖先一起滚，
-//   在整页布局里表现为「页面自己跳一下」，很容易被误认为是布局 bug。
+// 新消息进来后滚到底部：用 el.scrollTop 而非 scrollIntoView（后者会把所有可滚动祖先一起滚）
 watch(
   () => props.messages.length,
   () => {

@@ -4,9 +4,7 @@ import { WebSocketServer } from 'ws'
 // 默认 8765，可用环境变量 MP_PORT 覆盖（便于自测时避开正在运行的实例）
 const MP_PORT = Number(process.env.MP_PORT) || 8765
 
-// 成员断线后的「宽限期」：这段时间内保留其成员记录与桌位，等他带同一个 clientId
-// 重连回来复用 memberId —— 手机切后台被系统掐断时，靠它做到「无缝恢复」。
-// 期间不广播 member-left，所以别人的界面不会看到人「走了」。
+// 成员断线后的宽限期：期间保留其成员记录与桌位，等他带同一 clientId 重连复用 memberId（不广播 member-left）
 const MEMBER_GRACE_MS = Number(process.env.MP_MEMBER_GRACE_MS) || 5 * 60 * 1000
 
 let wss = null
@@ -83,11 +81,7 @@ function createRoom({ capacity = 2, password = '' } = {}) {
     const room = {
       roomCode,
       hostToken,
-      // 房间本身不再限制人数（用户要求「无上限」）：房间里能坐多少人就坐多少，
-      // 真正需要限流的是「一局游戏有几个座位」——那是前端「桌（session）」的事，
-      // 房间只负责把人聚在一起、转发消息。
-      // 仍然保留这个字段：传 0（或不传）= 无上限；若哪天要加回上限，
-      // 只要这里给个正数，下面的 handleJoin 校验会自动生效，协议不用改。
+      // 房间不再限制人数（限流交给前端的「桌」）：传 0 或不传 = 无上限，给正数则 handleJoin 自动校验
       capacity: Math.max(0, Number(capacity) || 0),
       password: password || '',
       hostId: null,
@@ -175,8 +169,7 @@ function handleJoin(ws, msg) {
   if (isHost && room.hostId) {
     return send(ws, { type: 'error', message: '房主已在线' })
   }
-  // ★ 断线重连：同一个 clientId 在宽限期内回到本房间 → 复用原来的 memberId。
-  //   这样房间里其他人的对局状态（按 memberId 索引）完全不用重建，用户视角就是「没断过」。
+  // 断线重连：同一 clientId 在宽限期内回到本房间则复用原 memberId，其他人按 memberId 索引的状态不用重建
   //   重连的人从未被广播过 member-left，所以这里也不再广播 member-joined。
   if (clientId && room.pending && room.pending.has(clientId)) {
     const p = room.pending.get(clientId)

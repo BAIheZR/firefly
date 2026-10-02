@@ -1,7 +1,4 @@
-// AI 对话服务层
-// - 配置（baseUrl / apiKey / model）存 localStorage，跨存档槽共享
-// - 请求优先走 Electron 主进程（规避 CORS），浏览器模式下降级为直接 fetch
-
+// AI 对话服务层：配置存 localStorage 跨存档槽共享，请求优先走 Electron 主进程规避 CORS，浏览器下降级 fetch
 const AI_CONFIG_KEY = 'ai_config'
 
 //  人物设定（硬编码，玩家不可修改） 
@@ -71,10 +68,7 @@ export function hasAIConfig() {
   return !!(cfg.baseUrl && cfg.apiKey && cfg.model)
 }
 
-//  对话请求 
-// history: [{ role: 'user' | 'assistant', content }]（短期滑动窗口原文）
-// memorySummary: 长期记忆摘要文本，注入 system prompt
-// 返回 AI 回复文本；未配置时抛出带标记的错误
+//  对话请求：history 为短期滑动窗口原文 [{ role, content }]，memorySummary 注入 system prompt
 export async function chatWithAI(history, memorySummary = '') {
   const config = loadAIConfig()
   if (!config.baseUrl || !config.apiKey || !config.model) {
@@ -144,9 +138,7 @@ ${dialogText}`
   }
 }
 
-//  往事纪要压缩 
-// 事件卡累积过多时，把最老的一批事件压缩进「往事纪要」（编年史），原事件卡随后标记归档
-// 纪要滚动更新、控制在 800 字内，按时间顺序保留所有重要事件
+//  往事纪要压缩：事件卡过多时把最老一批压缩进「往事纪要」（编年史），控制在 800 字内，原卡随后归档
 export async function condenseChronicle(oldChronicle, eventFacts) {
   const config = loadAIConfig()
   if (!config.baseUrl || !config.apiKey || !config.model) {

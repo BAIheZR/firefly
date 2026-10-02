@@ -1,7 +1,4 @@
-// 全站复制防护：默认禁止复制/剪切/右键/选中，仅对白名单（.allow-copy）放行
-// 设计原则：表单控件（input/textarea/contenteditable）天然放行，避免影响输入；
-// 其它元素必须显式加 class="allow-copy" 才能复制。
-
+// 全站复制防护：默认禁止复制/剪切/右键/选中，仅白名单 .allow-copy 放行（表单控件天然放行）
 const ALLOW_SELECTOR = '.allow-copy, .allow-copy *'
 
 function isAllowed(target) {

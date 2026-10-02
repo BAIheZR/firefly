@@ -213,9 +213,8 @@ const ADVANCED_TASKS = [
 
 const TASKS_KEY = 'advanced_tasks_data';
 
-// 统计字段 → 关联任务 的映射（addStat / setStat / recordMax 三个 action 共用）
-// 注意：一个 statKey 更新时，会把**该字段的当前值**直接写进关联任务的 progress。
-// 所以「累计型」用 addStat、「覆盖型」用 setStat、「取最大值型」用 recordMax。
+// 统计字段 → 关联任务 的映射：更新时把该字段当前值直接写进关联任务的 progress，
+// 故累计型用 addStat、覆盖型用 setStat、取最大值型用 recordMax
 const STAT_TASK_MAP = {
   totalSignDays: ['sign_1', 'sign_7', 'sign_30', 'sign_100'],
   totalShopBuys: ['shop_1', 'shop_10'],

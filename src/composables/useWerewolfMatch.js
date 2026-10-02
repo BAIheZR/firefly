@@ -1,18 +1,5 @@
-//  萤火夜话 · 对局编排（composable）
-//
-// 为什么单独抽出来：主页面加上模板已经超过「单文件 900 行」的约定，
-// 而且这段逻辑（引擎状态、联机协议、阶段驱动）与「长什么样」完全无关，
-// 抽出来之后视图层只剩渲染，改 UI 时不会再有机会碰坏规则。
-//
-// ★ 本文件最重要的三条约定（改动前必读）：
-//   1) 权威端（单人 = 本机 / 联机 = 房主）持有一份**非响应式**的引擎 state（含全部人身份）。
-//   2) 所有端（含权威端自己）只渲染 reactive 的 `view`，内容永远来自「快照」。
-//      → UI 层永远拿不到别人的身份，单人/联机/旁观共用同一套渲染路径。
-//   3) 快照是全量覆盖而非增量 → 天然幂等：消息重发、乱序到达都不会出错。
-//      狼人杀消息又多又杂，这里宁可用全量换正确性。
-//
-// 金币：每个客户端只算自己那一份（金币是本地存档），结算函数只吃纯数据，
-//       保证房主与客人算出完全一致的结果。
+// 萤火夜话 · 对局编排（composable）：权威端（单人 = 本机 / 联机 = 房主）持有非响应式引擎 state
+// 所有端只渲染 reactive 的 `view`，内容永远来自全量快照（天然幂等）；金币每个客户端只算自己那一份，结算只吃纯数据
 
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -38,8 +25,7 @@ import {
   getSnapshot, playerOf, computeRewards, passGracePeriod, finish,
 } from '@/utils/werewolf'
 
-// 玩家自己设定的头像（设置页写入的 avatarData，data URL）。
-// 单人局里要用它当"我"的座位头像；联机局不下发（见引擎 getSnapshot 里的说明）。
+// 玩家自己设定的头像（设置页写入的 avatarData），单人局拿它当"我"的座位头像
 function readSelfAvatar() {
   try { return localStorage.getItem('avatarData') || '' } catch (e) { return '' }
 }
@@ -55,9 +41,7 @@ export function useWerewolfMatch() {
   const isMp = computed(() => route.query.mp === '1')
   // ?watch=1 = 联机观战：跟着看这一桌的进程，但不参与（不能发言、投票、行动）
   const isWatcher = computed(() => isMp.value && route.query.watch === '1')
-  // 权威端 = 单人本机，或联机时**这一桌的桌主**（由它推进对局，判官一律是帕姆）。
-  // 注意不能再用「房间房主」：房间里可以同时开着好几桌，房主可能正在别桌玩，
-  // 让它来跑这一桌的引擎就乱套了。
+  // 权威端 = 单人本机，或联机时「这一桌的桌主」（不能用「房间房主」，房间可同时开多桌）
   const authority = computed(() => !isMp.value || mp.amTableOwner)
   const myId = computed(() => (isMp.value ? mp.selfId : 'me'))
 
@@ -137,8 +121,7 @@ export function useWerewolfMatch() {
   const refreshLocal = () => applySnap(getSnapshot(state, myId.value))
 
   //  联机下发 
-  // 只发给「这一桌的人」：座位上的玩家 + 观战的人。
-  // 房间里可能还有别的桌在打，整个 mp.members 群发会把身份相关的私有快照泄漏给无关的人。
+  // 只发给「这一桌的人」（座位上 + 观战），群发会把身份相关的私有快照泄漏给别桌
   function tableAudience() {
     const t = mp.mySession
     if (!t) return []
@@ -205,8 +188,7 @@ export function useWerewolfMatch() {
   }
 
   //  开场选项 
-  // 座位容量：联机时看**这一桌**坐了几个人（房间无上限，但一桌最多 6 个座位）；
-  // 判官是帕姆，不占座位，所以桌上的人全都能参战。
+  // 座位容量：联机时看这一桌坐了几个人（一桌最多 6 个座位，判官帕姆不占座）
   const seatCapacity = computed(() =>
     isMp.value ? (mp.mySession?.seats?.length || 0) : BASE_TOTAL
   )
@@ -350,11 +332,7 @@ export function useWerewolfMatch() {
     waitingMe.value = humanBlocking()
   }
 
-  // 把一个 AI 的夜间动作落到 state 上，返回它实际打算做的事（null = 这一步没它的事）。
-  // ★ 抽出来是因为「自动出手」和「玩家点跳过时补完 AI」两处必须完全一致；
-  //   而且都要覆盖「AI 拿不到目标」的兜底 —— 场上没有可选的人时，
-  //   银狼 / 瓦尔特 / 流萤都会返回 null 目标，不补一次对应的「跳过」，
-  //   这一步就永远等不到一个不会发生的行动，整夜就此卡死。
+  // 把一个 AI 的夜间动作落到 state 上；「自动出手」与「玩家点跳过时补完 AI」两处必须一致
   function applyAiNightAction(id) {
     if (!state) return null
     const act = aiNightAction(state, id, myId.value)
@@ -458,23 +436,13 @@ export function useWerewolfMatch() {
   }
 
   //  防挂机门槛（单人专属）
-  //
-  // 规则来源（用户原话）：「单人模式下，玩家如果没有做出任何推进的事情，
-  // 就会一直卡在那个阶段，这是新功能，防止挂机刷钱的」。
-  // 也就是说「停住」是**期望行为**，不是 bug：
-  //   · 挂机的人推不动梦境 → 对局永远不会 OVER → 结算奖励也就领不到；
-  //   · 想继续玩，就必须真的做点什么（选人 / 发言 / 投票 / 点跳过）。
-  // 判定只做一件事：此刻玩家有没有「欠着的推进义务」。有 → 拦住帕姆的自动推进。
-  //
-  // ★ 联机模式一律不拦（返回 false）：那边人多、进度本来就由大家的动作推着走，
-  //   而且挂机的是别人，不该把整房间一起冻住。
+  // 单人模式下玩家没做推进动作就停在当前阶段（期望行为，防挂机刷钱），判定只看玩家当前有没有欠着的推进义务；联机一律不拦
   function humanBlocking() {
     if (isMp.value || !state) return false
     const me = myId.value
     // 反击要单独放前面：丹恒被放逐的那一刻自己已经不在 alive 里了
     if (state.phase === PHASE.HUNTER) return hunterPending(state, me)
-    // 遗言 / 轮流发言也放在 alive 判断之前 —— 遗言阶段开口的人本来就已经离场了，
-    // 若先判 alive 就会把他们直接放过去，等于玩家一死就能挂着自动跑完。
+    // 遗言 / 轮流发言要放在 alive 判断之前：开口的人本来就已经离场了
     if (state.phase === PHASE.LAST_WORDS || state.phase === PHASE.SPEAKING) {
       return currentSpeaker(state) === me
     }
@@ -671,8 +639,7 @@ export function useWerewolfMatch() {
         break
       }
       //  反击：丹恒被放逐后指定一名乘客同去 
-      // 这一枪同样可能把胜负条件打满（带走最后一只狼 / 最后一只好人），
-      // 所以出去之前必须再判一次。
+      // 这一枪可能把胜负条件打满，出去之前必须再判一次
       case PHASE.HUNTER: {
         const w = evaluateWin(state)
         if (w) return endGame(w)
@@ -711,8 +678,7 @@ export function useWerewolfMatch() {
   }
 
   //  动作入口 
-  // 旁观者一律拦下：所有入口（点座位 / 投票 / 夜间行动 / 发言 / 跳过）
-  // 都先过这一道，免得漏掉某个按钮让旁观者把对局搅乱。
+  // 旁观者一律拦下，所有入口都先过这一道，免得漏掉某个按钮让旁观者搅乱对局
   function blockedByWatch() {
     if (!isWatcher.value) return false
     ElMessage.info('你在观战，不能参与这一局')
@@ -784,9 +750,7 @@ export function useWerewolfMatch() {
   }
 
   //  频道里说话 
-  // ★ 卡片里的「发言面板」已经删掉 —— 所有话都从频道出去（用户要求）。
-  //   轮到自己的那一次「轮流发言 / 遗言」也走这条路径，只是落到引擎里换成 submitSpeak：
-  //   频道里看到的还是同一条消息，但流程会正确地推进到下一位发言人。
+  // 所有话都从频道出去（卡片里的发言面板已删），轮到自己的「轮流发言 / 遗言」也走这条路径
   function onSendChat(text, channel = 'day') {
     if (blockedByWatch()) return
     const myRole = view.me?.roleKey || ''
@@ -847,19 +811,14 @@ export function useWerewolfMatch() {
     else commit('ww:sync', {}, { private: false })
   }
 
-  //  单人模式的「跳过」：直接把当前阶段推过去
-  //
-  // ★ 它同时是「防挂机」的官方出口：玩家不想做事时点一下就行，
-  //   但必须真的点 —— 不点，AI 判官就一直停在这里等你。
-  // 夜晚上只补完「当前这一步」还没行动的 AI（不是整夜），免得跳过一整夜的戏。
+  //  单人模式的「跳过」：直接把当前阶段推过去 
+  // 它同时是防挂机的官方出口；夜晚上只补完「当前这一步」还没行动的 AI（不是整夜）
   function skipPhase() {
     if (blockedByWatch()) return
     if (!state || !authority.value) return
     if (state.phase === PHASE.OVER || state.phase === PHASE.IDLE) return
     if (state.phase === PHASE.NIGHT) {
-      // 玩家自己欠着的那一步：点「跳过」= 明确不使用技能。
-      // 也要落标记，否则 pendingNightAction 会一直认为他还没动，
-      // humanBlocking() 就永远为真 —— 这个「跳过」等于没点。
+      // 玩家自己欠着的那一步：点「跳过」= 明确不使用技能，要落标记否则会一直被认为是欠着的
       const mine = pendingNightAction(state, myId.value)
       const myPass = {
         'wolf-kill': 'wolf-pass',

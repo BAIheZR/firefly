@@ -1,25 +1,12 @@
-// 横屏模式
-//
-// 用户要求：移动端进入「玩」的页面一律横屏，不要竖屏。
-//
-// 现实约束（决定了整个实现的形状）：
-//   · `screen.orientation.lock('landscape')` 只在**全屏**或**已安装的 PWA**里生效；
-//     普通浏览器标签页里调用会被拒。
-//   · `requestFullscreen()` 必须落在用户手势的同一个任务里 —— 路由跳转不算手势，
-//     所以「自动横屏」只能尽力而为，真正可靠的那一枪得由遮罩上的按钮打出去。
-//   · iOS Safari **完全没有** screen.orientation.lock。那边唯一的出路是遮罩提示
-//     用户手动转手机 —— 转过去之后 isPortrait 变 false，遮罩自己就消失了。
-//
-// 因此分工：本模块负责「尽力锁 + 还原」，LandscapeGate 负责「锁不住时提示」。
+// 横屏模式：本模块负责「尽力锁 + 还原」，LandscapeGate 负责「锁不住时提示」。screen.orientation.lock 只在全屏或已安装 PWA 里生效，
+// requestFullscreen 必须在用户手势的同一任务里调用（路由跳转不算手势），iOS Safari 完全没有 lock 只能靠遮罩提示用户手动转手机
 import router from '@/router'
 import { canLockOrientation, isMobileDevice } from '@/utils/device'
 
-// 要横屏的页面只认路由 meta.landscape —— 清单在 router/index.js 里，
-// 别在这儿再列一份路径白名单，否则新增游戏一定漏改一处。
+// 要横屏的页面只认路由 meta.landscape，清单在 router/index.js 里，别在这儿再列白名单
 export const shouldLockRoute = (route) => !!route?.meta?.landscape
 
-// 全屏是不是我们开的。只有我们开的才由我们关 ——
-// 用户可能在设置页自己点过全屏，退出游戏时不该把他的全屏一起关掉。
+// 全屏是不是我们开的：只有我们开的才由我们关，别把用户在设置页自己开的全屏一起关掉
 let weOpenedFullscreen = false
 
 const isFsApiAvailable = () =>
@@ -50,10 +37,7 @@ async function lockLandscape() {
   }
 }
 
-// 尽力横屏（用在路由跳转、回到前台这类**非手势**时机）：
-// 已安装 PWA / 已处于全屏时能成，其余情况静默失败，交给遮罩。
-// ★ 桌面端直接返回：这条需求只针对移动端，桌面窗口该怎么摆是用户自己的事，
-//   顺便也免掉了「桌面浏览器访问 /chess 时莫名尝试全屏」这种怪行为。
+// 尽力横屏（用在路由跳转、回到前台这类非手势时机）：已安装 PWA / 已全屏时能成，其余静默失败交给遮罩
 export async function enterLandscape() {
   if (!isMobileDevice) return false
   if (await lockLandscape()) return true
@@ -69,13 +53,9 @@ export async function enterLandscape() {
   }
 }
 
-// 遮罩上那个按钮的出口：一次点击同时要下全屏和方向锁。
-// ★ 全屏请求先同步发出去，别在它前面 await 任何东西，否则手势就过期了。
+// 遮罩上那个按钮的出口：一次点击同时下全屏和方向锁，全屏请求必须同步发出，否则手势会过期
 export function enterLandscapeByGesture() {
-  // ★ 第一枪同步打出去：此刻还在用户点击的手势里，lock() 成功率最高。
-  //   原先是 await 完全屏才锁，await 让「瞬时用户激活」过期后 lock() 会被拒，
-  //   再叠加 webview 拦全屏，遮罩就再也等不到 isPortrait 变 false —— 用户被永久卡死
-  //   在「请把手机横过来」那个页面上，按钮点了也没反应。
+  // 第一枪同步打出（此刻还在用户点击的手势里，lock() 成功率最高）
   lockLandscape()
 
   // 已经是全屏（或直接不支持全屏 API）就只补这一枪，不必再请求全屏
@@ -91,9 +71,7 @@ export function enterLandscapeByGesture() {
     weOpenedFullscreen = true
     lockLandscape()
   }).catch(() => {
-    // 全屏被拒（微信/部分 Android 浏览器会拦、权限策略）—— 仍再锁一次（多半无效但无害）。
-    // 由 LandscapeGate 检测到没转成后，给出「请手动旋转」的诚实提示，
-    // 不再让用户对着一个点了没反应的按钮反复点。
+    // 全屏被拒（微信/部分 Android 浏览器会拦）仍再锁一次；遮罩检测到没转成后会提示手动旋转
     lockLandscape()
   })
 }

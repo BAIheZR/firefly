@@ -48,11 +48,8 @@ export const SAVE_KEYS = [
   'player_chest_inventory',
 ]
 
-// 明确不入档的 key（防止以后误加）：
-// - current_slot_id  槽位指针本身
-// - pending_greeting 一次性问候标记，restoreData 会主动清掉
-// - ai_chat_current  当前会话聊天记录，条款约定退出软件即清空
-// - theme_dark / official_game_path / music_folder_path / ai_config / agreement_accepted  跨槽位共享的全局偏好与设备级同意状态
+// 明确不入档的 key（防止以后误加）：current_slot_id 槽位指针、pending_greeting 一次性问候标记、
+// ai_chat_current 当前会话聊天、以及 theme_dark / official_game_path / music_folder_path / ai_config / agreement_accepted 等跨槽共享项
 
 function isElectron() {
   return typeof window !== 'undefined' && window.electronAPI?.isElectron === true
@@ -156,9 +153,8 @@ export const useSaveSlotsStore = defineStore('saveSlots', {
       return slots
     },
 
-    //  同步初始化（启动时调用，不依赖异步读文件） 
-    // 说明：localStorage 本身就是「当前活动槽位」的真相源，且 Electron 会持久化 localStorage，
-    // 因此启动时无需从文件恢复，只需确定当前槽位 id 即可。
+    //  同步初始化（启动时调用） 
+    // localStorage 本身就是「当前活动槽位」的真相源（Electron 会持久化），故无需从文件恢复
     syncInit() {
       const raw = localStorage.getItem(CURRENT_SLOT_KEY)
       const id = Number(raw)

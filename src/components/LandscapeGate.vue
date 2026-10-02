@@ -33,13 +33,8 @@
 </template>
 
 <script setup>
-//  横屏遮罩
-//
-// 只做一件事：移动端竖屏 + 当前页面标记了 meta.landscape 时，盖住屏幕提示用户转横向。
-// 方向的锁定与还原全在 composables/useLandscape.js 里，这里只管提示与那一次点击。
-//
-// ★ 桌面端（含 Electron）永远不会出现：isMobileDevice 为 false。
-//   窄窗口被拖成竖条也不会误触发。
+//  横屏遮罩：移动端竖屏 + 页面标记了 meta.landscape 时盖住屏幕提示转横向（方向锁定在 useLandscape.js），
+// 桌面端 isMobileDevice 为 false 永远不会出现
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { canLockOrientation, isMobileDevice, isPortrait } from '@/utils/device'
@@ -58,15 +53,12 @@ const lockFailed = ref(false)
 async function onEnter() {
   lockFailed.value = false
   enterLandscapeByGesture()
-  // 浏览器切方向是异步的，留一点时间让它生效；
-  // 800ms 后仍是竖屏，判定为「这台设备锁不上」（多半是 webview 拦了全屏）
+  // 浏览器切方向是异步的，留出时间；800ms 后仍是竖屏则判定锁不上（多半是 webview 拦了全屏）
   await new Promise((resolve) => setTimeout(resolve, 800))
   if (isPortrait.value) lockFailed.value = true
 }
 
-// 不能把用户困在遮罩里 —— 竖屏时也得有路可走。
-// hash 路由冷启动（PWA 直接打开 /chess）时 history 里只有一个条目，back() 会退出应用，
-// 所以那种情况直接回主页。
+// 不能把用户困在遮罩里：hash 路由冷启动时 history 只有一个条目，back() 会退出应用，故直接回主页
 function onBack() {
   if (window.history.length > 1) router.back()
   else router.push('/')

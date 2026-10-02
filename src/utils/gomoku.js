@@ -44,12 +44,8 @@ export function isBoardFull(board, size = BOARD_SIZE) {
   return true
 }
 
-/**
- * 判定这一手取胜的性质（供对手画像记录）。
- *   dir          取胜那条线所在的方向索引（0 横 / 1 竖 / 2 \ / 3 /），无法判定返回 -1
- *   doubleThreat 是否靠「组合威胁」（双四 / 四三 / 双三）取胜，而不是单纯一条线的连五
- * 注意：必须在棋子已落到盘上之后调用（moveInfo 会把中心格视作刚落下的这一手）。
- */
+// 判定这一手取胜的性质（dir 取胜线方向索引，doubleThreat 是否为组合威胁取胜）
+// 必须在棋子已落到盘上之后调用
 export function classifyWin(board, r, c, player, size = BOARD_SIZE) {
   const info = moveInfo(board, r, c, player, size)
   let dir = -1
@@ -65,9 +61,9 @@ export function createBoard(size = BOARD_SIZE) {
   return Array.from({ length: size }, () => new Array(size).fill(EMPTY))
 }
 
-/* ═══════════════════ 棋型识别 ═══════════════════ */
+// 棋型识别
 
-// 棋型等级：数字越小越强。决策阶梯直接按等级比较。
+// 棋型等级：数字越小越强，决策阶梯直接按等级比较
 const LV_FIVE = 0
 const LV_OPEN_FOUR = 1
 const LV_FOUR = 2
@@ -78,8 +74,8 @@ const LV_TWO = 6
 const LV_ONE = 7
 const LV_NONE = 8
 
-// 按「从强到弱」顺序匹配，命中最强的就返回 —— 不再累加，避免同一片棋重复计分。
-// 窗口固定 9 格：o=自己，x=对手或棋盘边界，.=空；中心一定是 o（假想落子）。
+// 按「从强到弱」顺序匹配，命中最强的即返回，不累加
+// 窗口固定 9 格：o=自己，x=对手或边界，.=空，中心一定是 o
 const SHAPES = [
   { level: LV_FIVE, score: 10000000, re: /ooooo/ },
   { level: LV_OPEN_FOUR, score: 1000000, re: /\.oooo\./ },
@@ -92,19 +88,15 @@ const SHAPES = [
   { level: LV_OPEN_TWO, score: 600, re: /\.oo\.\.|\.\.oo\.|\.o\.o\./ },
   { level: LV_TWO, score: 80, re: /xoo\.\.|\.\.oox|xo\.o\.|\.o\.ox/ },
   { level: LV_ONE, score: 10, re: /\.o\./ },
-  // 兜底项必须留在表里：SHAPE_SCORE 要能索引到 LV_NONE，
-  // 否则 score 会加出 NaN —— 排序与 chooseBlock 会一起失效，AI 退化成乱下。
+  // 兜底项必须留着：SHAPE_SCORE 要能索引到 LV_NONE，否则分数会加出 NaN
   { level: LV_NONE, score: 0, re: null },
 ]
 
-// 每个棋型的全局正则（复用实例，避免每次调用都 new RegExp）
+// 复用正则实例，避免每次调用都 new RegExp
 const SHAPE_REGEX = SHAPES.map((s) => (s.re ? new RegExp(s.re.source, 'g') : null))
 const SHAPE_SCORE = SHAPES.map((s) => s.score)
 
-/**
- * 在 9 格窗口里找该棋型，且**必须含中心格**（index 4）。
- * 不含中心的匹配是「旁边的棋型」，跟这手落子无关，必须排除。
- */
+// 在 9 格窗口里找该棋型，且必须含中心格（index 4）
 function hitsCenter(w, re) {
   re.lastIndex = 0
   let m
@@ -115,7 +107,7 @@ function hitsCenter(w, re) {
   return false
 }
 
-/** 取以 (r,c) 为中心、沿 (dr,dc) 方向的 9 格窗口；出界一律当堵头 'x' */
+// 取以 (r,c) 为中心、沿 (dr,dc) 方向的 9 格窗口，出界当堵头
 function windowAt(board, r, c, dr, dc, player, size) {
   let w = ''
   for (let i = -4; i <= 4; i++) {
@@ -143,11 +135,7 @@ function levelOfWindow(w) {
   return LV_NONE
 }
 
-/**
- * 评估「把 player 的棋子下在 (r,c)」这一手。
- * 会同时给出四个方向的棋型等级，以及这一手能形成几组威胁 ——
- * 「双威胁」判定就靠这里的计数，而不是靠给分加权，后者在旧版里根本判不出来。
- */
+// 评估「把 player 的棋子下在 (r,c)」这一手：四个方向的棋型等级 + 威胁组数
 export function moveInfo(board, r, c, player, size = BOARD_SIZE) {
   const levels = [0, 0, 0, 0]
   let score = 0
@@ -229,10 +217,7 @@ function scoreAt(moves, r, c) {
   return 0
 }
 
-/**
- * 从对手的威胁点里挑一个去堵。
- * 同样能堵住时，优先选「我下在那里自己也能成型」的点 —— 这是不浪费手数的关键。
- */
+// 从对手的威胁点里挑一个去堵，同样能堵住时优先选「我下在那里自己也能成型」的点
 function chooseBlock(threats, mine, rng) {
   let best = threats[0]
   let bestVal = -Infinity
@@ -265,13 +250,10 @@ function pickVaried(list, rng, noise) {
   return ties.length > 1 ? ties[Math.floor(rng() * ties.length)] : sorted[0]
 }
 
-/* ═══════════════════ 难度档位 ═══════════════════ */
+// 难度档位
 
-// 每档只开放「它这个水平该有的视野」。要调难度就动这里，别去动评估函数。
-//
-// 注意两个容易混的概念（老实现就是把它们混成了一个 defenseWeight 才导致难度失真）：
-//   挡五      = 对手下一手就能连五（= 桌上已有冲四），任何难度都必须堵，否则不像「弱」像「坏」；
-//   预防性挡四 = 对手某点能造出四（含活三的两个延伸点）—— 这是「会下棋」的能力，简单档不给。
+// 每档只开放「它这个水平该有的视野」：挡五（对手下一手能连五）任何难度都必须堵，
+// 预防性挡四（对手某点能造出四）只有 normal / hard 才会，简单档不给
 const PROFILES = {
   easy: {
     radius: 1,
@@ -321,25 +303,13 @@ const PROFILES = {
   },
 }
 
-/* ═══════════════════ 对手画像 → 实际档位 ═══════════════════ */
+// 对手画像 → 实际档位
 
 // 档位从弱到强，resolveProfile 用它做上下移动
 const ORDER = ['easy', 'normal', 'hard']
 
-/**
- * 把「用户选的难度」+「对手画像」合成这一局真正使用的档位。
- *
- * 三件事：
- *  1. 自适应（tierShift）：按最近对局胜率，把能力档整体上移/下移一档（夹在 easy~hard 之间）。
- *     这是「AI 在摸你的水平」—— 你赢多了它加强，赢不了它收手。
- *  2. 反制惯用套路（habit）：不改变档位，只影响「它往哪儿落子」（见 habitBonus）。
- *  3. 组合威胁警觉（comboAware）：若画像显示你反复靠双威胁取胜，则即便被降档，
- *     也保留 seeDoubleThreat —— 等于「它记住了你这一手，不会再上第二次当」。
- *
- * @param {string} difficulty 'easy' | 'normal' | 'hard'
- * @param {object|null} profile 对手画像（utils/gomokuProfile.js 产出）
- * @param {{ adaptive?: boolean }} [opts]
- */
+// 把「用户选的难度」+「对手画像」合成这一局真正使用的档位：
+// 按最近胜率整体升降一档（自适应）、按惯用套路微调落点、被反复双威胁取胜时保留 seeDoubleThreat
 export function resolveProfile(difficulty, profile, opts = {}) {
   const adaptive = opts.adaptive !== false
   const key = ORDER.includes(difficulty) ? difficulty : 'normal'
@@ -359,20 +329,15 @@ export function resolveProfile(difficulty, profile, opts = {}) {
     habit: a.habit || null,
   }
 
-  // 被「学习」出来的防守能力：只在不低于平常档时解锁「看得见双威胁」。
-  // 放在 easy 上会喧宾夺主（用户明确选了简单，不该因为历史战绩突然变成硬核），故加档位下限。
+  // 被「学习」出来的防守能力：只在不低于 normal 档时解锁「看得见双威胁」（放在 easy 上会喧宾夺主）
   if (a.comboAware && ORDER.indexOf(prof.effectiveDifficulty) >= ORDER.indexOf('normal')) {
     prof.seeDoubleThreat = true
   }
   return prof
 }
 
-/**
- * 反制「惯用套路」：给候选点加一点分，让 AI 主动去挤占你常落的区域 / 封你惯用的方向。
- *
- * 量级刻意压得很小（几十~一百多），远低于真实棋型分（活三 12000 / 冲四 60000）。
- * 因此它【只在局面静默、没有真正威胁时才起作用】—— 绝不会让 AI 为了追你的习惯而漏挡杀棋。
- */
+// 反制「惯用套路」：给候选点加一点分，让 AI 主动去挤占你常落的区域 / 封你惯用的方向。
+// 量级刻意压得很小（几十~一百多），只在局面静默、没有真正威胁时才起作用
 function habitBonus(habit, board, size, r, c) {
   if (!habit) return 0
   let bonus = 0
@@ -399,7 +364,7 @@ function habitBonus(habit, board, size, r, c) {
   return bonus
 }
 
-/** 我落子后，对手是否立刻拿到成杀/冲四机会（hard 的廉价自查，先用它过一遍） */
+// 我落子后，对手是否立刻拿到成杀 / 冲四机会（hard 的廉价自查，先用它过一遍）
 function isRisky(board, r, c, size) {
   board[r][c] = AI
   const opp = rankedMoves(board, size, HUMAN, 2)
@@ -408,11 +373,9 @@ function isRisky(board, r, c, size) {
   return bad
 }
 
-/* ═══════════════════ 两段杀搜索（hard 专用） ═══════════════════ */
+// 两段杀搜索（hard 专用）
 
-// 只在 hard 上开：算「造四 → 对手唯一应手 → 再杀」这条链路。
-// 这是普通档和困难档最实的差距 —— normal 只会看「眼前有没有成杀点」，
-// 看不到「我先冲四、逼你应一手、然后我成四三」这种两手组合。
+// 只在 hard 上开：算「造四 → 对手唯一应手 → 再杀」这条链路，normal 看不到这种两手组合
 function otherOf(player) {
   return player === AI ? HUMAN : AI
 }
@@ -421,10 +384,7 @@ function fivePointsOf(board, size, player) {
   return rankedMoves(board, size, player, 2).filter((m) => m.info.five)
 }
 
-/**
- * 轮到我走，能否在 depth 手内强制取胜。
- * @returns {{r:number,c:number}|null} 制胜的第一手；赢不了返回 null
- */
+// 轮到我走，能否在 depth 手内强制取胜；赢不了返回 null，制胜则返回第一手坐标
 export function findForcedWin(board, size, player, depth = 2, budget = { n: 40 }) {
   if (depth <= 0 || budget.n <= 0) return null
   budget.n--
@@ -444,14 +404,11 @@ export function findForcedWin(board, size, player, depth = 2, budget = { n: 40 }
     if (!oppCanWin) return win
   }
 
-  // 对手自己已经有成五点：我的冲四「逼不住」他 —— 他会直接连五抢先。
-  // 少了这道校验，算杀会把「对手赢」的局面当成「我能强制赢」返回，hard 反而会去送。
+  // 对手已有连五点：我的冲四「逼不住」他，算下去只会把「对手赢」当成「我能赢」
   if (fivePointsOf(board, size, opp).length > 0) return null
 
   // 逐步：我造四 → 我只有唯一成五点 → 对手被迫堵这一点 → 接着算下一层
-  // ⚠️ 这里数的必须是「我自己的成五点」（fivePointsOf(player)），不是对手的：
-  //    强制手的前提是「对手不得不应我的四」，改数对手的成五点等于在算对手赢，
-  //    整条序列会建在错误前提上，两段杀永远搜不出东西。
+  // 这里数的必须是「我自己的成五点」：改数对手的成五点，整条序列会建在错误前提上
   const forcing = mine.filter((m) => m.info.four > 0)
   for (const m of forcing) {
     if (budget.n <= 0) break
@@ -467,22 +424,15 @@ export function findForcedWin(board, size, player, depth = 2, budget = { n: 40 }
       continue
     }
     // 我有 0 个或 ≥2 个成五点：这一手不构成「唯一应手」的强制序列
-    // （≥2 个说明已成活四，属于「已成杀」，上面 win 分支就该拦下）
     board[m.r][m.c] = EMPTY
   }
   return null
 }
 
-/* ═══════════════════ 威胁空间搜索（困难档专用） ═══════════════════ */
-//
-// 老 hard 只会找「一手成杀」，看不到「连续威胁」这条链路 —— 人只要一直造威胁就能赢，
-// 这正是「AI 不够聪明」的根源。这里补上两件事：
-//   VCF：连续冲四取胜（我造四 → 你被迫应 → 我再造四 …）
-//   VCT：连续威胁取胜（允许用活三当威胁；对方应手有限，每一种都应住才算我赢）
-// 有了这两条，hard 会主动算杀，也会在你组杀时提前拆招。
-//
-// 性能红线：浏览器单线程，绝不能一帧算几秒。所有递归都受「节点预算 + 时间预算」双重限制，
-// 超限立即放弃 —— 宁可少算一手，也不能把界面卡住。
+// 威胁空间搜索（困难档专用）
+
+// 补上「连续威胁」这条链路：VCF 连续冲四取胜、VCT 连续威胁取胜（允许用活三当威胁）。
+// 递归全受「节点预算 + 时间预算」双重限制，超限立即放弃，宁可少算一手也不卡住界面
 const SEARCH_LIMITS = {
   depth: 6,        // 迭代加深的最大深度（每层 = 一手交换）
   tWidth: 8,       // 每层最多考察的威胁手数
@@ -490,11 +440,10 @@ const SEARCH_LIMITS = {
   replyWidth: 3,   // VCT 中对手最多考虑的应手数
   nodes: 220,      // 总节点预算
   timeMs: 500,     // 总时间预算（毫秒）
-  radius: 1,       // 候选搜索半径。取 1 而非 2：威胁点（四/活三的延伸位）必在邻格，
-                   //   半径 1 已够用，而候选量只有半径 2 的约 1/3 —— 这是能吃住性能预算的关键
+  radius: 1,       // 候选搜索半径。取 1 而非 2：威胁点必在邻格，候选量只有半径 2 的约 1/3
 }
 
-/** 只保留「能造威胁」的候选手：直接赢 / 成杀 / 冲四 / 活三 */
+// 只保留「能造威胁」的候选手：直接赢 / 成杀 / 冲四 / 活三
 function threatMoves(board, size, player, habit, width, radius = SEARCH_LIMITS.radius) {
   let list = rankedMoves(board, size, player, radius).filter(
     (m) => m.info.five || m.info.winning || m.info.four > 0 || m.info.openThree > 0
@@ -507,11 +456,8 @@ function threatMoves(board, size, player, habit, width, radius = SEARCH_LIMITS.r
   return width ? list.slice(0, width) : list
 }
 
-/**
- * VCT 中「对手面对我的威胁时，真正需要考虑的应手」。
- * 取两类并集：① 能封住我下一步成杀/造四的点；② 对手自己能立刻反杀的点。
- * 这不是穷举对手所有走法（会爆），而是取「他不得不应付的点」—— 威胁空间搜索的核心近似。
- */
+// VCT 中「对手面对我的威胁时真正需要考虑的应手」：① 能封住我下一步成杀/造四的点，
+// ② 对手自己能立刻反杀的点。取并集而非穷举，这是威胁空间搜索的核心近似
 function forcedReplies(board, size, opp, width) {
   const me = otherOf(opp)
   const blocks = rankedMoves(board, size, me, SEARCH_LIMITS.radius)
@@ -525,10 +471,8 @@ function forcedReplies(board, size, opp, width) {
   return [...map.values()]
 }
 
-/**
- * 威胁空间搜索：轮到我走，能否在 depth 层内强制取胜。赢不了返回 null。
- * 强制手的前提是「对手不得不应」—— 一手若不能迫使对手唯一应对，它就不是强制手，直接跳过。
- */
+// 威胁空间搜索：轮到我走，能否在 depth 层内强制取胜，赢不了返回 null。
+// 强制手的前提是「对手不得不应」—— 一手若不能迫使对手唯一应对，直接跳过
 function threatSearch(board, size, player, depth, ctx, habit) {
   if (depth <= 0 || ctx.budget.n <= 0) return null
   if (Date.now() > ctx.deadline) return null
@@ -542,8 +486,7 @@ function threatSearch(board, size, player, depth, ctx, habit) {
   const five = my.find((m) => m.info.five)
   if (five) return five
 
-  // 2. 对手已经有连五点 → 先手权在对方，我算不出「强制胜」。
-  //    保守返回 null：宁可少算，不可把「对手先赢」误判成「我能赢」（否则 hard 会去送）。
+  // 2. 对手已有连五点 → 先手权在对方，保守返回 null，不把「对手先赢」误判成「我能赢」
   if (fivePointsOf(board, size, opp).length > 0) return null
 
   // 3. 一手成杀（活四 / 双四 / 四三 / 双三），且这一手不能反而把连五点送给对手
@@ -614,9 +557,9 @@ function searchWin(board, size, habit) {
   return null
 }
 
-/* ═══════════════════ 随机源 ═══════════════════ */
+// 随机源
 
-// mulberry32：由 seed 决定的确定性随机。同 seed 同序列 → 局内不会换手。
+// 由 seed 决定的确定性随机，同 seed 同序列 → 局内不会换手
 function makeRng(seed) {
   let a = (seed >>> 0) || 0x9e3779b9
   return function rng() {
@@ -627,18 +570,10 @@ function makeRng(seed) {
   }
 }
 
-/* ═══════════════════ 决策阶梯 ═══════════════════ */
+// 决策阶梯
 
-/**
- * 阶梯顺序（任何难度都按这个顺序走，只是每档允许走到第几级不同）：
- *   1 我自己能连五            → 直接赢
- *   2 对手下一手能连五        → 必须堵（全难度；「挡冲四」就是这一级）
- *   3 我自己能成杀（活四/双四/四三/双三）→ 下手（easy 不开）
- *   4 对手能成杀              → 堵最危险的组合点（只有 hard 单独走这级）
- *   5 对手能造四 / 有活三     → 预防性堵（normal / hard；easy 跳过，这就是它「简单」的地方）
- *   6 我自己做活三 / 冲四     → 进攻
- *   7 静默局面                → 按分数选点；hard 先做一次「会不会送成杀」自查
- */
+// 阶梯顺序（每档允许走到第几级不同）：1 我自己能连五 → 2 对手下一手能连五必须堵 →
+// 3 我自己能成杀 → 4 对手能成杀堵最危险组合点 → 5 对手能造四预防性堵 → 6 我做活三/冲四 → 7 静默按分数选点
 function decide(board, prof, size, rng) {
   const mine = rankedMoves(board, size, AI, prof.radius)
   const theirs = rankedMoves(board, size, HUMAN, prof.radius)
@@ -660,10 +595,7 @@ function decide(board, prof, size, rng) {
     if (w) return [w.r, w.c]
   }
 
-  // 3b. hard 的正式算杀：威胁空间搜索（VCF + VCT，迭代加深）。
-  //     这是困难档真正压过普通档的地方 —— normal 只看「眼前有没有成杀点」，
-  //     这里会算「我造威胁 → 你被迫应 → 我再造威胁」这类两步以上的强制链，
-  //     并带上「反制惯用套路」的习惯加成（同等威胁下优先走你惯用的方向）。
+  // 3b. hard 的正式算杀：威胁空间搜索（VCF + VCT，迭代加深），能算两步以上的强制链
   if (prof.search) {
     const fw = searchWin(board, size, prof.habit)
     if (fw) return [fw.r, fw.c]
@@ -699,9 +631,7 @@ function decide(board, prof, size, rng) {
   const atk = pickVaried(attacks, rng, prof.noise)
   if (atk) return [atk.r, atk.c]
 
-  // 7. 静默局面：攻守加权选点（堵对手的好点 = 自己占住它）
-  //    再叠一份「反制惯用套路」的加成。之所以只加在这里：没有真威胁时这一步的分数本来就低，
-  //    习惯加成正好在这里起作用；而它量级很小，绝不会盖过前面几级的棋型判断。
+  // 7. 静默局面：攻守加权选点（堵对手的好点 = 自己占住它），再叠一份「反制惯用套路」的加成
   const scored = mine.map((m) => ({
     ...m,
     score:
@@ -744,24 +674,13 @@ function decide(board, prof, size, rng) {
   return [0, 0]
 }
 
-/* ═══════════════════ 对外入口 ═══════════════════ */
+// 对外入口
 
-/**
- * 取 AI 的下一手。
- * @param {number[][]} board
- * @param {'easy'|'normal'|'hard'} difficulty 用户选择的难度（会被画像自适应微调）
- * @param {{ size?: number, seed?: number, moveCount?: number, profile?: object, adaptive?: boolean }} [options]
- *   size      棋盘路数（默认按 board.length 推断，兼容 32 路联机棋盘）
- *   seed      每局生成一次；决定「分数相近时选哪个」，让每局应手不重样
- *   moveCount 当前手数；混进随机源，避免同一局里两次同型局面给出同一应手
- *   profile   对手画像（utils/gomokuProfile.js 的 profile 对象），决定自适应与反制套路
- *   adaptive  是否启用自适应升降档（默认 true；关闭后完全按 difficulty 来）
- * @returns {[number, number]|null} [row, col] 保证是盘内空点；满盘无子可下时返回 null
- */
+// 取 AI 的下一手。options：size 棋盘路数、seed 每局生成一次、moveCount 当前手数、
+// profile 对手画像、adaptive 是否启用自适应升降档；返回 [row, col]，满盘无子可下时返回 null
 export function getAIMove(board, difficulty = 'normal', options = {}) {
   const size = options.size || board.length || BOARD_SIZE
-  // 由「用户选的难度 + 对手画像」合成这一手的实际档位：
-  // 自适应升降档、反制惯用套路都在 resolveProfile 里落定
+  // 由「用户选的难度 + 对手画像」合成这一手的实际档位
   const prof = resolveProfile(difficulty, options.profile || null, {
     adaptive: options.adaptive !== false,
   })
@@ -784,8 +703,6 @@ export function getAIMove(board, difficulty = 'normal', options = {}) {
       if (board[r][c] === EMPTY) return [r, c]
     }
   }
-  // 满盘 = 本局已经和棋，没有合法落点。这里返回 null 而不是 [0,0]：
-  // 返回占位坐标会让调用方去覆盖已有棋子，返回 null 才是诚实信号
-  // （Chess.vue 的 runAI 已经有 `if (r == null || c == null) return`）。
+  // 满盘 = 已和棋，没有合法落点，返回 null 而不是占位坐标（调用方已判 null）
   return null
 }

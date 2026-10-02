@@ -1,12 +1,5 @@
-// 好感度阶段定义（单一数据源）
-// 字段说明：
-//   key      阶段稳定标识（里程碑去重、持久化用，勿随意改）
-//   min/max  好感度区间（闭区间，最后一档上限为 Infinity）
-//   title    阶段名
-//   call     流萤对开拓者的称呼
-//   tone     该阶段下流萤的语气倾向（注入对话用）
-//   greeting 跨档时显示的一句台词
-//   color    该阶段的主题色（进度条等）
+// 好感度阶段定义（单一数据源）：key 稳定标识（勿改）、min/max 好感度闭区间、title 阶段名、
+// call 流萤对开拓者的称呼、tone 语气倾向（注入对话用）、greeting 跨档台词、color 主题色
 export const AFFECTION_STAGES = [
   { key: 'stranger', min: 0,    max: 199,      title: '初识', call: '开拓者', tone: '礼貌而略微疏离，仍在小心翼翼地靠近',       greeting: '我们…才刚认识吧，请多关照',     color: '#8aa0b4' },
   { key: 'familiar', min: 200,  max: 499,      title: '熟悉', call: '开拓者', tone: '温和自然，会主动关心你的近况',             greeting: '好像越来越了解你了呢',         color: '#5aa9c9' },

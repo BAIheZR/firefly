@@ -476,9 +476,7 @@ const activeTab = ref('create')
 // 游戏内已设置的名称
 const username = computed(() => userStore.currentUser)
 
-//  大厅文字聊天 
-// 草稿与消息列表都放在这里，消息本体在 store（mp.chatMessages）里 ——
-// 这样进对局页再退回来，聊天记录还在，不用重新翻。
+//  大厅文字聊天（草稿在本地，消息本体在 store 的 mp.chatMessages，进对局再回来也不会丢）
 const chatBoxRef = ref(null)
 const chatDraft = ref('')
 
@@ -580,9 +578,7 @@ async function probeTunnel() {
   await mp.probeTunnel(hostForm.tunnelAddr)
 }
 
-// 只保留已实现的两个游戏：石头剪刀布、海龟汤尚未实现，已移除
-// cap = 一桌几个座位。房间本身无上限，限流的是「桌」：
-// 谁先坐满谁先开打，没座位的人可以观战，或者自己再开一桌。
+// cap = 一桌几个座位（房间本身无上限，限流的是「桌」）；没座位的人可观战或自己再开一桌
 const games = [
   {
     id: 'gomoku',
@@ -632,9 +628,7 @@ onMounted(() => {
     mp.refreshLocalIps()
   }
 
-  // 兜底：回到大厅就代表那一局结束了。残留的桌号会让「点别的游戏」被
-  // 「你已经在『xx』里了，先退出才能开别的桌」拦住 —— 这里统一清掉。
-  // （对局页卸载时也会清一次；这里兜住「桌被别人解散了但我的桌号还在」这类情况）
+  // 兜底：回到大厅说明那一局结束了，清掉残留桌号，否则点别的游戏会被「先退出才能开别的桌」拦住
   if (mp.sessionId) mp.leaveSession()
 
   // 房间级消息：别的桌凑齐人开打了 —— 我不在那一桌，提示可以去观战
@@ -687,19 +681,13 @@ async function createRoom() {
   await mp.createRoom(0, hostForm.roomPassword.trim(), hostForm.tunnelAddr)
 }
 
-// 连接成功 → 自动收起联机配置弹框。
-// ★ 统一放在这里，而不是各按钮的回调里：「创建房间」和「加入房间」两条路径都得管，
-//   之前只有创建那条手动关，加入房间连上了弹框还杵着，得自己点叉。
-//   放在 watch 里还顺带保证「正在连接」时弹框仍然开着 —— 连不上时的报错
-//   与排障日志都还在眼前，不会一按按钮就没了。
+// 连接成功 → 自动收起配置弹框；放 watch 里可同时覆盖「创建」与「加入」两条路径，且连接中仍保持打开
 watch(
   () => mp.connected,
   (v) => { if (v) configDialogVisible.value = false }
 )
 
-// 加入者加入房间
-// 地址协议写反（ws:// 与 wss:// 弄混）时，store 内部会自动回退另一种协议再试一次，
-// 所以这里不需要提前纠错，交给连接过程处理并存进日志。
+// 加入者加入房间：地址协议写反时 store 内部会自动回退另一种协议再试，这里不需要提前纠错
 function joinRoom() {
   const addr = joinForm.serverAddr.trim()
   const code = joinForm.roomCode.trim()
@@ -710,9 +698,7 @@ function joinRoom() {
   mp.joinRoom(addr, code, joinForm.roomPassword.trim())
 }
 
-// 解析邀请链接
-// 注意：必须保留协议头。穿透走 TLS（如 SakuraFrp 启用了自动 HTTPS）时链接是 wss://，
-// 若只取 u.host，加入时会被拼回明文 ws://，握手必然失败。
+// 解析邀请链接：必须保留协议头，否则 wss:// 会被拼回明文 ws:// 导致握手失败
 function parseInviteLink(link) {
   const s = (link || '').trim()
   if (!s) return null
@@ -779,8 +765,7 @@ function confirmLeave() {
 }
 
 //  桌（= 一局游戏） 
-// 房间无上限，限流的是桌：房间里谁都能开一桌，开桌即邀请全员；
-// 先到先得，席位坐满就开打；没座位的人可以观战，或者自己再开一桌。
+// 房间里谁都能开一桌，先到先得、席位坐满就开打；没座位的人可观战或自己再开一桌
 function canJoin(t) {
   return t.status === 'open' && t.ownerId !== mp.selfId && !t.seats.some((p) => p.id === mp.selfId)
 }

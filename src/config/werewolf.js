@@ -1,11 +1,5 @@
-//  萤火夜话 · 配置层 
-//
-// 只放「纯数据 + 纯函数」：角色定义、人数配置、术语常量、身份池生成、奖励表。
-// 不 import Vue / Pinia / 任何组件，也不 import 本目录外的业务模块 ——
-// 这样它可以被 utils/werewolf.js 与视图层同时复用，也方便日后单独跑脚本验证。
-//
-// 本版本只运营「6 人基本局」（7~10 人的配置表一并保留，作为后续扩展的现成数据）。
-
+//  萤火夜话 · 配置层：只放纯数据与纯函数（角色定义、人数配置、术语常量、身份池生成、奖励表），不依赖 Vue/Pinia/组件，
+// 可被 utils/werewolf.js 与视图层同时复用。本版本只运营 6 人基本局（7~10 人配置保留作扩展数据）
 import ylCard from '@/images/game/wolf/yl_card.jpg'
 import ylIcon from '@/images/game/wolf/yl.png'
 import wrtCard from '@/images/game/wolf/wrt_card.png'
@@ -39,8 +33,7 @@ export const ROLE = {
 }
 
 //  角色定义 
-// card 为空字符串 = 素材目录里没有整张卡（开拓者只有 60px 小图标），
-// 由视图层用 CSS 兜底画一张，别硬把小图标拉伸成卡片（60px 放大会糊成一团）。
+// card 为空字符串 = 素材目录没有整张卡（开拓者只有 60px 小图标），由视图层用 CSS 兜底画一张
 export const ROLES = {
   [ROLE.WOLF]: {
     key: ROLE.WOLF,
@@ -193,9 +186,7 @@ export const PHASE = {
 // 想调节奏只改这一个数，UI 与计时都会跟着走。
 export const SPEAK_MS = 35000
 
-// 各阶段默认时限（毫秒）。帕姆判官按这个倒计时自动推进。
-// ★ 夜晚是一个「阶段」，但内部还要按角色一步步走（见 NIGHT_STEPS），
-//   所以 NIGHT 这里的数字只在「整夜兜底」时用，正常倒计时走 NIGHT_STEP_MS。
+// 各阶段默认时限（毫秒），帕姆按此倒计时自动推进。夜晚内部按角色分步走，NIGHT 只在整夜兜底时用
 export const PHASE_MS = {
   [PHASE.NIGHT]: 60000,
   [PHASE.DAY]: 8000,      // 公布夜间结果，自动过场（单人模式可点「跳过」直接过）
@@ -307,10 +298,7 @@ export const REWARDS = {
   QUIT_GRACE_MS: 3 * 60 * 1000,
 }
 
-//  流萤保护语义开关 
-// true  = 萤火只是「延迟一死」：被照亮者当晚不死，但下一个梦醒仍会公布离场
-// false = 萤火是「完全救下」：被照亮者当晚免死，且之后再也不会因此离场
-// 文案（技能说明、播报）会跟着这条开关变，改这里一处即可。
+//  流萤保护语义开关：true = 萤火只是「延迟一死」（被照亮者当晚不死，下一个梦醒仍会公布离场）
 export const FIREFLY_DELAY_DEATH = true
 
 // 参与满 3 分钟的判定：开始时间来自对局启动瞬间（本地时钟即可，联机不要求精确同步）
@@ -349,9 +337,7 @@ export function pickAiNames(count, seed = []) {
 }
 
 //  座位头像池 
-// 取素材目录里「不带 card」的小图，随机分给 AI 乘客当头像。
-// ★ 刻意与身份无关：如果按身份取角色图，开局看一眼头像就知道谁是银狼。
-// 丹恒没有小图（目录里只有 dh_card.png），所以不在池子里 —— 用到时由视图层兜底。
+// 取素材目录里「不带 card」的小图随机分给 AI 乘客，刻意与身份无关（否则看头像就知道谁是银狼）
 export const SEAT_AVATARS = [ylIcon, jzIcon, ktzIcon, wrtIcon, lyIcon]
 
 // 给一批座位随机取头像（可重复；数量超过池子就循环补齐）

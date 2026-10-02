@@ -38,9 +38,7 @@ export const useMusicStore = defineStore('music', () => {
   }
 })
 
-// 音频设置 store：主音量 × BGM 音量 → 应用到 #global-audio（全局音乐播放器）
-// 音效 (sfxVolume) 暂不实现（仅 UI 显示）
-// 与 useMusicStore 同域：均围绕全局 #global-audio 元素，合并到同一文件便于维护
+// 音频设置 store：主音量 × BGM 音量 → 应用到 #global-audio；音效 sfxVolume 暂未实现（仅 UI 显示）
 export const useAudioSettingsStore = defineStore('audioSettings', () => {
   const SETTINGS_KEY = 'userSettings'
   const masterVolume = ref(80)

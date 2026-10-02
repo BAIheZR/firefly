@@ -24,7 +24,7 @@ import {
 
 //  小工具 
 
-// 对局内的自增 id（聊天消息去重、事件标识都靠它）
+// 对局内的自增 id
 function bump(state, prefix = 'm') {
   state._seq = (state._seq || 0) + 1
   return `${prefix}${state._seq}`
@@ -33,8 +33,7 @@ function bump(state, prefix = 'm') {
 const emptyNight = () => ({
   wolfVotes: {},      // { wolfId: targetId }
   wolfOrder: [],      // 投票先后，用于平票时取「先到」
-  // 银狼明确选择「本夜不杀」。和 wolfVotes 一样是「已决策」标记，
-  // 但不会产生目标 —— 全体狼都空刀时 wolfTarget() 返回 null，即空刀。
+  // 银狼本夜不杀的标记
   wolfPassed: {},
   wolfTallied: {},    // 本夜是否已为计分记过一笔，避免改来改去刷分
   seerTarget: null,
@@ -47,8 +46,7 @@ const emptyNight = () => ({
   resolved: false,
 })
 
-// 轮流发言 / 遗言阶段的载体。order 是发言顺序，index 指向「轮到谁」。
-// index 越界 = 这一阶段发完了，由调用方推进到下一阶段。
+// 轮流发言 / 遗言阶段的载体，index 越界即表示这一阶段发完了
 const emptySpeaking = () => ({ mode: '', order: [], index: 0, said: {} })
 
 //  查询辅助 
@@ -62,16 +60,16 @@ export const wolfIds = (state) => Object.keys(state.roleMap).filter((id) => isWo
 export const aliveWolves = (state) => wolfIds(state).filter((id) => isAlive(state, id))
 export const aliveTeammates = (state, id) => aliveWolves(state).filter((x) => x !== id)
 
-// 参战玩家 —— 判官是帕姆，不占座位，所以就是全部人
+// 参战玩家，判官帕姆不占座位
 export const seatedPlayers = (state) => state.players
 
-// 找某个角色当前的人（每局每种角色最多一个）
+// 找某个角色当前的人
 export function findRole(state, roleKey) {
   const id = Object.keys(state.roleMap).find((k) => state.roleMap[k] === roleKey)
   return id && isAlive(state, id) ? id : null
 }
 
-// 银狼的最终目标：多数票；平票时取「先投出的那个」，保证同一份 state 反复计算结果一致
+// 银狼的最终刀口：多数票，平票取先投出的
 export function wolfTarget(state) {
   const votes = state.night.wolfVotes
   const ids = Object.keys(votes)
@@ -98,10 +96,7 @@ export function wolfTarget(state) {
   return best
 }
 
-// 帕姆复盘用的「谁在夜里做了什么」。
-// ★ 对局进行中这一份不下发给任何人（见 getSnapshot 的 judgeInfo），
-//   里面直接写着谁被骇入、瓦尔特验了谁、姬子救了谁、流萤照亮了谁。
-//   只有 phase === OVER 那一刻才拿出来，当赛后复盘。
+// 帕姆复盘用的夜间明细，对局中不下发
 export function nightActionsOf(state) {
   const n = state.night
   const nameOf = (id) => (id ? playerOf(state, id)?.name || id : '')
@@ -114,7 +109,7 @@ export function nightActionsOf(state) {
     seer: n.seerTarget,
     seerName: nameOf(n.seerTarget),
     seerSeat: seatOf(n.seerTarget),
-    // 「瓦尔特昨晚验到的是好人还是坏人」—— 判官每次进入新一天都要看到这一条
+    // 瓦尔特昨夜验到的阵营
     seerTeam: n.seerTarget ? seerTeamOf(state, n.seerTarget) : '',
     seerTeamLabel: n.seerTarget
       ? (isWolfRole(state.roleMap[n.seerTarget]) ? TERMS.teamHunt : TERMS.teamTrain)
@@ -131,11 +126,7 @@ export function nightActionsOf(state) {
 
 //  事件记录 
 
-// 帕姆播报里的「重点」。两种都做文字加重（用户要求「两者都要」）：
-//   time  → 重要时间：第 3 夜 / 35 秒 / 25 秒内
-//   event → 关键事件：昨夜离场：X / X 被放逐 / 平票（A、B）/ 挡下了一次骇入 …
-// ★ 这里只产出「分段数组」，不生成任何 HTML；视图用 v-for 渲成 <span>，
-//   免得为了加粗把整条播报丢进 v-html。
+// 帕姆播报里需要加重的片段（time 重要时间 / event 关键事件），只产出分段数组
 const MARK_RULES = [
   { m: 'time', re: /第\s*\d+\s*[夜天]|\d+\s*秒(?:内)?/g },
   {
@@ -144,11 +135,11 @@ const MARK_RULES = [
   },
 ]
 
-// 把一条播报切成 [{ t, m? }]。m 有值就是需要加重的片段，没值就是普通文本。
+// 把一条播报切成 [{ t, m? }]，m 有值即为需要加重的片段
 function markParts(text) {
   const hits = []
   for (const { m, re } of MARK_RULES) {
-    re.lastIndex = 0 // 带 g 的正则是有状态的，每次重新扫之前必须复位
+    re.lastIndex = 0
     let x
     while ((x = re.exec(text))) hits.push({ s: x.index, e: x.index + x[0].length, m })
   }
@@ -157,7 +148,7 @@ function markParts(text) {
   const out = []
   let cur = 0
   for (const h of hits) {
-    if (h.s < cur) continue // 与上一段重叠 → 丢掉，保证分段首尾相接
+    if (h.s < cur) continue
     if (h.s > cur) out.push({ t: text.slice(cur, h.s) })
     out.push({ t: text.slice(h.s, h.e), m: h.m })
     cur = h.e
@@ -166,10 +157,7 @@ function markParts(text) {
   return out
 }
 
-// 全员可见的播报（帕姆口吻）
-// ★ 帕姆说的每一句都带尾音「帕」，加在整句最末尾（用户要求）。
-//   收在引擎这一个入口里 —— 视图与联机快照拿到的就都是带「帕」的版本，
-//   别再往各个调用点各写一遍。
+// 全员可见的播报，帕姆口吻（统一在这里补尾音「帕」）
 export function pushFeed(state, text, tone = 'info') {
   const full = text.endsWith('帕') ? text : `${text}帕`
   state.feed.push({
@@ -189,9 +177,7 @@ export function pushLog(state, text) {
   if (state.log.length > 300) state.log.splice(0, state.log.length - 300)
 }
 
-// 频道发言
-// ★ 只认 day / wolf 两个频道（判官固定是帕姆，没有判官频道了）。
-//   任何别的值一律落到 day —— 客户端塞个 'judge' 进来也只会变成一条公开消息。
+// 频道发言（只认 day / wolf 两个频道，其余值一律落到 day）
 export function pushChat(state, { fromId, name, text, channel = 'day' }) {
   const clean = String(text || '').slice(0, 200).trim()
   if (!clean) return null
@@ -210,7 +196,7 @@ export function pushChat(state, { fromId, name, text, channel = 'day' }) {
   return msg
 }
 
-// 计分（按玩家分别累计，结算时各客户端算自己的那份）
+// 计分累计，结算时各客户端算自己的那份
 export function bumpTally(state, playerId, key, n = 1) {
   if (!playerId) return
   if (!state.tally[playerId]) state.tally[playerId] = { nightActions: 0, voteHits: 0, fireflySaves: 0 }
@@ -219,7 +205,7 @@ export function bumpTally(state, playerId, key, n = 1) {
 
 //  建局 
 
-// players: [{ id, name, isAI?, avatar? }] —— 全部参战，判官不在其中（帕姆不占座位）
+// players: [{ id, name, isAI?, avatar? }]（判官帕姆不在其中）
 export function createState({ mode = 'solo', players = [], startedAt = Date.now() } = {}) {
   const seated = players.map((p, i) => ({ ...p, seat: p.seat ?? i + 1 }))
   const pool = buildRolePool(seated.length)
@@ -235,23 +221,19 @@ export function createState({ mode = 'solo', players = [], startedAt = Date.now(
     deadline: 0,
     startedAt,
     night: emptyNight(),
-    // 夜晚内部的当前分步：'wolf' | 'seer' | 'witch' | 'firefly'（'done' / '' = 不在夜里）
-    // 顺序与限时都在 config 的 NIGHT_STEPS / NIGHT_STEP_MS 里，这里只存「现在走到哪」
+    // 夜晚当前分步：'wolf' | 'seer' | 'witch' | 'firefly'（'done' / '' = 不在夜里）
     nightStep: '',
-    // 上一阶段（用户要求：阶段条要显示「现在是哪个阶段、上一个阶段是谁」）。
-    // 夜里分步时 prevPhase 仍是 'night'，具体是哪一步看 prevNightStep。
+    // 上一阶段，夜里分步时具体哪一步看 prevNightStep
     prevPhase: '',
     prevNightStep: '',
-    // 瓦尔特的历史验人结果：[{ round, targetId, team }]
-    // ★ 单独存一份而不是只看 state.night —— 判官「进入新一天后要列出昨晚验到的是好人还是坏人」，
-    //   夜晚结算完 night.seerTarget 会被清空，所以必须留档。
+    // 瓦尔特的历史验人结果：[{ round, targetId, team }]（night 会被下一夜清空，必须留档）
     seerHistory: [],
     // 丹恒的反击：被放逐时进入 PHASE.HUNTER，由他指定一名乘客同去
     hunterId: '',
     hunterDone: false,
     hunterFired: '',
     lastFireflyLit: null,
-    // 姬子的两瓶药是「整局各一次」，不是「每夜一次」—— 必须跨夜保留用量
+    // 姬子的两瓶药整局各一次，必须跨夜保留用量
     witchSaveLeft: 1,
     witchPoisonLeft: 1,
     delayedDeaths: [],     // 萤火延后的离场，元素 { id, round }
@@ -259,12 +241,10 @@ export function createState({ mode = 'solo', players = [], startedAt = Date.now(
     lastNightSaved: false,
     lastNightSavedBy: '',  // '' | 'coffee' | 'firefly'
     votes: {},
-    // 投票轮次：1 = 本轮正常投票；平票后进 2 = 加时重投一轮。
-    // 第二轮仍平票才流局（见 resolveVote）。
+    // 投票轮次：1 = 正常投票，2 = 平票后的加时重投
     voteRound: 1,
-    voteTieIds: [],        // 上一轮平票的人（仅用于 UI 提示）
-    // 轮流发言 / 遗言的统一载体：{ mode, order[], index, said{} }
-    // mode = 'lastwords'（昨夜离场者） | 'speaking'（存活者按座位）
+    voteTieIds: [],        // 上一轮平票的人
+    // 轮流发言 / 遗言的统一载体（mode = 'lastwords' | 'speaking'）
     speaking: emptySpeaking(),
     survived: {},          // { playerId: 活过的昼夜数 }
     tally: {},             // 见 bumpTally
@@ -277,8 +257,7 @@ export function createState({ mode = 'solo', players = [], startedAt = Date.now(
   }
 }
 
-// 单人模式：1 名人类玩家 + (total-1) 名 AI 乘客
-// myAvatar = 玩家自己设定的头像（data URL）；AI 头像随机取自素材小图，与身份无关
+// 单人模式：1 名人类玩家 + N 名 AI 乘客，AI 头像随机且与身份无关
 export function buildSoloPlayers(total, myName, myAvatar = '') {
   const names = pickAiNames(total - 1)
   const avatars = pickSeatAvatars(total - 1)
@@ -294,10 +273,10 @@ export function startNight(state) {
   state.night = emptyNight()
   state.votes = {}
   state.phase = PHASE.NIGHT
-  // 夜晚从第一步开始（银狼先手）：狼定刀口 → 瓦尔特感应 → 姬子知道刀口后决定用药 → 流萤照亮
+  // 夜晚从银狼先手开始：狼定刀口 → 瓦尔特感应 → 姬子用药 → 流萤照亮
   state.nightStep = NIGHT_STEPS[0]
   state.deadline = Date.now() + (NIGHT_STEP_MS[NIGHT_STEPS[0]] || PHASE_MS[PHASE.NIGHT])
-  // 反击只在「被放逐」那一刻有效，进夜即清空
+  // 反击只在被放逐那一刻有效，进夜即清空
   state.hunterId = ''
   state.hunterDone = false
   state.hunterFired = ''
@@ -306,10 +285,7 @@ export function startNight(state) {
   return state.round
 }
 
-//  夜间分步推进 
-//
-// 一夜被拆成 银狼 → 瓦尔特 → 姬子 → 流萤 四步，每步单独限时（NIGHT_STEP_MS）。
-// 返回推进后的步骤；走到最后一步之后再调一次会返回 'done'，表示这一夜可以结算了。
+// 夜间分步推进：一夜拆成 银狼 → 瓦尔特 → 姬子 → 流萤 四步，'done' 表示可结算
 export function advanceNightStep(state) {
   if (state.phase !== PHASE.NIGHT) return 'done'
   const i = NIGHT_STEPS.indexOf(state.nightStep)
@@ -324,11 +300,11 @@ export function advanceNightStep(state) {
   return next
 }
 
-// 这一夜的四个步骤都走完了吗（阶段不是夜晚时一律算「已走完」）
+// 这一夜的四个步骤是否都走完了
 export const nightStepsDone = (state) =>
   state.phase !== PHASE.NIGHT || state.nightStep === 'done'
 
-// 分步文案（阶段条 / 判官面板共用），别在视图里再抄一份
+// 分步文案（阶段条 / 判官面板共用）
 export const nightStepLabel = (step) => NIGHT_STEP_LABEL[step] || ''
 
 // 进入梦醒：先兑现萤火延后的离场，再公布本夜结果
@@ -338,7 +314,7 @@ export function startDay(state, nightResult = null) {
   state.nightStep = ''
 
   const deaths = []
-  // 1) 萤火延后的死：上一个昼夜欠下的账，本日兑现
+  // 1) 萤火延后的死：上一昼夜欠下的账
   const due = state.delayedDeaths.filter((d) => d.round < state.round)
   due.forEach((d) => {
     if (isAlive(state, d.id)) deaths.push({ id: d.id, why: 'firefly-delay' })
@@ -355,7 +331,7 @@ export function startDay(state, nightResult = null) {
   state.lastNightSaved = !!nightResult?.saved
   state.lastNightSavedBy = nightResult?.savedBy || ''
 
-  // 3) 存活计分（活过这个梦醒就算活过一个昼夜）
+  // 3) 存活计分（活过一个昼夜计一分）
   state.alive.forEach((id) => {
     state.survived[id] = (state.survived[id] || 0) + 1
   })
@@ -372,9 +348,7 @@ export function startDay(state, nightResult = null) {
     pushFeed(state, `${how}挡下了一次骇入。`, 'good')
   }
 
-  // 5) 复盘素材：谁被骇入、瓦尔特验到的是好人还是坏人、流萤照亮了谁。
-  //    这几条只进 log，而 getSnapshot 只在 phase === OVER 时才下发 log，
-  //    所以对局进行中不会泄露给任何玩家。结算后再拿出来看，就是一份完整交代。
+  // 5) 复盘素材：谁被骇入、瓦尔特验到谁、流萤照亮谁（只进 log，对局中不下发）
   const info = nightActionsOf(state)
   const lines = []
   if (info.killName) lines.push(`银狼骇入 → ${info.killSeat} 号 ${info.killName}`)
@@ -388,7 +362,7 @@ export function startDay(state, nightResult = null) {
   if (info.fireflyName) lines.push(`流萤照亮 → ${info.fireflySeat} 号 ${info.fireflyName}`)
   pushLog(state, `第 ${state.round} 天 · 昨夜复盘：${lines.length ? lines.join('；') : '这一夜没有任何动作'}`)
 
-  // 瓦尔特昨晚的结论单独再列一条 —— 用户要求的「进入新一天后，判官要列出验到的是好人还是坏人」
+  // 瓦尔特昨晚的结论单独再列一条
   const lastSeer = state.seerHistory.filter((h) => h.round === state.round).slice(-1)[0]
   if (lastSeer) {
     const t = playerOf(state, lastSeer.targetId)
@@ -403,12 +377,7 @@ export function startDay(state, nightResult = null) {
   return { deaths: state.lastNightDeaths, saved: state.lastNightSaved }
 }
 
-//  遗言 / 轮流发言 
-//
-// 两个阶段共用同一套「轮流发言」机制，区别只在 order 从哪来：
-//   LAST_WORDS → 昨夜离场的人（先说遗言）
-//   SPEAKING   → 还活着的所有人，按座位顺序
-// index 越界即表示「发完了」，由调用方（composable / AI 驱动）推进阶段。
+// 遗言 / 轮流发言：两阶段共用同一套机制，区别只在 order 从哪来（离场者 / 存活者）
 
 export function startLastWords(state) {
   const dead = state.lastNightDeaths.slice()
@@ -423,7 +392,7 @@ export function startLastWords(state) {
 }
 
 export function startSpeaking(state) {
-  // 按座位顺序，全员参战
+  // 按座位顺序，存活者全员
   const order = seatedPlayers(state)
     .filter((p) => isAlive(state, p.id))
     .sort((a, b) => (a.seat || 0) - (b.seat || 0))
@@ -437,20 +406,20 @@ export function startSpeaking(state) {
   return order
 }
 
-// 当前该谁发言；没有（阶段不对 / 已发完）返回 null
+// 当前该谁发言，没有则返回 null
 export function currentSpeaker(state) {
   if (state.phase !== PHASE.LAST_WORDS && state.phase !== PHASE.SPEAKING) return null
   const sp = state.speaking
   return sp.order[sp.index] || null
 }
 
-// 这一轮轮流发言/遗言是否已经全部发完
+// 这一轮轮流发言/遗言是否已发完
 export function speakingDone(state) {
   if (state.phase !== PHASE.LAST_WORDS && state.phase !== PHASE.SPEAKING) return true
   return state.speaking.index >= state.speaking.order.length
 }
 
-// 轮到下一位；返回 true 表示这一阶段发完了
+// 轮到下一位，返回 true 表示这一阶段发完了
 export function advanceSpeaker(state) {
   const sp = state.speaking
   sp.index += 1
@@ -462,7 +431,7 @@ export function advanceSpeaker(state) {
   return false
 }
 
-// 发言（幂等：轮不到你 / 你已经说过就原样返回）
+// 发言（幂等）
 export function submitSpeak(state, speakerId, text) {
   if (state.phase !== PHASE.LAST_WORDS && state.phase !== PHASE.SPEAKING) {
     return { ok: false, msg: '现在不是发言时间' }
@@ -473,7 +442,7 @@ export function submitSpeak(state, speakerId, text) {
   if (state.speaking.said[speakerId]) return { ok: true, duplicate: true }
   state.speaking.said[speakerId] = clean
   pushChat(state, { fromId: speakerId, text: clean, channel: 'day' })
-  // 遗言同时进广播，避免只有盯着频道才看得见
+  // 遗言同时进广播
   if (state.speaking.mode === 'lastwords') {
     pushFeed(state, `${playerOf(state, speakerId)?.name} 的遗言：${clean}`, 'warn')
     pushLog(state, `第 ${state.round} 天：${playerOf(state, speakerId)?.name} 遗言 —— ${clean}`)
@@ -484,7 +453,7 @@ export function submitSpeak(state, speakerId, text) {
   return { ok: true, text: clean }
 }
 
-// 「我说完了」/ 挂机超时：不发言直接过掉这一位（幂等）
+// 不发言直接过掉这一位（幂等）
 export function skipSpeak(state, speakerId) {
   if (state.phase !== PHASE.LAST_WORDS && state.phase !== PHASE.SPEAKING) {
     return { ok: false, msg: '现在不是发言时间' }
@@ -512,7 +481,7 @@ export function startVote(state) {
   pushFeed(state, `${TERMS.vote}开始，${Math.round(PHASE_MS[PHASE.VOTE] / 1000)} 秒内选出你要${TERMS.exile}的人（可以弃票）。`, 'info')
 }
 
-// 平票加时：清空票型重投一轮，但不清 voteRound（靠它区分第 1 / 第 2 轮）
+// 平票加时，清空票型重投一轮
 export function startRevote(state) {
   state.votes = {}
   state.deadline = Date.now() + PHASE_MS[PHASE.VOTE]
@@ -524,11 +493,7 @@ export function startRevote(state) {
   )
 }
 
-//  丹恒 · 反击 
-//
-// 被投票放逐之后，丹恒可以指定一名乘客与他一同离场。
-// ★ 这一刻丹恒自己已经离场了（applyExile 先把他杀了），所以这个阶段**不能**用
-//   isAlive 判断他还在不在场 —— 判「谁欠一个决定」靠的是 state.hunterId。
+// 丹恒反击：被放逐后可带走一名乘客，此时他已不在 alive 里，只认 state.hunterId
 export function startHunter(state, hunterId) {
   state.phase = PHASE.HUNTER
   state.hunterId = hunterId || ''
@@ -545,18 +510,18 @@ export function startHunter(state, hunterId) {
   return state.hunterId
 }
 
-// 猎人此刻是否还欠一个决定（只对丹恒本人返回 true）
+// 猎人此刻是否还欠一个决定
 export function hunterPending(state, playerId) {
   if (state.phase !== PHASE.HUNTER) return false
   if (!state.hunterId || state.hunterId !== playerId) return false
   return !state.hunterDone
 }
 
-// 「现在还在等谁」——AI 判官据此判断这一阶段能不能收
+// 现在还在等谁，AI 判官据此判断能否收阶段
 export const hunterActorsPending = (state) =>
   state.phase === PHASE.HUNTER && state.hunterId && !state.hunterDone ? [state.hunterId] : []
 
-// 开枪：带走一名还在梦境里的乘客
+// 开枪带走一名存活乘客
 export function submitHunterShoot(state, actorId, targetId) {
   if (state.phase !== PHASE.HUNTER) return { ok: false, msg: '现在不是反击的时间' }
   if (state.hunterId !== actorId) return { ok: false, msg: '只有丹恒能发动反击' }
@@ -580,7 +545,7 @@ export function submitHunterShoot(state, actorId, targetId) {
   return { ok: true, targetId }
 }
 
-// 放弃开枪（超时也走这里）
+// 放弃开枪
 export function skipHunter(state, actorId) {
   if (state.phase !== PHASE.HUNTER) return { ok: false, msg: '现在不是反击的时间' }
   if (state.hunterId !== actorId) return { ok: false, msg: '只有丹恒能发动反击' }
@@ -592,7 +557,7 @@ export function skipHunter(state, actorId) {
   return { ok: true }
 }
 
-// AI 丹恒开枪：优先带走「把票投给自己」的人，没有就随机（与 AI 投票同一套简化策略）
+// AI 丹恒开枪：优先带走投过自己的人，否则随机
 export function aiHunterShoot(state, actorId) {
   const cand = state.alive.filter((id) => id !== actorId)
   if (cand.length === 0) return null
@@ -608,7 +573,7 @@ export function finish(state, winner) {
   state.deadline = 0
   state.winner = winner
   state.reveal = { ...state.roleMap }
-  // 结算文案要说清「靠哪条赢的」：抓走全部开拓者，还是拿了人数优势
+  // 结算文案要说清靠哪条赢的
   const huntWon = winner === CAMP.HUNT
   const how = huntWon && huntWinReason(state.roleMap, state.alive) === 'villagers'
     ? '抓走了全部开拓者'
@@ -623,7 +588,7 @@ export function finish(state, winner) {
   return winner
 }
 
-// 只判胜负、不推进阶段（返回 null 表示继续）
+// 只判胜负、不推进阶段（null = 继续）
 export function evaluateWin(state) {
   return checkWin(state.roleMap, state.alive)
 }
@@ -636,11 +601,7 @@ function killPlayer(state, id) {
 
 //  夜间动作（幂等） 
 
-// 每个动作属于夜间哪一步 —— 分步守卫靠它把「顺序」收在一处，
-// 而不是在六个 case 里各写一遍。改顺序只改 config 的 NIGHT_STEPS。
-// ★ 每个角色都配一个「-pass」：不用技能也必须留下一个明确的决定，
-//   否则 pendingNightAction 会一直认为他还没行动，AI 判官就永远收不了夜，
-//   玩家自己也会被卡在「轮到你」上等超时（用户要求：每种角色牌都要有跳过按钮）。
+// 每个动作属于夜间哪一步；每个角色都必须有一个 -pass 的明确决定
 const ACTION_STEP = {
   'wolf-kill': 'wolf',
   'wolf-pass': 'wolf',
@@ -661,8 +622,7 @@ export function submitNightAction(state, actorId, action, targetId = null) {
   if (!isAlive(state, actorId)) return { ok: false, msg: '你已经离场了' }
   const n = state.night
 
-  // 分步守卫：一夜只按 银狼 → 瓦尔特 → 姬子 → 流萤 的顺序走，提前出手一律拒绝。
-  // 这也保证了姬子出手时狼的刀口已经定了 —— 不然「今晚救谁」根本无从谈起。
+  // 分步守卫：一夜只按 银狼 → 瓦尔特 → 姬子 → 流萤 的顺序走，提前出手一律拒绝
   const needStep = ACTION_STEP[action]
   if (needStep && state.nightStep !== needStep) {
     return { ok: false, msg: `现在不是「${NIGHT_STEP_LABEL[needStep] || needStep}」的时间` }
@@ -672,8 +632,7 @@ export function submitNightAction(state, actorId, action, targetId = null) {
     case 'wolf-kill': {
       if (!isWolfRole(role)) return { ok: false, msg: '只有银狼能骇入' }
       if (!targetId || !isAlive(state, targetId)) return { ok: false, msg: '请选择一个还在梦境里的乘客' }
-      // 可以骇入同伴（同类），但不含自己 —— 自刀会让狼阵营当场全灭，属于误点即输，
-      // 所以留一道硬边界。要放开的话把下面这行删掉即可。
+      // 可以骇入同伴，但不含自己
       if (targetId === actorId) return { ok: false, msg: '不能骇入自己' }
       if (n.wolfVotes[actorId] === targetId && !n.wolfPassed[actorId]) return { ok: true, duplicate: true }
       const first = n.wolfVotes[actorId] === undefined
@@ -687,8 +646,7 @@ export function submitNightAction(state, actorId, action, targetId = null) {
       pushLog(state, `第 ${state.round} 夜：${playerOf(state, actorId)?.name}（银狼）骇入 → ${playerOf(state, targetId)?.name}`)
       return { ok: true, killTarget: wolfTarget(state) }
     }
-    // 空刀：银狼也可以选择「本夜不杀」。必须留下这个标记，
-    // 否则 pendingNightAction 会一直认为它还没行动，AI 判官就永远收不了夜。
+    // 空刀：银狼本夜不杀，必须留这个标记
     case 'wolf-pass': {
       if (!isWolfRole(role)) return { ok: false, msg: '只有银狼能决定是否骇入' }
       if (n.wolfPassed[actorId] && n.wolfVotes[actorId] === undefined) return { ok: true, duplicate: true }
@@ -696,7 +654,7 @@ export function submitNightAction(state, actorId, action, targetId = null) {
       if (prev !== undefined) {
         delete n.wolfVotes[actorId]
         n.wolfOrder = n.wolfOrder.filter((t) => t !== prev)
-        // 改主意不算「用了一次技能」，把交出去的记分收回
+        // 改主意不算用了一次技能，把记分收回
         const t = state.tally[actorId]
         if (t && t.nightActions > 0) t.nightActions -= 1
         delete n.wolfTallied[actorId]
@@ -711,15 +669,13 @@ export function submitNightAction(state, actorId, action, targetId = null) {
       if (targetId === actorId) return { ok: false, msg: '不能感应自己' }
       if (n.seerTarget) return { ok: true, duplicate: true, targetId: n.seerTarget }
       n.seerTarget = targetId
-      // 留档：判官「进入新一天后要列出昨晚验到的是好人还是坏人」，
-      // 而 state.night 会被下一夜清空，所以必须单独存一份历史。
+      // 留档供判官复盘（state.night 会被下一夜清空）
       state.seerHistory.push({ round: state.round, targetId, team: seerTeamOf(state, targetId) })
       bumpTally(state, actorId, 'nightActions')
       pushLog(state, `第 ${state.round} 夜：${playerOf(state, actorId)?.name}（瓦尔特）感应 → ${playerOf(state, targetId)?.name}（${isWolfRole(state.roleMap[targetId]) ? '星核猎手' : '列车组'}）`)
       return { ok: true, targetId, team: seerTeamOf(state, targetId) }
     }
-    // 瓦尔特「本夜不感应」：感应不消耗次数，但玩家有权这一夜不看。
-    // 必须留标记，否则会被当成「还没行动」而卡住整个夜晚。
+    // 瓦尔特本夜不感应，必须留标记
     case 'seer-pass': {
       if (role !== ROLE.SEER) return { ok: false, msg: '只有瓦尔特能感应' }
       if (n.seerTarget) return { ok: true, duplicate: true }
@@ -752,8 +708,7 @@ export function submitNightAction(state, actorId, action, targetId = null) {
       pushLog(state, `第 ${state.round} 夜：${playerOf(state, actorId)?.name}（姬子）使用${TERMS.witchPoison} → ${playerOf(state, targetId)?.name}`)
       return { ok: true }
     }
-    // 女巫「本夜都不用」：不设这个动作的话，她会一直挂在「待行动」里，
-    // AI 判官就永远等不到收夜条件（玩家自己当姬子时也会被卡住）
+    // 女巫本夜两瓶都不用，必须留标记
     case 'witch-pass': {
       if (role !== ROLE.WITCH) return { ok: false, msg: '只有姬子能调饮' }
       if (n.witchSave || n.witchPoison) return { ok: true, duplicate: true }
@@ -774,7 +729,7 @@ export function submitNightAction(state, actorId, action, targetId = null) {
       pushLog(state, `第 ${state.round} 夜：${playerOf(state, actorId)?.name}（流萤）照亮 → ${playerOf(state, targetId)?.name}`)
       return { ok: true, targetId }
     }
-    // 流萤「本夜不照亮」：同样要留标记，不然整夜都收不了
+    // 流萤本夜不照亮，必须留标记
     case 'firefly-pass': {
       if (role !== ROLE.FIREFLY) return { ok: false, msg: '只有流萤能照亮' }
       if (n.fireflyLit) return { ok: true, duplicate: true }
@@ -792,7 +747,7 @@ export function seerTeamOf(state, targetId) {
   return isWolfRole(state.roleMap[targetId]) ? CAMP.HUNT : CAMP.TRAIN
 }
 
-//  夜间结算（幂等：resolved 后直接返回上一轮结果） 
+//  夜间结算（幂等） 
 
 export function resolveNight(state) {
   if (state.night.resolved) {
@@ -805,12 +760,12 @@ export function resolveNight(state) {
   const witchAlive = !!findRole(state, ROLE.WITCH)
   let savedBy = ''
 
-  // 姬子的咖啡：完全救下（优先级最高，救下了萤火就白照了）
+  // 姬子的咖啡：完全救下，优先级最高
   if (killed && n.witchSave && witchAlive) {
     savedBy = 'coffee'
   }
 
-  // 萤火：延迟一死（默认）或完全救下
+  // 萤火：延迟一死或完全救下
   if (killed && !savedBy && n.fireflyLit === killed) {
     savedBy = 'firefly'
     bumpTally(state, findRole(state, ROLE.FIREFLY), 'fireflySaves')
@@ -824,7 +779,7 @@ export function resolveNight(state) {
 
   if (killed && !savedBy) deaths.push(killed)
 
-  // 毒咖啡：无法被任何手段拦下（和刀同一个人时只算一次）
+  // 毒咖啡：无法被任何手段拦下
   const poison = n.witchPoison
   if (poison && witchAlive && isAlive(state, poison) && !deaths.includes(poison)) deaths.push(poison)
 
@@ -836,7 +791,7 @@ export function resolveNight(state) {
 
 //  投票（幂等） 
 
-// 投票阶段允许改票：后一次覆盖前一次，这正是狼人杀的常规玩法
+// 投票阶段允许改票，后一次覆盖前一次
 export function submitVote(state, voterId, targetId) {
   if (state.phase !== PHASE.VOTE) return { ok: false, msg: '现在不是投票时间' }
   if (!isAlive(state, voterId)) return { ok: false, msg: '你已经离场了，不能投票' }
@@ -845,7 +800,7 @@ export function submitVote(state, voterId, targetId) {
   if (targetId === undefined) return { ok: false, msg: '无效的投票目标' }
   if (state.votes[voterId] === targetId) return { ok: true, duplicate: true }
   state.votes[voterId] = targetId || ''   // '' 表示弃票
-  // 投中的是星核猎手 → 记一笔（弃票不算）
+  // 投中的是星核猎手则记一笔（弃票不算）
   if (targetId && isWolfRole(state.roleMap[targetId])) bumpTally(state, voterId, 'voteHits')
   return { ok: true }
 }
@@ -861,9 +816,8 @@ export function tallyVotes(state) {
   return out
 }
 
-// 结算投票：返回 { votes, outId, tie, outIds, revote, round }
-// 平票规则：并列最高 → 全场加时重投一轮（不限候选人，可弃票）；
-//          加时那一轮仍然平票才流局。这样玩家在平票时依然「可以选择投与不投」。
+// 结算投票，返回 { votes, outId, tie, outIds, revote, round }
+// 并列最高 → 全场加时重投一轮，加时轮仍平票才流局
 export function resolveVote(state) {
   const votes = tallyVotes(state)
   let max = 0
@@ -882,7 +836,7 @@ export function resolveVote(state) {
 
   if (top.length > 1) {
     state.voteTieIds = top.slice()
-    // 第一轮平票 → 加时重投；已经是加时轮 → 流局
+    // 第一轮平票则加时重投，已是加时轮则流局
     if (state.voteRound < 2) {
       state.voteRound = 2
       return { votes, outId: null, tie: true, outIds: top, revote: true, round: 2 }
@@ -893,7 +847,7 @@ export function resolveVote(state) {
   return { votes, outId: top[0], tie: false, outIds: top, revote: false, round: state.voteRound }
 }
 
-// 放逐（幂等：已经离场的人不会二次结算）
+// 放逐（幂等）
 export function applyExile(state, outId) {
   if (!outId) return { ok: false, msg: '无人出局' }
   if (!isAlive(state, outId)) return { ok: true, duplicate: true }
@@ -909,54 +863,47 @@ export function roleLabelOf(state, id) {
   return r ? `${r.name}·${r.title}` : '未知'
 }
 
-//  某个玩家此刻「还欠什么动作」 
+//  某个玩家此刻还欠什么动作 
 
 export function pendingNightAction(state, playerId) {
   if (state.phase !== PHASE.NIGHT) return null
   if (!isAlive(state, playerId)) return null
   const step = state.nightStep
-  // 还没轮到这一步的人一律算「不欠动作」—— 这是分步的关键：
-  // 狼没定刀口之前，姬子那边就不该显示「待行动」，AI 判官也不会为她空等。
+  // 还没轮到这一步的人一律算不欠动作
   if (!step || step === 'done') return null
   const role = state.roleMap[playerId]
   const n = state.night
-  // 已经决定杀谁、或已经明确选择不杀，都算「行动完毕」
   if (isWolfRole(role)) {
     if (step !== 'wolf') return null
     return n.wolfVotes[playerId] || n.wolfPassed[playerId] ? null : 'wolf-kill'
   }
   if (role === ROLE.SEER) {
     if (step !== 'seer') return null
-    // 验过了、或明确选择这一夜不验，都算「行动完毕」
     return n.seerTarget || n.seerPassed ? null : 'seer-check'
   }
   if (role === ROLE.WITCH) {
     if (step !== 'witch') return null
-    // 本夜已经做过决定（用药 / 明确不用）就没事了
+    // 本夜已做过决定就没事了
     if (n.witchSave || n.witchPoison || n.witchPassed) return null
-    // 两瓶都用光后，女巫剩下的夜晚与平民无异
+    // 两瓶都用光后与平民无异
     if (state.witchSaveLeft > 0 || state.witchPoisonLeft > 0) return 'witch'
     return null
   }
   if (role === ROLE.FIREFLY) {
     if (step !== 'firefly') return null
-    // 照过了、或明确选择这一夜不照，都算「行动完毕」
     return n.fireflyLit || n.fireflyPassed ? null : 'firefly-light'
   }
   return null
 }
 
-// 所有「还需要行动」的存活玩家 —— 已经按当前分步过滤过了，
-// 所以它同时是「这一步做完了没有」的判据（AI 判官据此提前收夜 / 推进下一步）。
+// 所有还需要行动的存活玩家，已按当前分步过滤
 export function actorsPending(state) {
   return state.alive.filter((id) => pendingNightAction(state, id))
 }
 
 //  单人：AI 决策 
 
-// 银狼选目标：优先「被自己同伴投过 / 上一轮把银狼放逐出去」的乘客，第一夜无信息时纯随机。
-// 现在也允许把刀指向同伴（同类）—— 只有在场上除了自己和同伴再没别人时才会发生。
-// AI 不会主动空刀：空刀是留给「玩家自己当银狼」时的自由选项，AI 用不着。
+// 银狼选目标：优先被自己同伴投过的人，第一夜纯随机
 export function aiWolfKill(state, actorId) {
   const mates = wolfIds(state).filter((id) => id !== actorId)
   const mateSet = new Set(mates)
@@ -981,8 +928,7 @@ export function aiSeerCheck(state, actorId) {
   return cand[Math.floor(Math.random() * cand.length)]
 }
 
-// 姬子：要不要用咖啡 / 毒咖啡
-// 策略保守 —— 只救自己人，越早越愿意救；毒只在低概率随机下（Phase 1 不做精细推理）
+// 姬子：要不要用咖啡 / 毒咖啡，策略保守
 export function aiWitchDecide(state, actorId) {
   const killed = wolfTarget(state)
   const out = { save: false, poison: null }
@@ -994,15 +940,12 @@ export function aiWitchDecide(state, actorId) {
     const cand = state.alive.filter((id) => id !== actorId && id !== killed)
     if (cand.length) out.poison = cand[Math.floor(Math.random() * cand.length)]
   }
-  // 什么都不做时必须显式「过」，否则会被当成还没行动
+  // 什么都不做时必须显式过，否则会被当成还没行动
   out.pass = !out.save && !out.poison
   return out
 }
 
-// 流萤照亮：优先照亮"玩家"（这是设计里明确的情感触发）
-//   - 玩家是好人 → 80% 照亮玩家
-//   - 玩家是银狼 且 是第一夜 → 70% 照亮玩家（"她还信任着你"）
-//   - 其余情况随机，但不会照自己、不会连照同一人
+// 流萤照亮：优先照亮玩家（玩家是好人 80%，玩家是银狼且第一夜 70%）
 export function aiFireflyLight(state, actorId, humanId = null) {
   const cand = state.alive.filter((id) => id !== actorId && id !== state.lastFireflyLit)
   if (cand.length === 0) return null
@@ -1012,13 +955,13 @@ export function aiFireflyLight(state, actorId, humanId = null) {
     const p = humanIsWolf ? (state.round === 1 ? 0.7 : 0.4) : 0.8
     if (Math.random() < p) return humanId
   }
-  // 偏好好人：让萤火更像"在保护人"
+  // 偏好好人
   const friends = cand.filter((id) => !isWolfRole(state.roleMap[id]))
   const pool = friends.length ? friends : cand
   return pool[Math.floor(Math.random() * pool.length)]
 }
 
-// 统一入口：给 AI 玩家算一个夜间动作并返回 { action, targetId }
+// 统一入口：给 AI 玩家算一个夜间动作
 export function aiNightAction(state, actorId, humanId = null) {
   const role = state.roleMap[actorId]
   if (isWolfRole(role)) return { action: 'wolf-kill', targetId: aiWolfKill(state, actorId) }
@@ -1031,12 +974,12 @@ export function aiNightAction(state, actorId, humanId = null) {
   return null
 }
 
-// AI 投票：跟票 30% + 随机 70%（按设计要求保持简单可预测）
+// AI 投票：跟票 30% + 随机 70%
 export function aiVote(state, actorId) {
   const cand = state.alive.filter((id) => id !== actorId)
   if (cand.length === 0) return ''
   if (Math.random() < 0.3) {
-    // 跟票：跟随当前得票最高的人（但避开自己）
+    // 跟票：跟随当前得票最高的人
     const votes = tallyVotes(state)
     let best = null
     let bestN = 0
@@ -1052,7 +995,7 @@ export function aiVote(state, actorId) {
   return cand[Math.floor(Math.random() * cand.length)]
 }
 
-// AI 发言：模板池 + 简单策略，Phase 1 不走 LLM
+// AI 发言：模板池 + 简单策略
 const AI_SPEAK = {
   generic: ['我先过，听大家的。', '我是列车组，没有别的信息。', '这轮票型有点奇怪，我记一下。', '我暂时保留意见。', '昨晚很安静，我倾向再听一轮。'],
   suspect: ['我怀疑 {seat} 号，他刚才那句话站不住脚。', '{seat} 号的发言太急了，我先记一票。', '我投 {seat} 号，理由是他的立场变来变去。'],
@@ -1072,7 +1015,7 @@ export function aiSpeak(state, actorId) {
   const myVotes = votes[actorId]?.length || 0
   if (myVotes >= 2) return pick(AI_SPEAK.defend)
 
-  // 瓦尔特有狼信息时，有一定概率直接报出来（否则一直闷着太假）
+  // 瓦尔特有狼信息时有一定概率直接报出来
   if (role === ROLE.SEER && state.night.seerTarget && Math.random() < 0.5) {
     const t = state.night.seerTarget
     if (isWolfRole(state.roleMap[t])) {
@@ -1091,8 +1034,7 @@ export function aiSpeak(state, actorId) {
   return pick(AI_SPEAK.generic)
 }
 
-// 遗言：离场的人要先「说出自己的判断」，所以文案比普通发言更确定、更像交代后事。
-// 有信息的角色（瓦尔特 / 姬子 / 流萤）会把情报带出来，银狼死了也要继续装好人。
+// 遗言比普通发言更确定，有信息的角色会把情报带出来
 const AI_LAST_WORDS = {
   generic: [
     '我走了，{suspect} 号最可疑，你们盯住他。',
@@ -1139,17 +1081,15 @@ export function aiLastWords(state, actorId) {
   return pick(AI_LAST_WORDS.generic).replace('{suspect}', String(seatOf(suspect)))
 }
 
-//  私有信息（只发给本人，联机时靠定向消息） 
+//  私有信息（只发给本人） 
 
 export function privateInfoOf(state, viewerId) {
   const role = state.roleMap[viewerId]
   if (!role) return null
   const out = { roleKey: role, mates: [] }
-  // 「本夜还欠什么动作」也放进私有信息里 —— 联机时非房主客户端手上没有引擎 state，
-  // 只能靠这个字段决定行动面板要显示什么、座位能不能点
+  // 本夜还欠什么动作（联机客户端靠它决定行动面板显示什么）
   out.pending = pendingNightAction(state, viewerId)
-  // 反击：丹恒被放逐的那一刻自己已经不在 alive 里了，所以不能复用夜间 pending，
-  // 单独给一个标记让客户端知道「轮到你开枪了」。
+  // 反击由单独标记驱动（丹恒被放逐时已不在 alive 里）
   out.hunterPending = hunterPending(state, viewerId)
   if (isWolfRole(role)) out.mates = wolfIds(state).filter((id) => id !== viewerId)
   if (role === ROLE.SEER && state.night.seerTarget) {
@@ -1170,24 +1110,14 @@ export function privateInfoOf(state, viewerId) {
 }
 
 //  快照（中途进房 / 重连时补发） 
-// ★ 安全边界：对局进行中，任何人只能看到自己的身份 + 公开信息（存活、票型、频道），
-//   别人的 roleMap 一律不下发 —— 否则玩家翻一下网络日志就赢定了。
-//   唯一的例外是 phase === OVER：身份已揭晓，这些字段变成「赛后复盘」。
+// 安全边界：对局中只下发自己的身份 + 公开信息，phase === OVER 时才放行全部身份
 export function getSnapshot(state, viewerId) {
-  //  赛后复盘的放行条件 
-  // ★ 对局进行中，上帝视角信息（全部身份 / 昨夜明细 / 验人记录 / 行动日志）
-  //   一律不下发 —— 任何一条漏出去这一局立刻没得玩。
-  //   唯一的放行时机是 phase === OVER：身份已经全部揭晓，
-  //   这些字段此刻就是给所有人看的「赛后复盘」。
   const canReveal = state.phase === PHASE.OVER
   return {
     mode: state.mode,
     players: state.players.map(({ id, name, seat, isAI, avatar }) => ({
       id, name, seat, isAI,
-      // 只有 AI 的头像随快照下发（本来就是一张小图标）。
-      // 真人的头像是本地 data URL：不下发，一来避免把几十 KB 的 base64
-      // 广播给全房间，二来也没必要让房主拿到别人的头像。
-      // 自己那一个由视图层用本地 avatarData 补上。
+      // 真人的本地头像不下发，由视图层用本地 avatarData 补上
       avatar: isAI ? avatar || '' : '',
     })),
     alive: state.alive.slice(),
@@ -1195,27 +1125,27 @@ export function getSnapshot(state, viewerId) {
     phase: state.phase,
     deadline: state.deadline,
     startedAt: state.startedAt,
-    // 夜晚内部的分步：'wolf' | 'seer' | 'witch' | 'firefly' | 'done' | ''
+    // 夜晚当前分步：'wolf' | 'seer' | 'witch' | 'firefly' | 'done' | ''
     nightStep: state.nightStep || '',
-    // 上一阶段 —— 用户要求阶段条要同时显示「现在是什么阶段、上一个阶段是谁」
+    // 上一阶段（夜里分步时具体哪一步看 prevNightStep）
     prevPhase: state.prevPhase || '',
     prevNightStep: state.prevNightStep || '',
-    // 反击：此刻在等谁开枪（他已经被放逐，属于公开信息）
+    // 此刻在等谁开枪（公开信息）
     hunterId: state.hunterId || '',
     hunterDone: !!state.hunterDone,
     votes: state.phase === PHASE.VOTE || state.phase === PHASE.OVER ? { ...state.votes } : {},
-    // 投票轮次：2 表示这是平票后的加时重投，UI 要提示
+    // 2 表示平票后的加时重投
     voteRound: state.voteRound,
     voteTieIds: state.voteTieIds.slice(),
-    // 昨夜离场者（公开信息，遗言阶段要用）
+    // 昨夜离场者
     lastNightDeaths: state.lastNightDeaths.slice(),
-    // 开拓者进度（聚合数量，公开）：狼人的胜利条件就挂在这上面
+    // 开拓者进度（狼人的胜利条件）
     villagers: villagerStat(state.roleMap, state.alive),
-    // 狼胜的原因：'villagers' | 'advantage'（仅用于结算文案）
+    // 狼胜原因：'villagers' | 'advantage'
     huntReason: state.phase === PHASE.OVER && state.winner === CAMP.HUNT
       ? huntWinReason(state.roleMap, state.alive)
       : '',
-    // 轮流发言 / 遗言进度：全场可见（谁在说、下一个是谁）
+    // 轮流发言 / 遗言进度（全场可见）
     speaking:
       state.phase === PHASE.LAST_WORDS || state.phase === PHASE.SPEAKING
         ? {
@@ -1232,36 +1162,24 @@ export function getSnapshot(state, viewerId) {
     winner: state.winner,
     reveal: state.phase === PHASE.OVER ? { ...state.reveal } : {},
     me: viewerId ? privateInfoOf(state, viewerId) : null,
-    // 计分只下发给本人那一份 —— 既够他算自己的奖励，也不暴露别人的行动次数
+    // 计分只下发本人那一份
     myTally: viewerId ? { ...(state.tally[viewerId] || {}) } : null,
-    // 结算那一刻把所有人的计数一并公开：此时身份都已揭晓，且能避免
-    // 「ww:game-over 先到、定向的私有快照后到」导致客户端少算奖励的时序问题
+    // 结算时公开所有人的计数，避免定向快照迟到导致少算奖励
     tallies: state.phase === PHASE.OVER ? JSON.parse(JSON.stringify(state.tally)) : null,
-    //  赛后复盘（phase === OVER 才对所有人开放） 
-    // ★ 这四项在对局进行中一律为 null —— 里面写着谁被骇入、瓦尔特验了谁、
-    //   流萤照亮了谁，任何一条漏出去这一局立刻没得玩。
-    //   放行时机只有一个：结算那一刻，身份已经全部揭晓，它们就是「复盘材料」。
+    // 赛后复盘：以下四项对局中一律为 null，只在 phase === OVER 放行
     allRoles: canReveal ? { ...state.roleMap } : null,
-    // 复盘要看整局的夜间接力，40 条不够，放宽到 120
+    // 复盘要看整局的夜间接力，放宽到 120 条
     nightLog: canReveal ? state.log.slice(-120) : null,
-    // 昨夜到底发生了什么（结构化）
+    // 昨夜的结构化明细
     judgeInfo: canReveal
       ? { ...nightActionsOf(state), lastNightDeaths: state.lastNightDeaths.slice() }
       : null,
-    // 瓦尔特的历次验人结果：[{ round, targetId, team }]
-    // 复盘时列出来，就能回答「到底哪一晚验错了人」。
+    // 瓦尔特的历次验人结果
     seerHistory: canReveal ? state.seerHistory.slice(-24) : null,
   }
 }
 
-//  结算奖励 
-//
-// ★ 入参刻意设计成「纯数据」而不是整个 state：
-//   联机时非房主客户端手上没有 state（那里面是全部人的身份），
-//   只有房主广播过来的公开快照 + 自己的私有信息。两边用同一个函数算各自的奖励，
-//   才不会出现「房主算得对、客人算得错」这种最难查的差异。
-//
-// 返回 { items:[{label, amount}], total, pairEnding }
+// 结算奖励：入参是纯数据而非整个 state，联机时两边用同一函数各算自己的奖励
 export function computeRewards({
   myRole = '',
   winner = '',
@@ -1293,7 +1211,7 @@ export function computeRewards({
     items.push({ label: `存活 ${survivedRounds} 个昼夜`, amount: survivedRounds * REWARDS.SURVIVE_ROUND })
   }
 
-  // 双人结局：流萤 与 开拓者 同时活到最后 → 额外一大笔
+  // 双人结局：流萤与开拓者同时活到最后
   const aliveSet = new Set(aliveIds)
   const fireflyAlive = Object.keys(revealed).some((id) => revealed[id] === ROLE.FIREFLY && aliveSet.has(id))
   const villagerAlive = Object.keys(revealed).some((id) => revealed[id] === ROLE.VILLAGER && aliveSet.has(id))
@@ -1305,7 +1223,7 @@ export function computeRewards({
   return { items, total: items.reduce((s, x) => s + x.amount, 0), pairEnding }
 }
 
-// 单纯的「时长是否够 3 分钟」判定（中途退出用）
+// 中途退出用：时长是否够 3 分钟
 export function passGracePeriod(startedAt, now = Date.now()) {
   return startedAt > 0 && now - startedAt >= REWARDS.QUIT_GRACE_MS
 }

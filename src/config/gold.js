@@ -37,10 +37,7 @@ export const useGoldStore = defineStore('gold', {
       }));
     },
 
-    // 增加金币
-    // amount: 数量（正数）
-    // reason: 可选，来源描述（预留，方便后续加流水）
-    // 享受「金币获取」永久加成倍率
+    // 增加金币（正数），享受「金币获取」永久加成倍率；reason 预留作流水描述
     addGold(amount, reason = '') {
       if (typeof amount !== 'number' || amount <= 0) return false;
       const actual = Math.round(amount * getBuffMultiplier('gold'));
@@ -49,9 +46,7 @@ export const useGoldStore = defineStore('gold', {
       return true;
     },
 
-    // 消费金币（自动检查余额）
-    // amount: 数量（正数）
-    // 返回: true=扣费成功，false=余额不足
+    // 消费金币（自动检查余额），true=扣费成功、false=余额不足
     spendGold(amount, reason = '') {
       if (typeof amount !== 'number' || amount <= 0) return false;
       if (this.gold < amount) return false;

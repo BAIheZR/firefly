@@ -1180,10 +1180,8 @@ const onImageWheel = (e) => {
   imgState.scale = Math.max(0.1, Math.min(3, imgState.scale * delta))
 }
 
-//  双指捏合缩放（移动端没有滚轮）
-// 单独用 touch 事件实现，而不是往上面的 pointer 逻辑里塞：
-// TouchEvent 直接给出 e.touches 列表，取两指距离一步到位，
-// 不必自己按 pointerId 维护集合；且双指落下时把拖动标志关掉即可避免冲突。
+//  双指捏合缩放（移动端没有滚轮） 
+// 用 touch 事件的 e.touches 直接取两指距离；双指落下时关掉拖动标志即可避免冲突
 const CROP_SCALE_MIN = 0.1
 const CROP_SCALE_MAX = 3
 let cropPinchStartDist = 0
@@ -1286,9 +1284,7 @@ const onResizeMove = (e) => {
 
   // 保持圆形：两个方向取最大的绝对增量
   const absDelta = Math.max(Math.abs(deltaX), Math.abs(deltaY))
-  // 对于左上/左下：拖向 左/下 要区分；统一以"离起点越远越变大"为基准：
-  // top-left：deltaX>0 向右 → 变小，deltaY>0 向下 → 变小 → sign = -1
-  // bottom-right：deltaX>0 → 变大 → sign = +1
+  // 各把手方向：以「离起点越远越变大」为基准换算正负
   const signMap = {
     'top-left': -1,
     'top-right': (deltaX > 0 ? 1 : -1) === (deltaY > 0 ? -1 : 1) ? 1 : 1, // 实际 top-right 是 deltaX 决定
@@ -1508,9 +1504,7 @@ function handleSaveAIConfig() {
   showCustomAlert('AI 配置已保存', 'success')
 }
 
-// 存档导出
-// 导出清单 = 存档白名单（SAVE_KEYS，随槽位隔离的进度数据）+ 跨槽位的全局偏好。
-// 统一从 saveSlots.js 取清单，避免以后新增字段时导出/导入漏项。
+// 存档导出：清单 = 存档白名单 SAVE_KEYS + 跨槽位的全局偏好，统一从 saveSlots.js 取
 const EXPORT_EXTRA_KEYS = [
   'official_game_path',   // 官方游戏路径（本机路径，跨槽共享）
   'music_folder_path',    // 音乐文件夹路径（本机路径，跨槽共享）
@@ -1641,9 +1635,7 @@ const handleImportArchive = (e) => {
 const handleClearData = async () => {
   if (!confirm('确定要清空所有数据吗？这将删除所有游戏进度、账户设置、头像、全部存档槽，以及已落盘的存档文件与图片。此操作不可撤销！')) return
 
-  // 1) 先清理落盘文件（存档槽 save_slot_*.cns、图片目录）
-  //    必须赶在 localStorage.clear() 之前：槽位指针 current_slot_id 一旦被清掉，
-  //    下次启动就会弹出存档选择，选回旧槽位即可把已删数据原样恢复回来。
+  // 1) 先清理落盘文件（存档槽 save_slot_*.cns、图片目录），必须赶在 localStorage.clear() 之前
   let fileNote = ''
   if (window.electronAPI?.clearAllData) {
     try {

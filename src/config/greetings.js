@@ -178,9 +178,7 @@ export function getWerewolfGreeting(scene) {
   return pickRandom(WEREWOLF_GREETINGS[scene]) || pickRandom(WEREWOLF_GREETINGS.hello)
 }
 
-// 流萤专属台词（萤火使相关的一切情感触发都走这里，方便以后统一改口吻）
-// scene: opening | light | saveSuccess | selfKilled | playerKilled | playerVoted
-//        | playerWin | playerLose | playerIsWolf | pairEnding
+// 流萤专属台词（萤火使相关的所有情感触发都走这里，scene: opening | light | saveSuccess | selfKilled | playerKilled | playerVoted | playerWin | playerLose | playerIsWolf | pairEnding）
 export function getFireflyGreeting(scene) {
   return pickRandom(FIREFLY_GREETINGS[scene]) || pickRandom(FIREFLY_GREETINGS.opening)
 }

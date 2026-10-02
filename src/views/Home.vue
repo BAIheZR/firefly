@@ -362,9 +362,7 @@ const resetAdjust = () => {
 }
 
 //  立绘类（2D 图片 / Live2D）：调整模式下的拖拽移动 + 滚轮/双指缩放 
-// 统一挂在 window 上监听，仅「调整模式 + 立绘类展示」时生效。
-// Live2D 的 canvas 是 pointer-events:none（为了不挡下层 UI），拿不到自身事件，
-// 所以只能走 window —— 也正因如此，这套逻辑对两种模式可以完全共用。
+// 统一挂 window 监听（Live2D 的 canvas 是 pointer-events:none 拿不到自身事件），仅调整模式下生效
 let imgDragging = false
 let imgDragStart = { px: 0, py: 0, x: 0, y: 0 }
 // 双指捏合状态（移动端没有滚轮，缩放只能靠手势）
@@ -444,9 +442,7 @@ watch([adjustMode, isSpriteMode], ([adjust, spriteMode]) => {
   }
 })
 
-// 调整模式开启期间锁死页面手势：否则单指拖动会被浏览器当成滚动/下拉刷新吃掉，
-// pointermove 根本不触发。面板自身要把 touch-action 收回来，否则里面的滑块拖不动
-// （对应样式见 assets/styles/main.css 的 .gesture-lock）。
+// 调整模式期间锁死页面手势，否则单指拖动会被浏览器当成滚动/下拉刷新吃掉（样式见 main.css 的 .gesture-lock）
 watch(adjustMode, (on) => {
   document.documentElement.classList.toggle('gesture-lock', on)
 })
@@ -489,9 +485,7 @@ const onStatsMouseUp = (e) => {
 }
 const onStatsBlur = () => { statsVisible.value = false } // 窗口失焦兜底
 
-//  移动端：长按显示好感度/行动点 
-// 触屏没有「右键」，但「按住才显示、松手就收起」这个语义要保留，
-// 长按是最接近的映射；同时避开调整模式（那时长按属于拖拽手势）。
+//  移动端：长按显示好感度/行动点（触屏没有右键，长按保留「按住才显示」语义；避开调整模式）
 const STATS_LONG_PRESS_MS = 400
 let statsPressTimer = null
 const cancelStatsPress = () => {

@@ -1,9 +1,7 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 
-// ★ `meta.landscape: true` = 移动端进这个页面要横屏（见 composables/useLandscape.js）。
-//   用户要求：所有「玩」的页面都横屏；主页 / 设置 / 商店 / 仓库 / 通知保持竖屏。
-//   这是横屏页面清单的唯一真源 —— 新增游戏只在路由上标一下，别在别处再列一份。
+// meta.landscape: true = 移动端进这个页面要横屏（横屏页面清单的唯一真源，新增游戏只在这里标一下）
 const routes = [
   {
     path: '/',

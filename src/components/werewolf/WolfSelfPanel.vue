@@ -142,9 +142,7 @@
 </template>
 
 <script setup>
-// 自己那一块：身份卡 + 私有信息 + 行动面板。
-// 组件只管「我此刻能做什么、点了谁」，规则判定一律回给父组件去跑引擎 ——
-// 这样单人（本地跑）与联机（发给房主跑）能共用同一套 UI。
+// 自己那一块：身份卡 + 私有信息 + 行动面板；组件只管「能做什么」，规则判定一律回给父组件
 import { computed, ref, watch } from 'vue'
 import { ROLES, ROLE, CAMP, TERMS, PM_AVATAR, pickRoleCard } from '@/config/werewolf'
 
@@ -288,9 +286,7 @@ function doSave() {
   emit('act', { action: 'witch-save', targetId: witch.value.killedId })
 }
 
-//  跳过（不使用技能）
-// 引擎给的 pending 说的是「你现在欠什么动作」，这里映射到对应的 -pass 动作。
-// 四种夜间角色都有一条，文案只说「这一夜会失去什么」，不做价值判断。
+//  跳过（不使用技能）：把引擎给的 pending 映射到对应的 -pass 动作，四种夜间角色各一条
 const PASSES = {
   'wolf-kill': { action: 'wolf-pass', label: '本夜不动手', hint: '选择空刀的话，今晚不会有人离开梦境。' },
   'seer-check': { action: 'seer-pass', label: '本夜不感应', hint: '感应不消耗次数，但这一夜你不会拿到任何结论。' },
