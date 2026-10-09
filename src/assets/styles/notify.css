@@ -566,6 +566,29 @@
   padding: 8px 12px;
   background: rgba(63, 169, 138, 0.12);
 }
+
+/* 重复服装折算提示：开箱结果里的一条金色横幅。
+   放在这里而不是只弹角落的 toast —— 玩家翻结果时必然会看到 */
+.chest-result-refund {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 12px;
+  background: rgba(240, 190, 90, 0.16);
+  border-top: 1px solid rgba(240, 190, 90, 0.35);
+  font-size: 12px;
+  line-height: 1.5;
+  color: #1a1a1a;
+}
+.chest-result-refund i {
+  color: var(--c-gold);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+.chest-result-refund b {
+  color: var(--c-gold);
+  font-size: 13px;
+}
 .chest-result-title {
   font-size: 13px;
   font-weight: 700;
@@ -1685,6 +1708,44 @@
   font-weight: bold;
   color: var(--c-primary);
   margin-bottom: 4px;
+}
+
+/*  公告：常驻可折叠（2026-10-09）  */
+/* 折叠态：内容收起，整体更紧凑 */
+.announcement.is-collapsed {
+  padding: 12px 20px;
+}
+/* 标题变成可点的折叠开关 */
+.announce-title.is-clickable {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+  cursor: pointer;
+  user-select: none;
+}
+.announce-title.is-clickable:hover {
+  opacity: 0.82;
+}
+/* 版本号小徽标 */
+.announce-ver {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(63, 169, 138, 0.15);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-primary);
+}
+/* 折叠箭头靠右 */
+.announce-chevron {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--c-text-sub);
+}
+/* 公告会越写越长（含往期），展开时限制高度并允许内部滚动 */
+.announce-text {
+  max-height: 260px;
+  overflow-y: auto;
 }
 .announce-text {
   font-size: 13px;

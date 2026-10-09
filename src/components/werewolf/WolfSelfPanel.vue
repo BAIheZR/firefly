@@ -81,6 +81,24 @@
         <span v-if="passHint" class="ww-action-hint">{{ passHint }}</span>
       </div>
 
+      <!-- 平票重投：票箱被清空后会重新欠票，这里必须明说「重投中」，
+           否则玩家只会看到票型突然归零，以为直接结算了 -->
+      <div v-if="wolfRevoteHint" class="ww-action-hint is-wolf">
+        <i class="fa-solid fa-repeat"></i> {{ wolfRevoteHint }}
+      </div>
+
+      <!-- 银狼刀人：把同伴投的票摊开 —— 投之前投之后都挂着，夜里随时能看当前刀口 -->
+      <div v-if="showWolfTally && wolfLines.length" class="ww-action-choices">
+        <span
+          v-for="l in wolfLines"
+          :key="l.id"
+          class="ww-tag"
+          :class="l.mine ? 'is-votecount' : l.lead ? 'is-wolf' : 'is-plain'"
+        >
+          <i class="fa-solid fa-gavel"></i> {{ l.name }} · {{ l.n }} 票{{ l.mine ? '（你的票）' : '' }}
+        </span>
+      </div>
+
       <div v-if="showTargets" class="ww-targets">
         <button
           v-for="t in targets"
@@ -144,7 +162,7 @@
 <script setup>
 // 自己那一块：身份卡 + 私有信息 + 行动面板；组件只管「能做什么」，规则判定一律回给父组件
 import { computed, ref, watch } from 'vue'
-import { ROLES, ROLE, CAMP, TERMS, PM_AVATAR, pickRoleCard } from '@/config/werewolf'
+import { ROLES, ROLE, CAMP, TERMS, PM_AVATAR, pickRoleCard, WOLF_REVOTE_MAX } from '@/config/werewolf'
 
 const props = defineProps({
   roleKey: { type: String, default: '' },
@@ -163,6 +181,12 @@ const props = defineProps({
   // 帕姆的播报（列车广播）。用户要求把它从卡片外的侧栏搬回卡片内，
   // 并进自我面板这一列 —— 所以数据从父组件灌进来，由这个面板负责渲染。
   feed: { type: Array, default: () => [] },
+  // 银狼才能拿到的「本夜刀口票况」：{ tally, lead, myVote, voters }
+  wolfTally: { type: Object, default: null },
+  // 是不是夜里：狼的刀口票型只在夜里挂出来，白天没人需要看（也不该看）
+  isNight: { type: Boolean, default: false },
+  // 本夜银狼已经因为平票重投过几次（0 = 没重投过）
+  wolfRevote: { type: Number, default: 0 },
 })
 
 const emit = defineEmits(['act'])
@@ -196,10 +220,55 @@ const nameOf = (id) => {
 // 播报分段：引擎 pushFeed 已经算好 parts；万一是旧快照（没带 parts）就退回整条纯文本
 const partsOf = (f) => (f.parts?.length ? f.parts : [{ t: f.text }])
 
+//  银狼的刀口票况 
+// 夜里常驻，不再挂在「我这一步还没做完」上 —— 投完票的狼也要能看，
+// 否则 AI 队友那几票落地时它这边面板早就收起来了（2026-10-02 反馈）。
+const showWolfTally = computed(
+  () => props.isNight && props.aliveSelf && !!props.wolfTally
+)
+
+// 平票重投提示：重投到第几次了 —— 让玩家看得见「刚才那一轮是作废重投的」
+const wolfRevoteHint = computed(() => {
+  const n = props.wolfRevote || 0
+  if (!n) return ''
+  return `平票 —— 票箱已清空，全队重新选刀（本夜第 ${n} 次重投，最多 ${WOLF_REVOTE_MAX} 次）`
+})
+
+const seatOf = (id) => {
+  const p = findP(id)
+  return p && p.seat ? p.seat : 99
+}
+
+// 谁几票、谁领先、我自己这一票投去了哪 —— 票多者领先，同票按座位号（跟 wolfTarget 的平票规则一致）
+const wolfLines = computed(() => {
+  const t = props.wolfTally
+  if (!t || !t.tally) return []
+  return Object.keys(t.tally)
+    .filter((id) => t.tally[id] > 0)
+    .sort((a, b) => t.tally[b] - t.tally[a] || seatOf(a) - seatOf(b))
+    .map((id) => ({
+      id,
+      n: t.tally[id],
+      name: nameOf(id),
+      mine: !!t.myVote && t.myVote === id,
+      lead: t.lead === id,
+    }))
+})
+
 //  私有信息 
 const infoLines = computed(() => {
   const info = props.privateInfo || {}
   const out = []
+  // 羁绊（昔涟 ↔ 搭档，双向互知身份）。排在最前，因为它是这一局的身份级信息。
+  // 引擎那边 privateInfoOf 早就把 partnerRole / partnerName 发下来了，但界面一直没有出口 ——
+  // 玩家压根不知道自己跟谁绑了，也不知道对方是什么牌（2026-10-02 反馈「羁绊者要相互得知身份」）。
+  if (info.bondInfo) {
+    const b = info.bondInfo
+    const r = ROLES[b.partnerRole]
+    out.push(
+      `羁绊：${nameOf(b.partnerId)}${r ? `（${r.name}·${r.title}）` : ''} —— 你与 TA 互知身份，两人都活到最后才算赢`
+    )
+  }
   if (info.mates?.length) {
     const mates = info.mates.map((id) => nameOf(id)).join('、')
     out.push(`同伴（${TERMS.wolfChannel}）：${mates}`)

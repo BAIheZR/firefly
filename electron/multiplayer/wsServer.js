@@ -59,6 +59,14 @@ function stopServer() {
     clearInterval(heartbeatTimer)
     heartbeatTimer = null
   }
+  // ★ 关服前先逐个房间广播「房间已关闭」，再关连接。
+  //   房主直接关游戏窗口时走的就是这条路径（main.js 的 window-all-closed → stopServer），
+  //   以前是直接把连接掐掉、一个字都不发 —— 在场的玩家 / 观战者只看到「连接已断开」，
+  //   游戏页不知道房间没了，就那样停在原地（2026-10-05 修）。
+  //   用 close() 而不是 terminate()：close() 会等发送队列排空再发 close 帧，消息能出去。
+  rooms.forEach((room) => {
+    broadcast(room, { type: 'room-closed' })
+  })
   if (wss) {
     wss.clients.forEach((ws) => {
       try { ws.close() } catch (_) { /* ignore */ }
@@ -149,7 +157,7 @@ function handleMessage(ws, raw) {
 }
 
 function handleJoin(ws, msg) {
-  const { roomCode, password, name, hostToken, clientId } = msg
+  const { roomCode, password, name, hostToken, clientId, avatar } = msg
   const room = rooms.get(roomCode)
   if (!room) {
     return send(ws, { type: 'error', message: '房间不存在' })
@@ -189,7 +197,7 @@ function handleJoin(ws, msg) {
         hostId: room.hostId,
         isHost: existed.isHost,
         capacity: room.capacity,
-        members: [...room.members.values()].map(({ id, name, isHost }) => ({ id, name, isHost })),
+        members: [...room.members.values()].map(({ id, name, isHost, avatar: av }) => ({ id, name, isHost, avatar: av || '' })),
       })
       return
     }
@@ -208,6 +216,10 @@ function handleJoin(ws, msg) {
     isHost,
     ws,
     clientId: clientId || '',
+    // 客户端 join 时带上来的压缩头像（96×96 JPEG，约 3~6KB）。
+    // 服务端只是原样存下来、在成员列表里转发 —— 它不认识头像内容。
+    // 卡一个上限，免得有人塞巨图把整个房间的成员列表撑爆。
+    avatar: typeof avatar === 'string' && avatar.startsWith('data:image/') ? avatar.slice(0, 64 * 1024) : '',
   }
   ws._roomCode = roomCode
   ws._memberId = memberId
@@ -221,12 +233,12 @@ function handleJoin(ws, msg) {
     hostId: room.hostId,
     isHost,
     capacity: room.capacity,
-    members: [...room.members.values()].map(({ id, name, isHost }) => ({ id, name, isHost })),
+    members: [...room.members.values()].map(({ id, name, isHost, avatar: av }) => ({ id, name, isHost, avatar: av || '' })),
   })
 
   broadcast(
     room,
-    { type: 'member-joined', member: { id: memberId, name: member.name, isHost } },
+    { type: 'member-joined', member: { id: memberId, name: member.name, isHost, avatar: member.avatar || '' } },
     memberId
   )
 }

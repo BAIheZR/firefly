@@ -267,6 +267,15 @@
                       <i class="fa-solid fa-xmark"></i>
                     </button>
                   </div>
+                  <!-- ★ 重复服装折算提示：放在结果面板里，而不是只弹一个角落的 toast ——
+                       开箱时玩家的注意力全在结果上，角落提示基本等于没有（2026-10-09） -->
+                  <div v-if="chestResult.refunded?.length" class="chest-result-refund">
+                    <i class="fa-solid fa-coins"></i>
+                    <span>
+                      {{ chestResult.refunded.map((x) => x.name).join('、') }} 已拥有，已折算为金币
+                      <b>+{{ chestResult.refunded.reduce((s, x) => s + x.gold, 0) }}</b>
+                    </span>
+                  </div>
                   <div class="chest-result-list">
                     <div
                       v-for="r in chestResult.list"
@@ -568,14 +577,22 @@
             </div>
           </section>
 
-          <!-- 底部公告 -->
-          <section class="announcement">
+          <!-- 底部公告：常驻可折叠 —— 有新版本时默认展开起提醒作用，
+               收起后仍留在页面上，随时点标题能翻回来看（见 script 里的说明） -->
+          <section class="announcement" :class="{ 'is-collapsed': !announceExpanded }">
             <div class="announce-icon">
               <i class="fa-solid fa-bullhorn"></i>
             </div>
             <div class="announce-content">
-              <div class="announce-title">{{ announcement.title }}</div>
-              <div class="announce-text">{{ announcement.text }}</div>
+              <div class="announce-title is-clickable" title="展开 / 收起" @click="toggleAnnouncement">
+                {{ announcement.title }}
+                <span class="announce-ver">v{{ ANNOUNCE_VERSION }}</span>
+                <i
+                  class="fa-solid announce-chevron"
+                  :class="announceExpanded ? 'fa-chevron-up' : 'fa-chevron-down'"
+                ></i>
+              </div>
+              <div v-show="announceExpanded" class="announce-text">{{ announcement.text }}</div>
             </div>
           </section>
         </main>
@@ -598,6 +615,11 @@ import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useInventoryStore, changeAffection, ALL_ITEMS } from '@/config/inventory'
+// ★ 版本号的单一来源：直接读 package.json，不再手抄一份。
+//   以前 ANNOUNCE_VERSION 是独立常量，和 package.json 各写各的 ——
+//   发版时漏改任意一个，就会出现「公告不弹」或「版本号对不上」（2026-10-09 收敛）
+import pkg from '../../package.json'
+import { playSfx } from '@/utils/sfx'
 import { useGoldStore } from '@/config/gold'
 import { useUserStore } from '@/config/user'
 import { useTasksStore } from '@/config/tasks'
@@ -694,6 +716,7 @@ const addExp = (gain) => {
   while (exp.value >= expMax.value) {
     exp.value -= expMax.value
     level.value += 1
+    playSfx('levelup') // 四音上行琶音，一耳朵就知道"升级了"
     showToast(`升级了！当前等级 Lv.${level.value}`, 'success', 'fa-solid fa-arrow-trend-up')
   }
   saveLevelData()
@@ -874,14 +897,22 @@ const handleSign = () => {
   // 同步到任务+经验
   tasksStore.addStat('totalSignDays', 1)
   addExp(10)
-  // 签到 +10 好感度
-  changeAffection(10)
+  // 签到好感：基础 +15，连续登录再 +5/天（封顶 +30）。
+  // 连签是「每天都来」的正反馈，同时也是这套系统里唯一的"惩罚"——
+  // 断签后 consecutiveDays 归零，加成自然消失，不需要额外写扣分逻辑
+  const streakBonus = Math.min(30, Math.max(0, consecutiveDays.value - 1) * 5)
+  const signAff = 15 + streakBonus
+  changeAffection(signAff)
 
   saveSigninData()
   saveLevelData()
   // notify 无人物图，用右上角 Toast 显示签到反馈台词
   toastStore.showToast(getSignGreeting())
-  showToast(`签到成功！获得 ${goldReward} 金币 + 10 经验 + 10 好感度（连签 ${consecutiveDays.value} 天）`, 'success', 'fa-solid fa-circle-check')
+  showToast(
+    `签到成功！获得 ${goldReward} 金币 + 10 经验 + ${signAff} 好感度（连签 ${consecutiveDays.value} 天${streakBonus ? ` · 连签加成 +${streakBonus}` : ''}）`,
+    'success',
+    'fa-solid fa-circle-check'
+  )
 }
 
 const handleMakeupSign = () => {
@@ -1066,7 +1097,11 @@ const REROLL_KEY = 'player_buff_reroll'
 const FREE_REROLLS = 5
 const REROLL_BASE_COST = 100
 const REROLL_GROWTH = 1.2
-const todayStr = () => new Date().toISOString().slice(0, 10)
+// ★ 用**本地日期**，不能用 toISOString()（那是 UTC）。
+//   UTC+8 的本地 00:00–08:00 时 UTC 还停在前一天，会被判成"昨天"，
+//   于是每日 5 次免费重抽要拖到早上 8 点才重置。
+//   直接复用本文件签到用的 dateToKey（:711）—— 全站统一成同一个日期口径（2026-10-09 修）
+const todayStr = () => dateToKey(new Date())
 const loadRerollState = () => {
   let st = { date: todayStr(), count: 0 }
   try {
@@ -1280,7 +1315,14 @@ const handleBuyChest = () => {
 // 注意：一般物品池剔除「负面效果」件（affection 为负），避免开出倒扣好感度的东西
 const buildPools = () => {
   const all = ALL_ITEMS
-  const clothings = all.filter((i) => i.category === 'clothing')
+  // ★ 服装池只保留「还没有的」。
+  //   服装总共就 4 款，很容易全收集；而服装是最高稀有度（rarity: 'legend'），
+  //   如果全收集后还照常抽，每次抽到都只能折算 6000 金币 —— 比旁边新开的装饰品（原价 8000+）还亏，
+  //   等于把"传说"变成了安慰奖。
+  //   加这个过滤后：全收集完 → 池子自然变空 → rollOnce 里那句
+  //   「池子为空则退化为金币」（gacha.js:182）自动接手，概率落到金币上，合理。
+  //   下面的折算逻辑仍然保留，作为兜底（比如存档被改过导致还抽得到重复）。
+  const clothings = all.filter((i) => i.category === 'clothing' && (store.inventory[i.id] || 0) <= 0)
   const decorations = all.filter((i) => i.tag === 'decorations')
   const items = all.filter(
     (i) => i.category === 'item' && i.tag !== 'decorations' && !(typeof i.affection === 'number' && i.affection < 0)
@@ -1290,6 +1332,11 @@ const buildPools = () => {
 
 // 抖动 → 开箱 的动画时长（与 CSS keyframes 对齐）
 const CHEST_SHAKE_MS = 520
+
+// 开箱开出「已拥有的服装」时的折算率：0.5 = 按售价半价返还金币。
+// 特意与仓库出售（inventory.js 的 sellItem 也是 0.5）保持一致 ——
+// 同一件衣服"卖掉"和"被系统折算"应该拿到一样多的钱，否则玩家会觉得被坑（2026-10-09）
+const CLOTHING_REFUND_RATE = 0.5
 
 const handleOpenChest = () => {
   if (chestOpening.value) return
@@ -1310,12 +1357,27 @@ const handleOpenChest = () => {
     const { draws, extraCount } = openChests(n, luckPercent.value, buildPools())
     // 3. 发放奖励
     const summary = summarizeDraws(draws)
+    // 重复服装的折算记录：汇总成一条提示，避免十连里开出 3 件重复就弹 3 次
+    const refunded = [] // [{ name, count, gold }] —— 要带金币数，结果面板里要显示"折算成多少"
     for (const r of summary.list) {
       if (r.kind === 'gold') {
         goldStore.addGold(r.gold, '开箱奖励')
-      } else {
-        store.grantItem(r.id, r.count)
+        continue
       }
+      // ★ 服装每人只该有一件（商店 buyItem 也禁止重复购买），所以开出「已拥有」的服装时
+      //   不再塞进仓库 —— 那只会变成一件毫无用处的库存（装备只看 >0，2 件和 1 件完全等价）。
+      //   改为按售价折算金币返还，并且明确告诉玩家发生了什么（2026-10-09）。
+      if (r.kind === 'clothing' && (store.inventory[r.id] || 0) > 0) {
+        const unit = store.getItemById(r.id)?.price || 0
+        const refund = Math.floor(unit * CLOTHING_REFUND_RATE) * (r.count || 1)
+        if (refund > 0) goldStore.addGold(refund, '重复服装折算')
+        refunded.push({ name: r.label, count: r.count || 1, gold: refund })
+        continue
+      }
+      store.grantItem(r.id, r.count)
+    }
+    if (refunded.length) {
+      showToast(`已拥有的服装折算为金币：${refunded.join('、')}`, 'info', 'fa-solid fa-coins')
     }
     // 3.5 宝箱任务统计
     //   累计开箱数按「实际开出」算（含 5% 额外开出的箱子）
@@ -1328,12 +1390,17 @@ const handleOpenChest = () => {
     if (clothingGot > 0) tasksStore.addStat('totalChestClothing', clothingGot)
 
     // 4. 取本次最高稀有度，决定辉光颜色
+    // 初始值必须是 rank 里**存在**的档位。
+    // 原来写的是 'gold'，而 rank 只有 legend/rare/normal —— 于是 rank[acc] 恒为 undefined，
+    // `数字 < undefined` 恒 false，reduce 从不更新，top 永远是 'gold'。
+    // 后果：glow-${chestTopRarity} 恒为 glow-gold（CSS 里没这个类），辉光和实际稀有度完全无关（2026-10-09 修）
     const rank = { legend: 0, rare: 1, normal: 2 }
     const top = summary.list.reduce(
       (acc, r) => (rank[r.rarity] < rank[acc] ? r.rarity : acc),
-      'gold'
+      'normal'
     )
     // 5. 播动画：抖动 → 换成开箱图 → 揭晓结果
+    playSfx('open') // 开箱音：三音上行，跟抖动动画一起起
     chestAnimating.value = true
     chestOpened.value = false
     chestTopRarity.value = top
@@ -1343,7 +1410,7 @@ const handleOpenChest = () => {
     window.setTimeout(() => {
       chestAnimating.value = false
       chestOpened.value = true
-      chestResult.value = { ...summary, extraCount }
+      chestResult.value = { ...summary, extraCount, refunded }
       chestCount.value = 1
       showToast(
         `开启了 ${n} 个箱子${extraCount > 0 ? `（额外 +${extraCount}）` : ''}`,
@@ -1464,8 +1531,53 @@ const syncInventoryStats = () => {
 //公告
 const announcement = ref({
   title: '系统公告',
-  text: '【v1.2.0 更新】\n1.新增「狼人杀」游戏\n2.新增「开宝箱」玩法\n3.实装四款 Live2D 角色模型\n4.适配移动端\n5.商店/仓库卡片新增悬浮动画，仓库物品显示出售价\n———\n往期：增加ai记忆功能、商店新增物品和装饰品、新增首页专属背景配置；添加同意条款和多人联机；添加模型适配鼠标跟随；增加报错弹框功能；修复部分bug',
+  text: `【v1.4.0 更新】
+· AI 对话新增表情系统：流萤会根据情绪做出对应表情（开心/生气/伤心/害羞等），聊天时看向正前方、好感度较高时还会脸红
+· 移除默认待机动作，角色改用自然待机姿态
+· 表情过渡更自然（约 1 秒渐变），聊天中表情保持当前状态、关闭聊天才恢复
+· 修复：聊天时部分表情（开心等）不显示的问题
+———
+【v1.3.0 更新】
+· 好感度系统重做：上限 2000 / 下限 -999，新增「疏远」档；签到（含连签加成）、和流萤聊天、小游戏、猜字谜都能涨好感；每档解锁称号、商店折扣与对话话题；好感变化会在右上角飘字提示
+· 狼人杀/五子棋 AI 增强：会悍跳、会跟风集火，且不再误伤同伴
+· 新增音效系统（点击 / 开箱 / 升级等），可在设置页调节音量
+· 修复：升级后主页行动点不刷新；每日免费重抽要到早上 8 点才重置；开箱辉光颜色不随稀有度变化
+· 开箱开出已拥有的服装会自动折算为金币，并在结果中提示
+· 切换服装不再重新加载模型，换肤更流畅
+· 报错弹窗新增「完整报告」区块，无需再去 Logs 目录翻文件
+· 修复玩家反馈的问题
+———
+【v1.2.5 金币平衡调整】
+为平衡金币的获取与消耗，本次对各玩法收益与商店价格做了统一调整：猜字谜答对奖励由 100 下调至 80（每多一条提示仍 -10，保底 10）；商店四款服装价格由 15000 降至 12000；五子棋提升了落子与胜利的金币奖励，并降低了单人局的行动点消耗。
+———
+【v1.2.0 更新】
+1.新增「狼人杀」游戏
+2.新增「开宝箱」玩法
+3.实装四款 Live2D 角色模型
+4.适配移动端
+5.商店/仓库卡片新增悬浮动画，仓库物品显示出售价
+———
+往期：增加ai记忆功能、商店新增物品和装饰品、新增首页专属背景配置；添加同意条款和多人联机；添加模型适配鼠标跟随；增加报错弹框功能；修复部分bug`,
 })
+
+// 公告版本号 = 应用版本号（来源见顶部 import 的 pkg）
+// 递增版本只需改 package.json 一处；但如果**只改公告文案不改版本号**，玩家不会重新看到展开态 ——
+// 那种情况需要同时递增版本（发版本来就会做）
+const ANNOUNCE_VERSION = pkg.version
+
+//  公告的展开 / 收起 
+// ★ 以前是「版本更新后显示一次，看完即标记已看，之后永不再出现」——
+//   玩家只要刷新一次就再也找不到了，反馈公告改了什么时很尴尬。
+//   现在改成**常驻在签到页、可折叠**：遇到新版本默认展开（起提醒作用），
+//   收起后仍留在页面上，随时点标题能翻回去看（2026-10-09）
+const announceExpanded = ref(localStorage.getItem('announcement_seen_version') !== ANNOUNCE_VERSION)
+// 首次打开新版本就把「已看过」记上 —— 它现在只用来决定"要不要默认展开"，不再控制显示与否
+if (announceExpanded.value) {
+  localStorage.setItem('announcement_seen_version', ANNOUNCE_VERSION)
+}
+const toggleAnnouncement = () => {
+  announceExpanded.value = !announceExpanded.value
+}
 
 // Toast
 const toast = reactive({
@@ -1489,3 +1601,16 @@ const showToast = (text, type = 'info', icon = 'fa-solid fa-circle-info') => {
 </script>
 
 <style scoped src="@/assets/styles/notify.css"></style>
+
+<style scoped>
+.announcement { position: relative; }
+.announce-close {
+  cursor: pointer;
+  color: #9fc4b3;
+  font-size: 15px;
+  padding: 4px 8px;
+  align-self: flex-start;
+  transition: color .2s, transform .2s;
+}
+.announce-close:hover { color: #DAA520; transform: scale(1.15); }
+</style>

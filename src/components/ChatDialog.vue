@@ -13,10 +13,15 @@
         </div>
       </div>
 
-      <!-- 未配置 AI -->
+      <!-- 未配置 AI：这就是玩家唯一能看到引导的地方（没配置时下面整块对话区都不渲染），
+           所以「怎么弄 Key」必须写在这里，光说"前往设置"玩家到了设置页还是不知道该填什么 -->
       <div v-if="!configured" class="chat-empty">
         <i class="fa-solid fa-robot"></i>
         <p>尚未配置 AI，无法与流萤对话</p>
+        <div class="chat-setup-steps">
+          <span>① 去服务商官网申请 API Key（DeepSeek / 智谱等都有免费额度）</span>
+          <span>② 在「设置 → AI 服务」里填入 Key</span>
+        </div>
         <button class="chat-go-set" @click="goSettings">
           <i class="fa-solid fa-gear"></i>
           前往设置配置 AI
@@ -54,7 +59,10 @@
 <script setup>
 import { ref, watch, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { chatWithAI, extractMemories, condenseChronicle, hasAIConfig } from '@/services/ai'
+import {
+  chatWithAI, extractMemories, condenseChronicle, hasAIConfig, missingAIConfig, INPUT_MAX_LEN, setBreachLogger,
+} from '@/services/ai'
+import { ElMessage } from 'element-plus'
 import {
   loadCurrentChat,
   saveCurrentChat,
@@ -66,17 +74,28 @@ import {
   CONTEXT_WINDOW,
   SUMMARY_TRIGGER,
 } from '@/services/chatHistory'
-import { getCurrentAffection } from '@/config/inventory'
+import { getCurrentAffection, changeAffection } from '@/config/inventory'
+import { takeDailyQuota, DAILY_CAPS } from '@/utils/affectionDaily'
 import { getAffectionStageInfo } from '@/config/affectionStages'
+import { getAffectionUnlocks } from '@/config/affectionUnlocks'
+import { extractEmotionKey, stripEmotionTag, DEFAULT_EMOTION } from '@/config/emotion'
 
 const emit = defineEmits(['close'])
 
-// 剥离 AI 回复末尾的 [emotion:xxx] 标签，只保留正文
-const EMOTION_TAG_RE = /\[emotion:\w+\]\s*$/
-function stripEmotionTag(raw) {
-  return raw ? raw.replace(EMOTION_TAG_RE, '').trim() : ''
-}
 const router = useRouter()
+
+// 广播情绪给 3D 模型（Home 监听 window 'model-emotion' 事件 → pmxRef.setEmotion）
+function broadcastEmotion(emotionKey) {
+  window.dispatchEvent(new CustomEvent('model-emotion', { detail: { emotion: emotionKey } }))
+}
+
+// 出戏留痕：模型说出「我是人工智能」这类越界话时记一笔，
+// 人设词是软约束、兜底是硬闸，出戏次数多了说明 system prompt 有漏洞要补
+let breachCount = 0
+setBreachLogger((hit) => {
+  breachCount += 1
+  console.warn(`[流萤] 第 ${breachCount} 次出戏被兜住，命中规则 #${hit}`)
+})
 
 const configured = ref(hasAIConfig())
 const messages = ref([])
@@ -97,7 +116,14 @@ onMounted(() => {
     messages.value = saved.messages
     summarizedCount.value = saved.summarizedCount || 0
   } else if (configured.value) {
-    messages.value.push({ role: 'assistant', content: '开拓者，你来了呀。' })
+    // 「开拓者，你来了呀」只在【首次】打开聊天时出现一次，之后打开不再显示
+    const greeted = localStorage.getItem('ai_chat_greeted')
+    if (!greeted) {
+      messages.value.push({ role: 'assistant', content: '开拓者，你来了呀。' })
+      localStorage.setItem('ai_chat_greeted', '1')
+      // 初始情绪：开心（仅首次问候时触发）
+      broadcastEmotion(DEFAULT_EMOTION)
+    }
   }
   memory.value = loadMemory()
 })
@@ -177,13 +203,41 @@ function buildRelationText() {
   ]
   const journey = (memory.value.milestones || []).map((m) => m.title)
   if (journey.length > 1) lines.push(`关系历程：${journey.join(' → ')}`)
+  // 随好感阶段解锁的谈资：关系越近，她能自然聊到的范围越广（来自 affectionUnlocks）。
+  // 明确写「不要硬塞」—— 否则模型会不管上下文把话题一个个报菜名
+  const topics = getAffectionUnlocks(aff).unlock.topics || []
+  if (topics.length) {
+    lines.push(`你们熟到可以自然地聊起：${topics.join('、')}（合适时提起即可，不要硬塞）`)
+  }
   return lines.join('。') + '。'
 }
 
 async function send() {
-  const text = inputText.value.trim()
+  const raw = inputText.value.trim()
+  const text = raw.slice(0, INPUT_MAX_LEN)
   if (!text || loading.value) return
+  // 没配置就先说清楚差什么 —— 「填了但用不了」最劝退，别只丢一句 NO_CONFIG 走人
+  // 兜底：正常路径下「没配置」时整块对话区都不渲染、根本点不到发送，所以这里基本走不到。
+  // 但配置可能在会话中途失效（Key 被清掉 / 换了存档），这时要给个说法。
+  // ★ 三步引导只维护在模板的空状态里那一处，别在这儿再写一遍（2026-10-09）
+  if (!hasAIConfig()) {
+    const miss = missingAIConfig()
+    ElMessage.warning(miss.length ? `AI 配置已失效：还差 ${miss.join('、')}` : 'AI 配置已失效')
+    configured.value = false
+    return
+  }
+  // 输入长度闸：超长的先截断，别让玩家一次灌几万字进 token
+  if (raw.length > INPUT_MAX_LEN) {
+    ElMessage.warning(`一句话最多 ${INPUT_MAX_LEN} 字，后面截掉了，剩下的可以再发一条`)
+    inputText.value = text
+  }
   messages.value.push({ role: 'user', content: text })
+  // 认真聊一句涨一点好感（受每日上限约束，超了就不给）。
+  // 要求 ≥5 字，挡掉「嗯」「哦」这类凑数刷分
+  if (text.length >= 5) {
+    const grant = takeDailyQuota('chat', DAILY_CAPS.chat, 2)
+    if (grant > 0) changeAffection(grant)
+  }
   inputText.value = ''
   loading.value = true
   scrollToBottom()
@@ -191,8 +245,10 @@ async function send() {
     // 近期原文窗口（当前对话连贯性）+ 长期记忆（关系状态/档案卡/近期事件/往事纪要/近期摘要）
     const windowMessages = messages.value.slice(-CONTEXT_WINDOW)
     const rawReply = await chatWithAI(windowMessages, buildMemoryText(memory.value, buildRelationText()))
-    // 剥离 AI 回复中的 [emotion:xxx] 标签，只显示正文
+    // 先提取句首 [emotion:xxx] 情绪（无则用默认开心），再剥离标签只显示正文
+    const emotionKey = extractEmotionKey(rawReply) || DEFAULT_EMOTION
     messages.value.push({ role: 'assistant', content: stripEmotionTag(rawReply) })
+    broadcastEmotion(emotionKey)
   } catch (err) {
     if (err?.code === 'NO_CONFIG') {
       configured.value = false
@@ -293,7 +349,7 @@ defineExpose({
   align-items: center;
   gap: 10px;
   padding: 28px 24px;
-  color: #6b7280;
+  color: #1a1a1a; /* 用户要求：提示文字用黑色，别用灰的（灰字在浅色面板上偏弱） */
   text-align: center;
 }
 
@@ -305,6 +361,19 @@ defineExpose({
 .chat-empty p {
   font-size: 14px;
   margin: 0;
+}
+
+/* 三步引导：左对齐 —— 这是要照着做的步骤，居中排版反而难读 */
+.chat-setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin: 2px 0 4px;
+  text-align: left;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #1a1a1a; /* 同上，跟主提示一起用黑色 */
 }
 
 .chat-go-set {

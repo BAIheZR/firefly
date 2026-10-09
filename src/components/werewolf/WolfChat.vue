@@ -31,10 +31,10 @@
         type="text"
         maxlength="200"
         :placeholder="inputPlaceholder"
-        :disabled="!canSend"
+        :disabled="!canSendThis"
         @keydown.enter="submit"
       />
-      <button class="ww-btn is-primary" :disabled="!canSend || !draft.trim()" @click="submit">
+      <button class="ww-btn is-primary" :disabled="!canSendThis || !draft.trim()" @click="submit">
         <i class="fa-solid fa-paper-plane"></i>
       </button>
     </div>
@@ -55,6 +55,9 @@ const props = defineProps({
   // 流萤的发言气泡会亮起来
   fireflyIds: { type: Array, default: () => [] },
   emptyText: { type: String, default: '还没有人说话' },
+  // 暗网（银狼）频道的独立开关：只在频道切到狼群时才用得上。
+  // 跟 canSend 分开传，是因为「公开频道要按阶段限言」和「狼群里随时能聊」是两回事。
+  wolfCanSend: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['send'])
@@ -76,8 +79,11 @@ watch(
 
 const shown = computed(() => props.messages.filter((m) => (m.channel || 'day') === active.value))
 
+// 当前这个频道此刻能不能说话：狼群频道走自己的开关，其余都看公开频道的
+const canSendThis = computed(() => (active.value === 'wolf' ? props.wolfCanSend : props.canSend))
+
 const inputPlaceholder = computed(() => {
-  if (!props.canSend) return '当前不能发言'
+  if (!canSendThis.value) return '当前不能发言'
   if (active.value === 'wolf') return '只有银狼能看到这里…'
   return '说点什么，按 Enter 发送'
 })
@@ -103,7 +109,7 @@ function msgCls(m) {
 
 function submit() {
   const text = draft.value.trim()
-  if (!props.canSend || !text) return
+  if (!canSendThis.value || !text) return
   // 把当前频道一起交给父组件 —— 父组件据此决定这条是公开还是狼人消息
   emit('send', text, active.value)
   draft.value = ''

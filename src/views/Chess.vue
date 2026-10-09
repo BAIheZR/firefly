@@ -45,25 +45,14 @@
 
         <!-- 顶部控制栏 -->
         <div class="chess-controls" :class="{ 'is-mp': isMp }">
+          <!-- 不给玩家选难度：AI 强度一律走「自适应」（按最近对局表现升降档 + 记住惯用套路） -->
           <div class="difficulty-group" v-if="!isMp">
-            <span class="ctrl-label">难度：</span>
-            <button
-              v-for="d in DIFFICULTIES"
-              :key="d.key"
-              class="diff-btn"
-              :class="{ active: difficulty === d.key, disabled: state !== 'idle' }"
-              :disabled="state !== 'idle'"
-              @click="setDifficulty(d.key)"
-              :title="d.text"
-            >
-              {{ d.text }}
-            </button>
             <button
               class="diff-btn is-adapt"
               :class="{ active: adaptive }"
               :disabled="state !== 'idle'"
               @click="toggleAdaptive"
-              title="开启后 AI 会按你最近的对局表现主动加强或收手，并记住你的惯用套路"
+              title="AI 会按你最近的对局表现主动加强或收手，并记住你的惯用套路"
             >
               <i class="fa-solid fa-brain"></i> 自适应
             </button>
@@ -186,7 +175,8 @@ import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { isShortViewport } from '@/utils/device'
 import { ElMessage } from 'element-plus'
 import { useGoldStore } from '@/config/gold'
-import { useInventoryStore } from '@/config/inventory'
+import { useInventoryStore, changeAffection, getBaseActionCap } from '@/config/inventory'
+import { takeDailyQuota, DAILY_CAPS } from '@/utils/affectionDaily'
 import { useMultiplayerStore } from '@/config/multiplayer'
 import {
   BOARD_SIZE, MP_BOARD_SIZE, EMPTY, HUMAN, AI,
@@ -210,16 +200,13 @@ const goldStore = useGoldStore()
 const inventoryStore = useInventoryStore()
 const mp = useMultiplayerStore()
 
-const DIFFICULTIES = [
-  { key: 'easy',   text: '简单' },
-  { key: 'normal', text: '平常' },
-  { key: 'hard',   text: '难' },
-]
-const GAME_COST_AP = 10          // 单人每局消耗 10 行动点（联机不消耗）
-const PER_MOVE_GOLD = 1          // 每下一步赚 1
-const WIN_BONUS_GOLD = 300       // 获胜额外奖励
-const BASE_ACTION_POINT = 50
-const ACTION_POINT_PER_LEVEL = 10
+// 基准档固定为「平常」：难度不再交给玩家选，AI 的实际强度由对手画像自适应升降
+// （utils/gomoku.js 的 resolveProfile 在这个基准档上做 tierShift）
+const BASE_DIFFICULTY = 'normal'
+const GAME_COST_AP = 5          // 单人每局消耗 5 行动点（联机不消耗）
+const PER_MOVE_GOLD = 5          // 每下一步赚 5
+const WIN_BONUS_GOLD = 500       // 获胜额外奖励
+// 行动点口径统一在 @/config/inventory（getBaseActionCap / BASE_ACTION_POINT …）
 const MP_CELL_PX = 24            // 联机 32 路棋盘：每格固定 24px，容器内滚动拖动
 const SOLO_CELL_PX = 38          // 单人棋盘（桌面端）：每格 38px
 const MIN_SOLO_CELL_PX = 16      // 单人棋盘的最小格宽（桌面）：再小棋子就点不准了
@@ -271,7 +258,6 @@ const opponent = computed(() => mp.mySession?.seats.find((p) => p.id !== mp.self
 // 游戏状态
 // idle: 未开始 / player: 对局中 / ai: AI思考中（仅单人） / finishing: 结算等待 / over: 结束
 const state = ref('idle')
-const difficulty = ref('normal')
 // 对手画像：记录玩家的对局习惯，让 AI 自适应升降档并记住惯用开局与连子方向（随存档槽隔离）
 const profile = ref(loadProfile())
 // 自适应开关（设备级偏好）：关掉后 AI 完全按所选难度来，不做任何升降档
@@ -462,7 +448,7 @@ const tipText = computed(() => {
 // 仅单人显示；自适应关闭时改为提示原因。
 const profileHint = computed(() => {
   if (isMp.value) return ''
-  if (!adaptive.value) return '自适应已关闭：AI 固定按所选难度下棋'
+  if (!adaptive.value) return '自适应已关闭：AI 固定按「平常」档下棋'
   return describeProfile(profile.value)
 })
 
@@ -496,23 +482,12 @@ const resultTypeClass = computed(() => {
 })
 
 // 行动点（单人口径，与 Home/notify 保持一致）
-const actionPointDisplay = computed(() => {
-  let level = 0
-  try {
-    const p = JSON.parse(localStorage.getItem('player_level_data') || '{}')
-    if (typeof p.level === 'number') level = p.level
-  } catch (e) {}
-  return BASE_ACTION_POINT + level * ACTION_POINT_PER_LEVEL
-       + (inventoryStore.actionBonus || 0) + (inventoryStore.actionRecover || 0)
-})
+// 当前行动点 = 基础上限 + 物品加成 + 恢复余额（口径见 inventory.js，别在这儿重算）
+const actionPointDisplay = computed(() =>
+  getBaseActionCap() + (inventoryStore.actionBonus || 0) + (inventoryStore.actionRecover || 0)
+)
 
-// 难度切换（只能在 idle，仅单人）
-function setDifficulty(k) {
-  if (isMp.value || state.value !== 'idle') return
-  difficulty.value = k
-}
-
-// 自适应开关（仅单人，只能在 idle）。关掉后 AI 完全按所选难度下棋。
+// 自适应开关（仅单人，只能在 idle）。关掉后 AI 固定在基准档「平常」，不做任何升降。
 function toggleAdaptive() {
   if (isMp.value || state.value !== 'idle') return
   adaptive.value = !adaptive.value
@@ -520,7 +495,7 @@ function toggleAdaptive() {
   ElMessage.info(
     adaptive.value
       ? 'AI 已开启自适应：会按你最近的对局表现主动加强或收手'
-      : 'AI 已关闭自适应：固定按所选难度下棋'
+      : 'AI 已关闭自适应：固定按「平常」档下棋'
   )
 }
 
@@ -639,16 +614,28 @@ function placeStone(r, c, player) {
     profile.value = { ...profile.value }
   }
 
-  // 只有自己下的子才加金币（联机中对方落子不加自己的）
-  if (player === myColor.value) addMoveGold(PER_MOVE_GOLD)
+  // 只有自己下的子才加金币（联机中对方落子不加自己的）。
+  // ★ 观战者必须一起排掉：观战不占座、也不是桌主之外的任何一方，
+  //   但 myColor 会按「是不是桌主」落回 HUMAN（黑），于是桌主每落一子都被判成
+  //   「我方落子」白送金币，赢了还多拿一份胜利奖励。观战 = 只看，一分不赚。
+  if (!isWatcher.value && player === myColor.value) addMoveGold(PER_MOVE_GOLD)
 
   if (checkWin(board.value, r, c, player, size)) {
     winner.value = player
-    if (player === myColor.value) {
+    if (!isWatcher.value && player === myColor.value) {
       const ok = goldStore.addGold(WIN_BONUS_GOLD, '五子棋胜利奖励')
       if (ok) earnedGoldThisGame.value += WIN_BONUS_GOLD
+      // 赢了涨好感（每日上限内）。这里天然排掉了观战 —— 外层已经判过 !isWatcher
+      const winGrant = takeDailyQuota('game', DAILY_CAPS.game, 8)
+      if (winGrant > 0) changeAffection(winGrant)
       showBubble('you_votor', { durationMs: 6000 })
     } else {
+      // 输了也给一点安慰分，但必须是「我真的参与了这一局且输了」——
+      // 观战者点不动棋盘、myColor 却会落回 HUMAN，不加这道判断会白送好感
+      if (!isWatcher.value && player !== myColor.value) {
+        const loseGrant = takeDailyQuota('game', DAILY_CAPS.game, 3)
+        if (loseGrant > 0) changeAffection(loseGrant)
+      }
       showBubble('votor', { durationMs: 6000 })
     }
     // 记录这一局：玩家赢在哪条线、是不是靠组合威胁（供画像下次针对性反制）
@@ -703,7 +690,7 @@ function runAI() {
     if (switchTimer) clearTimeout(switchTimer)
     if (state.value !== 'ai') return
     try {
-      const [r, c] = getAIMove(board.value, difficulty.value, {
+      const [r, c] = getAIMove(board.value, BASE_DIFFICULTY, {
         size: boardSize.value,
         seed: aiSeed.value,
         moveCount: moveCount.value,
@@ -780,6 +767,12 @@ function onMpMessage(data, fromId) {
       break
     case 'mp:room-closed':
       ElMessage.warning('房主已关闭房间')
+      goBackTarget()
+      break
+    case 'mp:table-closed':
+      // 桌主离开 / 解散本桌（2026-10-05 修：以前只更新桌列表，游戏页收不到，会卡在牌桌上）
+      ElMessage.warning('桌主已离开，本局结束')
+      mp.clearSession()
       goBackTarget()
       break
     default:

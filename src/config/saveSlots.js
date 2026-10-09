@@ -185,7 +185,7 @@ export const useSaveSlotsStore = defineStore('saveSlots', {
 
     async migrateLegacyToSlot1() {
       const payload = {
-        meta: { name: '旧存档', updatedAt: Date.now(), version: SAVE_VERSION },
+        meta: { name: '存档', updatedAt: Date.now(), version: SAVE_VERSION },
         data: this.packCurrentData(),
       }
       await this.writeSlot(1, payload)

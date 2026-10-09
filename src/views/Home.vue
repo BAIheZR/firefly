@@ -34,35 +34,44 @@
       class="home-character"
       :style="characterStyle"
     >
+      <!-- ★ 模型常驻：加载过一次就不再卸载，换肤只切「显示 / 隐藏」。
+           原先这里是 v-if 直接切换，于是每次「穿服装 → 换回默认」都要把模型整个重新加载一遍
+           （1~3 秒空白 + 加载动画重播）。现在改成「v-if 懒挂载 + v-show 切显隐」：
+           没用到的类型根本不创建，用过一次之后就常驻复用（2026-10-09）。
+           :active 同时带上显示条件 —— 隐藏时暂停渲染循环，不然常驻会白烧 GPU。 -->
       <PMXCharacter
-        v-if="!isSpriteMode"
+        v-if="pmxMounted && !pmxFailed"
+        v-show="!isSpriteMode"
         ref="pmxRef"
-        :active="pageActive"
+        :active="pageActive && !isSpriteMode"
         :model="DEFAULT_MODEL_CFG.model"
         :basePath="DEFAULT_MODEL_CFG.basePath"
         :eyeTracking="DEFAULT_MODEL_CFG.eyeTracking"
         :defaultPose="DEFAULT_MODEL_CFG.defaultPose"
         :adjustMode="adjustMode"
         @transform-change="onTransformChange"
+        @error="onPmxError"
       />
       <!-- 穿了带 Live2D 模型的服装时优先用 Live2D；左下角可一键切回 2D 立绘 -->
       <Live2DViewer
-        v-else-if="isLive2DMode"
+        v-if="live2dMounted"
+        v-show="isLive2DMode"
         ref="live2dRef"
         :src="live2dSrc"
-        :active="pageActive"
+        :active="pageActive && isLive2DMode"
         :scale="live2dTransform.scale"
         :offsetX="live2dTransform.x"
         :offsetY="live2dTransform.y"
         :maxFps="isTouchDevice ? 30 : 60"
         @error="onLive2DError"
       />
+      <!-- 2D 立绘：穿的是图片服装，或者 3D 模型挂了时的兜底 -->
       <img
-        v-else
+        v-show="showImage"
         ref="characterImgRef"
         class="home-character-img"
-        :src="equippedClothing.gameImg"
-        :alt="equippedClothing.name"
+        :src="displayImage"
+        :alt="equippedClothing?.name || '默认形象'"
         :style="characterImgStyle"
         draggable="false"
       />
@@ -123,11 +132,11 @@
           <el-slider v-model="modelScale" :min="0.4" :max="2.5" :step="0.05" class="adjust-slider" @input="onSliderInput" />
           <span class="adjust-value">{{ modelScale.toFixed(2) }}x</span>
         </div>
-        <div v-if="!isSpriteMode" class="adjust-row">
-          <span class="adjust-label">方向</span>
-          <el-slider v-model="modelRy" :min="-180" :max="180" :step="1" class="adjust-slider" @input="onRyInput" />
-          <span class="adjust-value">{{ modelRy }}°</span>
-        </div>
+    <div v-if="!isSpriteMode" class="adjust-row">
+      <span class="adjust-label">左右转</span>
+      <el-slider v-model="modelRy" :min="-180" :max="180" :step="1" class="adjust-slider" @input="onRyInput" />
+      <span class="adjust-value">{{ modelRy }}°</span>
+    </div>
         <div class="adjust-actions">
           <button type="button" class="adjust-btn" @click="resetAdjust">重置</button>
           <button type="button" class="adjust-btn primary" @click="finishAdjust">完成</button>
@@ -170,7 +179,9 @@ import PMXCharacter from '@/components/PMXCharacter.vue'
 import Live2DViewer from '@/components/Live2DViewer.vue'
 import { useRouter } from 'vue-router'
 import { ref, reactive, computed, onMounted, onBeforeUnmount, onActivated, onDeactivated, watch } from 'vue'
-import { useInventoryStore } from '@/config/inventory'
+// 默认形象立绘：3D 模型挂掉时的兜底（跟签到页「默认形象」用的是同一张）
+import fireflyYuan from '@/images/game/firefly_yuan.png'
+import { useInventoryStore, BASE_ACTION_POINT, ACTION_POINT_PER_LEVEL } from '@/config/inventory'
 import { useBackgroundStore } from '@/config/background'
 import { getLoginGreeting, getSignGreeting, getAffectionStage, getAffectionGreeting, getHoverGreeting, getClickGreeting } from '@/config/greetings'
 import { isTouchDevice } from '@/utils/device'
@@ -204,6 +215,17 @@ const equippedClothing = computed(() => inventoryStore.equippedClothing)
 // 是否为图片立绘模式：穿戴了带主页立绘的服装
 const isImageMode = computed(() => !!equippedClothing.value?.gameImg)
 
+// 3D 模型是否已经挂了（WebGL context 创建失败）。挂了就改走 2D 立绘，
+// 否则首页会一片空白 —— 用户看到的「换肤后人物渲染不出来」就是这种情况（2026-10-06）
+const pmxFailed = ref(false)
+const onPmxError = (e) => {
+  console.warn('[Home] 3D 模型初始化失败，改用 2D 立绘兜底：', e)
+  pmxFailed.value = true
+}
+// <img> 分支实际显示的图：穿了带立绘的服装就用它，否则用默认形象立绘。
+// ★ 必须带 ?. —— 默认形象时 equippedClothing 是 null，直接取 .gameImg 会让模板报错
+const displayImage = computed(() => equippedClothing.value?.gameImg || fireflyYuan)
+
 //  Live2D：服装 id → public/live2d 下的模型目录 
 // 该目录必须与 src/images/game 下的立绘 png 同名成对，模型入口固定为 <name>.model3.json
 const LIVE2D_MAP = {
@@ -227,6 +249,25 @@ const isLive2DMode = computed(() => canUseLive2D.value && renderMode.value === '
 // 立绘类展示（Live2D / 2D 图片）统称：它们共用一套拖动/缩放调整逻辑，3D PMX 走另一套
 const isSpriteMode = computed(() => isImageMode.value || isLive2DMode.value)
 const live2dRef = ref(null)
+
+//  模型常驻开关（避免换肤时重新加载模型） 
+// 第一次真的需要某种模型时才挂载（懒挂载），之后**再不卸载**，换肤只切显示/隐藏。
+// 目的：以前每次「穿服装 → 换回默认」都会把模型整个重载一遍（1~3 秒空白 + 加载动画重播）。
+// 注意 PMX 进来就需要（默认形象就是 3D），所以初值直接给 true（2026-10-09）
+const pmxMounted = ref(!isSpriteMode.value)
+const live2dMounted = ref(isLive2DMode.value)
+watch(isSpriteMode, (sprite) => {
+  if (!sprite) pmxMounted.value = true // 回到 3D 形象 → 确保 PMX 已在
+})
+watch(
+  isLive2DMode,
+  (v) => {
+    if (v) live2dMounted.value = true // 第一次切到 Live2D 才挂载，之后一直留着
+  },
+  { immediate: true }
+)
+// 2D 立绘何时显示：穿的是图片服装（isImageMode），或 3D 模型挂了且当前不是 Live2D 模式
+const showImage = computed(() => isImageMode.value || (pmxFailed.value && !isLive2DMode.value))
 
 const saveRenderMode = () => {
   try { localStorage.setItem(RENDER_MODE_KEY, renderMode.value) } catch (e) { /* 隐私模式忽略 */ }
@@ -464,8 +505,8 @@ watch(displayKey, (now, prev) => {
 const LEVEL_KEY = 'player_level_data'
 const AFFECTION_KEY = 'player_affection'
 const DEFAULT_AFFECTION = 100
-const BASE_ACTION_POINT = 50
-const ACTION_POINT_PER_LEVEL = 10 // 50 * 20% = 10，每升一级 +10 行动点
+// BASE_ACTION_POINT / ACTION_POINT_PER_LEVEL 统一从 @/config/inventory 导入
+// （原先 App / Chess / GuessWord / Home 各定义一份，改数值时容易漏改 —— 2026-10-09 收敛）
 
 const level = ref(0)
 // 好感度 / 行动点加成走 store 响应式 state，使用物品 / 签到 / 上线更新时自动响应
@@ -516,11 +557,11 @@ const adjustTip = computed(() => {
   if (isTouchDevice) {
     return isSpriteMode.value
       ? '拖动移动 · 双指捏合或滑杆调大小'
-      : '拖动移动 · 双指捏合或滑杆调大小 · 转向用滑杆'
+      : '拖动移动 · 双指捏合或滑杆调大小 · 左右转用滑杆'
   }
   return isSpriteMode.value
     ? '左键拖动移动 · 滚轮或滑杆调大小'
-    : '左键拖动移动 · 右键拖动转向 · 滚轮或滑杆调大小'
+    : '左键拖动移动 · 右键拖动转向 · 滚轮或滑杆调大小 · 左右转用滑杆'
 })
 
 // 问候气泡（打字机效果，每条文字每隔 6s 才能重新触发一次）
@@ -536,7 +577,7 @@ const bubbleStyle = computed(() => {
   if (isLive2DMode.value) {
     // Live2D：坐标由组件根据「内容外框」实时算出（跟随缩放/位移/窗口 resize）
     const pos = live2dRef.value?.headScreenPos
-    if (pos) return { left: pos.x + 'px', top: (pos.y - 80) + 'px' }
+    if (pos) return { left: pos.x + 'px', top: (pos.y - 110) + 'px' }
     return { left: bubbleX.value + 'px', top: bubbleY.value + 'px' }
   }
   if (isImageMode.value && characterImgRef.value) {
@@ -544,13 +585,14 @@ const bubbleStyle = computed(() => {
     const rect = characterImgRef.value.getBoundingClientRect()
     const headX = rect.left + rect.width * 0.5
     const headY = rect.top + rect.height * 0.15
-    return { left: headX + 'px', top: (headY - 80) + 'px' }
+    return { left: headX + 'px', top: (headY - 110) + 'px' }
   }
   // 3D 模型 / 默认：用 showBubble 时一次性写入的坐标
   return { left: bubbleX.value + 'px', top: bubbleY.value + 'px' }
 })
 let bubbleTimer = null
 let typeTimer = null
+let homeNightTimer = null
 let lastBubbleAt = 0
 const BUBBLE_THROTTLE_MS = 6000
 const TYPE_SPEED_MS = 60 // 每个字的间隔（毫秒）
@@ -568,7 +610,7 @@ function showBubble(text, duration = 6000) {
     const pos = pmxRef.value?.getHeadScreenPos?.()
     if (pos) {
       bubbleX.value = pos.x
-      bubbleY.value = pos.y - 80 // 气泡在头部上方 80px
+      bubbleY.value = pos.y - 110 // 气泡在头部上方 110px
     }
   }
   bubbleVisible.value = true
@@ -602,6 +644,13 @@ watch(affection, (v) => {
   lastAffectionStage = newStage
 })
 
+// 情绪表情：AI 聊天广播情绪 → 驱动 3D 模型表情（PMXCharacter.setEmotion）
+// duration=0 表示聊天途中不恢复默认，保持当前表情状态，直到下次情绪变化或关闭聊天
+const onModelEmotion = (e) => {
+  const key = e?.detail?.emotion
+  if (key) pmxRef.value?.setEmotion?.(key, 0)
+}
+
 // 悬浮入口反馈
 const onHoverGameEntry = () => showBubble(getHoverGreeting('gameEntry'))
 const onHoverIdle = () => showBubble(getHoverGreeting('idle'))
@@ -612,7 +661,15 @@ const showChat = ref(false)
 // 聊天抽屉关闭时立即触发长期记忆整理（短对话也录入记忆卡）
 const chatDialogRef = ref(null)
 watch(showChat, (open) => {
-  if (!open) chatDialogRef.value?.onDrawerClosed?.()
+  if (open) {
+    // 进入聊天：取消面部跟随鼠标，看向屏幕正前方
+    pmxRef.value?.setLookForward?.(true)
+  } else {
+    chatDialogRef.value?.onDrawerClosed?.()
+    // 关闭聊天：恢复面部跟随鼠标 + 恢复默认表情
+    pmxRef.value?.setLookForward?.(false)
+    pmxRef.value?.clearEmotion?.()
+  }
 })
 
 const loadPlayerStats = () => {
@@ -706,11 +763,24 @@ onMounted(() => {
   }
   // 初始化好感度阶段基线（避免首次进入就触发阶段台词）
   lastAffectionStage = getAffectionStage(affection.value)
+
+  // 首页背景昼夜自动切换：进入即判定一次，之后每 60s 再判定
+  // 19:00 ~ 次日 06:00 切到 bg_new2.jpg（夜间背景），白天恢复原配置
+  bgStore.applyHomeDayNight()
+  homeNightTimer = setInterval(() => bgStore.applyHomeDayNight(), 60000)
+
+  // 情绪表情：监听 AI 聊天广播（ChatDialog dispatch 'model-emotion'），驱动 3D 模型表情
+  window.addEventListener('model-emotion', onModelEmotion)
 })
 
 // keep-alive 缓存：控制 PMXCharacter 渲染/追踪
 onActivated(() => {
   pageActive.value = true
+  // 每次从别的页面回来都重读一次玩家数据。
+  // ★ 以前只在 onMounted 读，而 Home 在 keep-alive 里不会重新挂载 ——
+  //   于是在个人页升级后回到主页，行动点上限还是旧的，要手动刷新才生效（2026-10-09 修）
+  loadPlayerStats()
+  inventoryStore.loadData()
 })
 
 onDeactivated(() => {
@@ -720,6 +790,8 @@ onDeactivated(() => {
 onBeforeUnmount(() => {
   if (bubbleTimer) clearTimeout(bubbleTimer)
   if (typeTimer) clearInterval(typeTimer)
+  if (homeNightTimer) clearInterval(homeNightTimer)
+  window.removeEventListener('model-emotion', onModelEmotion)
   window.removeEventListener('mousedown', onStatsMouseDown)
   window.removeEventListener('mouseup', onStatsMouseUp)
   window.removeEventListener('blur', onStatsBlur)

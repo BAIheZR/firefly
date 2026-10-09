@@ -601,11 +601,11 @@ const games = [
   {
     id: 'werewolf',
     name: '萤火夜话',
-    desc: '6 人梦境局，找出潜藏的星核猎手；流萤每局必出',
+    desc: '6~12 人梦境局：找星核猎手与潜藏的银狼，流萤必出；9 人以上才有白狼王、昔涟、卡芙卡',
     icon: 'fa-solid fa-fire-flame-simple',
     color: 'linear-gradient(135deg,#6b4fd8,#ffd966)',
     route: '/werewolf',
-    cap: 6,
+    cap: 12,
     minCapacity: 6,
   },
 ]

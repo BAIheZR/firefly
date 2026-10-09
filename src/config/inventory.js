@@ -29,23 +29,25 @@ import fireflySpring from "@/images/game/firefly_spring.png";
 import smallBd from "@/images/game/small_loli.png";
 import fireflyZx from "@/images/game/firefly_zx.png";
 import fireflyWar from "@/images/game/firefly_war.png";
-import { AFFECTION_STAGES, getAffectionStageIndex } from "./affectionStages";
+import { AFFECTION_STAGES, getAffectionStageIndex, clampAffection } from "./affectionStages";
+import { applyShopDiscount } from "./affectionUnlocks";
+import { playSfx } from "@/utils/sfx";
 import { loadMemory, saveMemory, appendMilestone } from "@/services/chatHistory";
 // 商品总表（供商店 / 仓库 / 开箱等模块共用）
 export const ALL_ITEMS =[
     // 物品
-    {id:1,name:'橡木蛋糕卷',desc:'爱吃',price:1000,icon: xmdgj, category: 'item',decs2:"+50好感度,+20行动点",affection:50,actionPoint:20},
-    {id:2,name:'垃圾袋',desc:'有奇效',price:200,icon: trash, category: 'item',decs2:"-100好感度,+10行动点",affection:-100,actionPoint:10},
-    {id:3,name:'星琼160',desc:'开拓者的最爱',price:1600,icon: xq, category: 'item',decs2:"+50好感度,+10行动点",affection:50,actionPoint:10},
+    {id:1,name:'橡木蛋糕卷',desc:'爱吃',price:850,icon: xmdgj, category: 'item',decs2:"+50好感度,+20行动点",affection:50,actionPoint:20},
+    {id:2,name:'垃圾袋',desc:'有奇效',price:100,icon: trash, category: 'item',decs2:"-100好感度,+10行动点",affection:-100,actionPoint:10},
+    {id:3,name:'星琼160',desc:'开拓者的最爱',price:800,icon: xq, category: 'item',decs2:"+50好感度,+10行动点",affection:50,actionPoint:10},
     {id:4,name:'火花玩偶',desc:'啊？是主播？！',price:150,icon: spark_doll, category: 'item',decs2:"+10好感度,+10行动点",affection:10,actionPoint:10},
-    {id:5,name:'花火玩偶',desc:'好像没有什么危险',price:600,icon: spark_dollTwo, category: 'item',decs2:"随机+—100好感度,随机+-20点行动点",affection:[-100,100],actionPoint:[-20,20]},
-    {id:6,name:'钟表小子（装饰品）',desc:'据说，只有够纯真，直率，有童心的小朋友才能看见（芝士装饰品，非消耗品）',price:10000,icon: Clock_Kid_Decoration, category: 'item',decs2:"加成选择:好感度增长，行动点恢复，金币获取，运气值增加",tag:'decorations',affection:0,actionPoint:0},
-    {id:7,name:'姬子的咖啡？',desc:'据说喝了之后有奇效,应该很好喝吧？',price:100,icon: coffee, category: 'item',decs2:"-100好感度,+10点行动点",affection:-100,actionPoint:10},
-    {id:8,name:'知更鸟的吧唧?(不像)',desc:'这可是大名鼎鼎的歌手明星啊',price:1000,icon: Robin, category: 'item',decs2:"+100好感度,+40点行动点",affection:100,actionPoint:40},
+    {id:5,name:'花火玩偶',desc:'好像没有什么危险',price:1000,icon: spark_dollTwo, category: 'item',decs2:"随机+—100好感度,随机-30/+40点行动点",affection:[-100,100],actionPoint:[-30,40]},
+    {id:6,name:'钟表小子（装饰品）',desc:'据说，只有够纯真，直率，有童心的小朋友才能看见（芝士装饰品，非消耗品）',price:9500,icon: Clock_Kid_Decoration, category: 'item',decs2:"加成选择:好感度增长，行动点恢复，金币获取，运气值增加",tag:'decorations',affection:0,actionPoint:0},
+    {id:7,name:'姬子的咖啡？',desc:'据说喝了之后有奇效,应该很好喝吧？',price:700,icon: coffee, category: 'item',decs2:"-30好感度,+50点行动点",affection:-30,actionPoint:50},
+    {id:8,name:'知更鸟的吧唧?(不像)',desc:'这可是大名鼎鼎的歌手明星啊',price:1200,icon: Robin, category: 'item',decs2:"+100好感度,+40点行动点",affection:100,actionPoint:40},
     {id:9,name:'苏乐达',desc:'似乎味道和可乐一样呢（bushi）',price:50,icon: suled, category: 'item',decs2:"+10点行动点",affection:0,actionPoint:10},
-    {id:10,name:'限定彩妆⌈夕颜⌋',desc:'在离开匹诺康尼前，给萤宝的小小纪念品，希望流萤会喜欢',price:50,icon: xy, category: 'item',decs2:"+50点好感度",affection:50,actionPoint:0},
-    {id:11,name:'知更鸟的演唱会门票（bushi）',desc:'流萤想去看知更鸟的演唱会好久了呢，上一次看还是在上一次',price:580,icon: concert_tickets, category: 'item',decs2:"+150点好感度",affection:150,actionPoint:0},
-    {id:13,name:'苏乐达瓶盖',desc:'？，苏乐达的瓶盖怎么在这里',price:10,icon: suledp, category: 'item',decs2:"+25点行动点",affection:0,actionPoint:1},
+    {id:10,name:'限定彩妆⌈夕颜⌋',desc:'在离开匹诺康尼前，给萤宝的小小纪念品，希望流萤会喜欢',price:750,icon: xy, category: 'item',decs2:"+200点好感度",affection:200,actionPoint:0},
+    {id:11,name:'知更鸟的演唱会门票（bushi）',desc:'流萤想去看知更鸟的演唱会好久了呢，上一次看还是在上一次',price:600,icon: concert_tickets, category: 'item',decs2:"+150点好感度",affection:150,actionPoint:0},
+    {id:13,name:'苏乐达瓶盖',desc:'？，苏乐达的瓶盖怎么在这里，那里来的垃圾，一边去！',price:10,icon: suledp, category: 'item',decs2:"+1点行动点",affection:0,actionPoint:1},
 
     {id:14,name:'星穹列车模型',desc:'据说是1:148的列车模型，不过为什么一个模型这么贵啊',price:8000,icon: model_1, category: 'item',tag:'decorations',allowedBuffTypes:['ap'],affection:0,actionPoint:0,decs2:"提供行动点随机加成"},
     {id:15,name:'知更鸟‘周边’？',desc:'听说流萤想要这个好久了',price:8000,icon: model_2, category: 'item',tag:'decorations',allowedBuffTypes:['affection'],affection:0,actionPoint:0,decs2:"提供好感度随机加成"},
@@ -54,10 +56,10 @@ export const ALL_ITEMS =[
     {id:18,name:'萨姆模型',desc:'1:72的萨姆模型，这么精致，买回去流萤会怎么说呢？',price:12000,icon: model_samu, category: 'item',tag:'decorations',allowedBuffTypes:['ap','affection'],affection:0,actionPoint:0,decs2:"提供好感度，行动点随机加成"},
 
     // 服装
-    {id:101,name:'流萤&春日手信',desc:'据说很多人都喜欢这个服装',price:15000,icon: firefly_one, category: 'clothing', gameImg: fireflySpring},
-    {id:102,name:'流萤&小不点',desc:'萝莉控？死刑o((>ω< ))o!',price:15000,icon: xbd, category: 'clothing', gameImg: smallBd},
-    {id:103,name:'流萤&仲夏萤火之约',desc:'与萤火虫共舞的约定',price:15000,icon: zxyhzy, category: 'clothing',gameImg: fireflyZx},
-    {id:104,name:'流萤&战斗服',desc:'老兵烧烤？',price:15000,icon: 'fa-solid fa-bread-slice', category: 'clothing',gameImg: fireflyWar},
+    {id:101,name:'流萤&春日手信',desc:'据说很多人都喜欢这个服装',price:12000,icon: firefly_one, category: 'clothing', gameImg: fireflySpring},
+    {id:102,name:'流萤&小不点',desc:'萝莉控？死刑o((>ω< ))o!',price:12000,icon: xbd, category: 'clothing', gameImg: smallBd},
+    {id:103,name:'流萤&仲夏萤火之约',desc:'与萤火虫共舞的约定',price:12000,icon: zxyhzy, category: 'clothing',gameImg: fireflyZx},
+    {id:104,name:'流萤&战斗服',desc:'老兵烧烤？',price:12000,icon: 'fa-solid fa-bread-slice', category: 'clothing',gameImg: fireflyWar},
 
 ]
 // 好感度上升跨阶段时把新阶段写入长期记忆的「关系历程」；只记上升（掉档不回删里程碑）
@@ -180,8 +182,8 @@ export const useInventoryStore = defineStore('inventory', {
       if (affRaw) {
         try {
           const v = JSON.parse(affRaw)
-          if (typeof v === 'number') this.affection = v
-          else if (v && typeof v.affection === 'number') this.affection = v.affection
+          if (typeof v === 'number') this.affection = clampAffection(v)
+          else if (v && typeof v.affection === 'number') this.affection = clampAffection(v.affection)
         } catch (e) {}
       } else {
         this.affection = 100
@@ -223,6 +225,7 @@ export const useInventoryStore = defineStore('inventory', {
       if (qty <= 0) return false
       this.inventory[itemId] = (this.inventory[itemId] || 0) + qty
       this.saveData()
+      playSfx('gain') // 获得物品的"叮咚"（开箱、活动赠送都打这儿过）
       return true
     },
 
@@ -269,7 +272,11 @@ export const useInventoryStore = defineStore('inventory', {
         }
         quantity = 1
       }
-      const totalCost = item.price * quantity
+      // ★ 好感度阶段折扣必须在这里应用 —— 这里是**真正的扣费点**。
+      //   只改界面展示会造成「看着便宜、扣的是原价」，是最招骂的一类 bug。
+      //   shop.vue 那边用同一个 applyShopDiscount() 算显示价，两边同源才对得上（2026-10-09）
+      const unitPrice = applyShopDiscount(item.price, this.affection)
+      const totalCost = unitPrice * quantity
       // 用 goldStore.spendGold 统一扣费（自动检查余额 + 持久化）
       if (!goldStore.spendGold(totalCost, `购买${item.name}`)) {
         alert('金币不足！')
@@ -317,13 +324,11 @@ export const useInventoryStore = defineStore('inventory', {
       const aff = this._resolveStat(item.affection)
       const ap = this._resolveStat(item.actionPoint)
       if (aff === 0 && ap === 0) return
-      // 好感度
-      if (aff !== 0) {
-        const prevAff = this.affection
-        this.affection = Math.max(0, this.affection + aff)
-        localStorage.setItem('player_affection', String(this.affection))
-        recordAffectionMilestones(prevAff, this.affection)
-      }
+      // 好感度：必须走统一的 changeAffection()。
+      // 旧写法在这里「直连加减」，等于把装饰品买的「好感度增长 +N%」倍率整个绕过去了 ——
+      // 结果就是玩家花钱买的加成只对挂机/签到生效、对用物品无效（2026-10-08 修）。
+      // changeAffection 内部已处理：只对正数乘倍率、clamp 到 [-999, 2000]、写盘、记跨档里程碑。
+      if (aff !== 0) changeAffection(aff)
       // 行动点加成
       if (ap !== 0) {
         this.actionBonus = this.actionBonus + ap
@@ -450,18 +455,62 @@ export const getBuffMultiplier = (typeKey) => {
   return 1 + sum / 100
 }
 
-// 修改玩家好感度（下限 0 无上限，正向增长享受「好感度增长」加成倍率），返回最新好感度
+// 修改玩家好感度（下限 -999、上限 2000；正向增长享受「好感度增长」加成倍率），返回最新好感度。
+// ★ 这是好感度唯一的写入入口 —— 任何新增来源都必须调它，别自己改 store.affection，
+//   否则会漏掉倍率 / clamp / 跨档里程碑这三件事（用物品那条路就是这么漏的，2026-10-08 修）。
 export const changeAffection = (amount) => {
   const store = useInventoryStore()
   if (typeof amount !== 'number' || amount === 0) return store.affection
   let delta = amount
   if (amount > 0) delta = Math.round(amount * getBuffMultiplier('affection'))
   const prevAff = store.affection
-  store.affection = Math.max(0, store.affection + delta)
+  store.affection = clampAffection(store.affection + delta)
   localStorage.setItem('player_affection', String(store.affection))
   recordAffectionMilestones(prevAff, store.affection)
+  // ★ 广播「好感度变了」，让界面飘一个 +N / -N 的反馈。
+  //   以前只有主页按住才看得到数字，玩家根本感受不到自己在变好（2026-10-09）。
+  //   delta 取 clamp 之后的**实际**变化量：贴到上下限时不会飘出「+50」却一点没涨。
+  try {
+    const real = store.affection - prevAff
+    if (real !== 0) {
+      window.dispatchEvent(new CustomEvent('affection-change', {
+        detail: { delta: real, value: store.affection },
+      }))
+    }
+  } catch (e) {
+    /* 非浏览器环境（测试 / SSR）忽略 */
+  }
   return store.affection
 }
 
 // 读取当前好感度（默认 100）
 export const getCurrentAffection = () => useInventoryStore().affection
+
+//  行动点口径（单一来源） 
+//   当前行动点 = 基础上限(cap) + actionBonus + actionRecover
+//   上限        = 基础上限(cap) + actionBonus
+//   （actionBonus 是买来的永久上限扩展；actionRecover 是消耗后待恢复的余额，可为负）
+//
+// 原先「等级 → 基础上限」这段在 App.vue / Chess.vue / GuessWord.vue / inventory.js
+// 各抄了一份，连 BASE_ACTION_POINT / ACTION_POINT_PER_LEVEL 都各定义一遍 ——
+// 改数值时极易漏改。统一收敛到这里（2026-10-09）。
+export const LEVEL_KEY = 'player_level_data'
+export const BASE_ACTION_POINT = 50
+export const ACTION_POINT_PER_LEVEL = 10
+
+// 玩家等级（存档损坏 / 字段异常一律按 0 级）
+export function getPlayerLevel() {
+  let level = 0
+  try {
+    const p = JSON.parse(localStorage.getItem(LEVEL_KEY) || '{}')
+    if (typeof p.level === 'number') level = p.level
+  } catch (e) {
+    /* 存档损坏按 0 级 */
+  }
+  return level
+}
+
+// 基础上限（不含物品加成 / 恢复余额）
+export function getBaseActionCap() {
+  return BASE_ACTION_POINT + getPlayerLevel() * ACTION_POINT_PER_LEVEL
+}

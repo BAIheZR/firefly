@@ -350,10 +350,14 @@
   inset: 0;
   background: rgba(0,0,0,0.35);
   display: flex;
-  align-items: center;
+  /* ★ 不用 align-items:center —— 配合 .result-card 的 margin:auto（见那里的注释） */
+  align-items: flex-start;
   justify-content: center;
   z-index: 9999;
   padding: 20px;
+  /* ★ 允许纵向滚动：小屏 / 横屏时结算内容可能比视口还高，原来完全滚不动 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
   backdrop-filter: blur(6px);
 }
 .result-card {
@@ -364,6 +368,10 @@
   padding: 28px 26px;
   text-align: center;
   box-shadow: 0 16px 48px rgba(0,0,0,0.3);
+  /* ★ 用 auto 边距居中，而不是靠父级 align-items:center。
+     flex 容器一开 overflow，用 center 会让超出视口的部分（尤其**顶部**）永远滚不到 —— 经典坑。
+     auto 边距既能居中、又能正常滚。 */
+  margin: auto;
 }
 .result-title {
   font-size: 22px;

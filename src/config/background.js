@@ -1,12 +1,14 @@
 import { defineStore } from "pinia";
 // 导入预设背景图
 import bgAlt from "@/images/bg2.png";
+import bgNew2 from "@/images/bg_new2.jpg";
 
 const BG_KEY = "user_background_data";
 
 // 预设背景列表
 export const PRESET_BACKGROUNDS = [
   { id: "alt", name: "默认背景", value: bgAlt },
+  { id: "night", name: "夜间背景", value: bgNew2 },
 ];
 
 export const useBackgroundStore = defineStore("background", {
@@ -35,6 +37,9 @@ export const useBackgroundStore = defineStore("background", {
     homeOpacity: 100,
     // 是否启用首页专属背景（关闭则使用 Home 默认背景）
     homeEnabled: false,
+
+    // 夜间自动切换时，进入夜间前保存的「白天首页背景」配置（恢复用）
+    homeDaySnapshot: null,
   }),
 
   getters: {
@@ -91,6 +96,7 @@ export const useBackgroundStore = defineStore("background", {
           this.homeCustomData = parsed.homeCustomData || "";
           this.homeOpacity = parsed.homeOpacity ?? 100;
           this.homeEnabled = parsed.homeEnabled || false;
+          this.homeDaySnapshot = parsed.homeDaySnapshot || null;
         } catch (e) {
           console.warn("加载背景数据失败，使用默认值");
         }
@@ -113,6 +119,8 @@ export const useBackgroundStore = defineStore("background", {
         homeCustomData: this.homeCustomData,
         homeOpacity: this.homeOpacity,
         homeEnabled: this.homeEnabled,
+        // 夜间自动切换快照
+        homeDaySnapshot: this.homeDaySnapshot,
         })
       );
     },
@@ -186,6 +194,35 @@ export const useBackgroundStore = defineStore("background", {
     setHomeOpacity(value) {
       this.homeOpacity = Math.max(0, Math.min(100, Number(value) || 100));
       this.saveData();
+    },
+
+    // 首页背景昼夜自动切换：
+    // 19:00 ~ 次日 06:00 为夜间，自动切到「夜间背景」(bg_new2.jpg)；
+    // 白天则恢复原「白天首页背景」配置（进夜间前会快照一次，做到无侵入、可还原）。
+    applyHomeDayNight() {
+      const h = new Date().getHours();
+      const isNight = h >= 19 || h < 6;
+      if (isNight) {
+        if (this.homePresetId !== "night") {
+          // 仅在从非夜间切过来时，快照一次当前白天配置
+          this.homeDaySnapshot = {
+            homeType: this.homeType,
+            homePresetId: this.homePresetId,
+            homeCustomData: this.homeCustomData,
+            homeEnabled: this.homeEnabled,
+          };
+          this.setHomePreset("night");
+        }
+      } else if (this.homeDaySnapshot) {
+        // 回到白天：还原快照并清除
+        const s = this.homeDaySnapshot;
+        this.homeType = s.homeType;
+        this.homePresetId = s.homePresetId;
+        this.homeCustomData = s.homeCustomData;
+        this.homeEnabled = s.homeEnabled;
+        this.homeDaySnapshot = null;
+        this.saveData();
+      }
     },
   },
 });

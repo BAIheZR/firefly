@@ -132,7 +132,7 @@
 
   function render(data) {
     if (!data) return
-    const { analysis, detail, env, recentLog, source } = data
+    const { analysis, detail, env, recentLog, source, copyText } = data
     app.innerHTML = `
       <div class="head">
         <div class="head-icon">!</div>
@@ -161,11 +161,17 @@
         <summary>最近日志（点开查看）</summary>
         <pre>${esc(recentLog || '')}</pre>
       </details>
+      <!-- ★ 完整报告全文：内容与写入 Logs/最新-错误报告.txt 的**逐字一致**。
+           放在这里，用户就不必再跑去 Logs 目录翻那个 txt 了（2026-10-09） -->
+      <details>
+        <summary>完整报告（与 Logs 目录里的「最新-错误报告.txt」内容相同）</summary>
+        <pre>${esc(copyText || '')}</pre>
+      </details>
 
       <div class="meta">
         版本 v${esc(env.version)} | Electron ${esc(env.electron)} | Chromium ${esc(env.chrome)}<br>
         系统 ${esc(env.os)} | CPU ${esc(env.cpu)} | 内存 ${esc(env.memory)} | 硬件加速：${esc(env.hw)}<br>
-        发生时间：${esc(env.time)} | 日志保存在游戏数据目录的 Logs 文件夹内
+        发生时间：${esc(env.time)} | 完整报告已在上方，也可在游戏数据目录的 Logs 文件夹内查看
       </div>
     `
   }

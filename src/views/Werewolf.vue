@@ -47,7 +47,7 @@
             <div v-if="isMp && shortBy > 0" class="ww-action" style="margin-top: 14px">
               <div class="ww-action-title"><i class="fa-solid fa-user-plus"></i> 人数不足</div>
               <div class="ww-action-hint">
-                本局是 {{ BASE_TOTAL }} 人局，房间里能坐下的只有 {{ seatCapacity }} 人，还差 {{ shortBy }} 人。
+                本局是 {{ totalPlayers }} 人局，这一桌坐了 {{ seatCapacity }} 人，还差 {{ shortBy }} 人。
               </div>
               <div class="ww-action-choices">
                 <button
@@ -62,13 +62,43 @@
               </div>
               <div class="ww-action-hint" style="margin-top: 8px">
                 {{ fillWithAI
-                  ? '会把空出来的座位交给 AI 乘客，凑满 6 人立刻开局。'
+                  ? `会把空出来的座位交给 AI 乘客，凑满 ${totalPlayers} 人立刻开局。`
                   : '不补位的话，需要再等 ' + shortBy + ' 个人进房间。' }}
               </div>
             </div>
 
+            <!--  人数选择（设定表「选择对局人数」6~12）
+                 单人局：谁都能选；联机局：只有桌主能定（canSetSize），其他人跟着这一桌的实际人数走 -->
+            <div v-if="!isMp || canSetSize" class="ww-action" style="margin-top: 14px; text-align: center">
+              <div class="ww-action-title" style="justify-content: center">
+                <i class="fa-solid fa-users"></i> 选择对局人数
+              </div>
+              <div class="ww-action-choices" style="justify-content: center">
+                <button
+                  v-for="n in SUPPORTED_SIZES"
+                  :key="n"
+                  class="ww-btn is-sm"
+                  :class="sizeForPick === n ? 'is-primary' : 'is-ghost'"
+                  type="button"
+                  :disabled="!canSetSize"
+                  @click="onPickSize(n)"
+                >
+                  {{ n }} 人
+                </button>
+              </div>
+              <div class="ww-action-hint">
+                <template v-if="isMp">
+                  这一桌已经坐了 {{ seatCapacity }} 人 —— 人数越多，上场的角色越多
+                  （特殊狼 8 人起、昔涟 9 人起、卡芙卡 10 人起）。{{ canSetSize ? '只有桌主能改。' : '由桌主决定。' }}
+                </template>
+                <template v-else>
+                  人数越多，上场的角色越多（狼王 8 人起、昔涟 9 人起、卡芙卡 10 人起）。
+                </template>
+              </div>
+            </div>
+
             <div class="ww-choice" style="margin-top: 16px; text-align: center">
-              <button class="ww-btn is-primary" :disabled="!canStart" @click="startGame">
+              <button class="ww-btn is-primary" :disabled="!canStart" @click="startGame()">
                 <i class="fa-solid fa-play"></i> {{ startBtnText }}
               </button>
             </div>
@@ -99,6 +129,26 @@
                   <i class="fa-solid fa-arrow-left-long"></i> 刚才：{{ prevPhaseLabel }}
                 </span>
                 <span>{{ phaseSub }}</span>
+              </div>
+              <!-- 昔涟在准备期选羁绊对象：先说清「已经跟谁绑了」，再点座位改 -->
+              <div v-if="bondPickMode" class="ww-action-hint" style="margin-top: 4px">
+                <i class="fa-solid fa-heart"></i>
+                <template v-if="bondPartner">
+                  你已与 {{ bondPartner.seat }} 号 {{ bondPartner.name }}{{ roleTag(bondPartner.roleKey) }} 缔结羁绊
+                  —— 你们互知身份，再点一个座位可换人
+                </template>
+                <template v-else>点一个座位，选定与你缔结羁绊的人（不选的话，入夜时系统会随机替你指定）</template>
+              </div>
+              <!-- 白狼王 / 自爆狼：白天可自爆带走一人 -->
+              <div v-if="myBlastKind && pickedId" style="margin-top: 6px">
+                <button class="ww-btn is-sm is-danger" @click="onBlast(pickedId)">
+                  <i class="fa-solid fa-bomb"></i>
+                  {{ myBlastKind === 'white' ? '亮牌自爆 · 带走 ' : '自爆 · 带走 ' }}
+                  {{ pickedSeatName }}（自己也会出局）
+                </button>
+              </div>
+              <div v-else-if="myBlastKind" class="ww-action-hint" style="margin-top: 4px">
+                <i class="fa-solid fa-bomb"></i> 你可以自爆 —— 先点一个座位，再按上面的按钮
               </div>
             </div>
             <!-- 单人模式下轮到你了：不要再让人对着倒计时发呆，直接写明「在等你」 -->
@@ -137,6 +187,30 @@
                 :self-avatar="selfAvatar"
                 @pick="onSeatPick"
               />
+
+              <!-- 准备期：确认身份。拿到牌的人人都有（语义是「我看过自己的牌了」），
+                   全桌确认完就提前入夜；有人掉线则由兜底倒计时收尾，不会卡住全桌。 -->
+              <div v-if="showPrepConfirm" class="ww-action is-mine-turn">
+                <div class="ww-action-title">
+                  <i class="fa-solid fa-id-badge"></i> 确认你的身份
+                </div>
+                <div class="ww-action-hint">
+                  看清自己的卡面后点确认。{{ prepConfirmHint }}
+                </div>
+                <div class="ww-action-choices">
+                  <button
+                    class="ww-btn is-primary is-sm"
+                    :disabled="!!view.me?.prepConfirmed"
+                    @click="onConfirmIdentity()"
+                  >
+                    <i
+                      class="fa-solid"
+                      :class="view.me?.prepConfirmed ? 'fa-hourglass-half' : 'fa-check'"
+                    ></i>
+                    {{ view.me?.prepConfirmed ? '已确认，等待其他乘客' : '确认身份' }}
+                  </button>
+                </div>
+              </div>
 
               <!-- 轮到你时的唯一提示条。
                    投票 / 轮流发言 / 遗言 / 反击 的出口都收在这里 ——
@@ -177,6 +251,9 @@
                 :alive-self="view.alive.includes(myId)"
                 :phase-label="phaseShortLabel"
                 :feed="view.feed"
+                :wolf-tally="view.wolfTally || null"
+                :is-night="view.phase === PHASE.NIGHT"
+                :wolf-revote="view.me?.wolfRevote || 0"
                 @act="onAct"
               />
 
@@ -272,6 +349,7 @@
                   :channels="channels"
                   :self-id="myId"
                   :can-send="canChat"
+                  :wolf-can-send="canWolfChat"
                   :dead-ids="deadIds"
                   :firefly-ids="fireflyIds"
                   @send="onSendChat"
@@ -350,7 +428,7 @@ import { computed } from 'vue'
 import { useMultiplayerStore } from '@/config/multiplayer'
 import { useGoldStore } from '@/config/gold'
 import {
-  ROLES, ROLE, PHASE, PHASE_MS, SPEAK_MS, TERMS, BASE_TOTAL, isWolfRole, PM_AVATAR,
+  ROLES, ROLE, PHASE, PHASE_MS, SPEAK_MS, TERMS, BASE_TOTAL, SUPPORTED_SIZES, isWolfRole, PM_AVATAR,
   NIGHT_STEPS, NIGHT_STEP_LABEL, NIGHT_STEP_MS,
 } from '@/config/werewolf'
 import { useWerewolfMatch } from '@/composables/useWerewolfMatch'
@@ -367,7 +445,10 @@ const {
   view, started, overlay, fillWithAI, rewardResult, fireflyFade,
   pickedId, nowTs, bubbleText,
   isMp, authority, myId, isWatcher,
-  seatCapacity, shortBy, canStart, startBtnText, setupLine, waitingMe,
+  seatCapacity, totalPlayers, shortBy, canStart, startBtnText, setupLine, waitingMe,
+  soloSize, mpSize, canSetSize, setMpSize,
+  myBlastKind, pickedSeatName, bondPickMode, bondPartner, onBlast,
+  showPrepConfirm, prepConfirmHint, onConfirmIdentity,
   startGame, onAct, onSeatPick, onSendChat,
   onSpeak, doSkipSpeak, skipPhase,
   onBack, backToStart,
@@ -376,9 +457,19 @@ const {
 // 每位玩家的发言时长（秒），文案里要引，跟引擎共用同一个数
 const SPEAK_SEC = Math.round(SPEAK_MS / 1000)
 
+// 人数按钮的选中态：单人跟 soloSize；联机跟桌主定的 mpSize，
+// 桌主还没定就显示「按这一桌现有人数算出来」的那个（开局那一栏本来就跟着座位走）
+const sizeForPick = computed(() => (isMp.value ? mpSize.value || totalPlayers.value : soloSize.value))
+// 单人局谁都能选；联机局只有桌主改得动（setMpSize 内部挡了非桌主）
+function onPickSize(n) {
+  if (isMp.value) setMpSize(n)
+  else soloSize.value = n
+}
+
 //  基础派生 
+// 白昼阶段清单。准备期也算白天 —— 列车还没发车，不该是入夜的画面
 const isDayPhase = computed(() =>
-  [PHASE.DAY, PHASE.LAST_WORDS, PHASE.SPEAKING, PHASE.DISCUSS, PHASE.VOTE, PHASE.HUNTER].includes(view.phase)
+  [PHASE.PREP, PHASE.DAY, PHASE.LAST_WORDS, PHASE.SPEAKING, PHASE.DISCUSS, PHASE.VOTE, PHASE.HUNTER].includes(view.phase)
 )
 const myRole = computed(() => view.me?.roleKey || '')
 const myRoleName = computed(() => {
@@ -549,11 +640,22 @@ const seatPickedId = computed(() =>
   view.phase === PHASE.VOTE ? view.votes[myId.value] || '' : pickedId.value
 )
 
+// 角色 key → 「（名字·称号）」。准备期的羁绊提示条要带上对方身份 ——
+// 设定表里羁绊双方「互知身份」，光给个座位号不算互知。
+function roleTag(key) {
+  const r = ROLES[key]
+  return r ? `（${r.name}·${r.title}）` : ''
+}
+
 const canPickSeat = computed(() => {
   if (isWatcher.value) return false   // 旁观者点不动任何座位
   // 反击：丹恒此刻已经离场，所以必须放在 alive 判断之前
   if (view.phase === PHASE.HUNTER) return !!view.me?.hunterPending
   if (!view.alive.includes(myId.value)) return false
+  // 准备期：昔涟点座位 = 指定（或改）羁绊对象。这条必须放行 ——
+  // 座位网格的 canPick 要求 pickable 为 true 才给点击反馈，少了这条，
+  // 提示条写着「点一个座位」而座位全是灰的、点了一点动静都没有（2026-10-02 反馈）。
+  if (view.phase === PHASE.PREP) return bondPickMode.value
   if (view.phase === PHASE.VOTE) return true
   if (view.phase === PHASE.NIGHT && myPending.value && myPending.value !== 'witch') return true
   return false
@@ -567,6 +669,17 @@ const canChat = computed(() => {
   }
   return view.phase === PHASE.DISCUSS && view.alive.includes(myId.value)
 })
+
+// 暗网（银狼）频道：只要还是活着的狼，白天黑夜投票期都能聊 ——
+// 狼队内部商议刀口不该被阶段卡住，所以这条不跟 canChat 的阶段限制走。
+// （观战者手里根本没有狼频道这个 tab，isWatcher 这里多一层保险。）
+const canWolfChat = computed(
+  () =>
+    isWolfSelf.value &&
+    !isWatcher.value &&
+    started.value &&
+    view.alive.includes(myId.value)
+)
 const deadIds = computed(() =>
   view.players.filter((p) => !view.alive.includes(p.id)).map((p) => p.id)
 )
@@ -599,6 +712,7 @@ const chatHint = computed(() => {
 //  阶段文案 
 const phaseLabel = computed(() => {
   switch (view.phase) {
+    case PHASE.PREP: return '准备 · 列车即将发车'
     case PHASE.NIGHT: return `${TERMS.night} · 第 ${view.round} 夜`
     case PHASE.DAY: return `${TERMS.day} · 第 ${view.round} 天`
     case PHASE.LAST_WORDS: return '遗言 · 昨夜离场的乘客'
@@ -613,6 +727,7 @@ const phaseLabel = computed(() => {
 
 const phaseIcon = computed(() => {
   switch (view.phase) {
+    case PHASE.PREP: return 'fa-solid fa-hourglass-half'
     case PHASE.NIGHT: return 'fa-solid fa-moon'
     case PHASE.DAY: return 'fa-solid fa-sun'
     case PHASE.LAST_WORDS: return 'fa-solid fa-comment-dots'
@@ -671,9 +786,13 @@ const prevPhaseLabel = computed(() => {
 
 const phaseShortLabel = computed(() => (view.phase === PHASE.NIGHT ? TERMS.night : TERMS.day))
 
+// 倒计时只读 nowTs 当「刷新触发」，取时间一律用 Date.now()。
+// 这样即便驱动（tick）某次停摆、UI 很久没重算，一旦有依赖变化就会显示真值，
+// 而不是把冻住的旧时间戳当成「现在」算出 301s 这种离谱剩余（2026-10-02 修过）。
 const remain = computed(() => {
   if (!view.deadline) return 0
-  return Math.max(0, Math.ceil((view.deadline - nowTs.value) / 1000))
+  void nowTs.value
+  return Math.max(0, Math.ceil((view.deadline - Date.now()) / 1000))
 })
 
 // 进度条的分母：夜晚按「当前这一步」算（每一步各有各的限时），其余阶段按 PHASE_MS
@@ -685,7 +804,8 @@ const phaseTotalMs = computed(() => {
 const phaseProgress = computed(() => {
   const total = phaseTotalMs.value
   if (!total || !view.deadline) return 100
-  return Math.max(0, Math.min(100, ((view.deadline - nowTs.value) / total) * 100))
+  void nowTs.value
+  return Math.max(0, Math.min(100, ((view.deadline - Date.now()) / total) * 100))
 })
 
 const waitingOthers = computed(

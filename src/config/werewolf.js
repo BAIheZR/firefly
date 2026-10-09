@@ -15,11 +15,18 @@ import ktzCardMan from '@/images/game/wolf/ktz_card_man.png'
 import ktzCardWoman from '@/images/game/wolf/ktz_card_woman.png'
 // 帕姆（AI 判官）的头像
 import pmIcon from '@/images/game/wolf/pm.png'
+// 新增角色卡面：白狼王 / 自爆狼共用 yl999，昔涟 xl，卡芙卡 kfk。
+// 三者都没有小图标（素材目录只有整张卡），故 ROLES 里 avatar 一律留空走人形兜底。
+import yl999Card from '@/images/game/wolf/yl999_card.jpg'
+import xlCard from '@/images/game/wolf/xl_card.jpg'
+import kfkCard from '@/images/game/wolf/kfk_card.jpg'
 
 //  阵营 
+// 中立派不参与「狼 / 好人」的胜负判定，只按自身条件结算（见 REWARDS 的结算铁律）
 export const CAMP = {
-  HUNT: 'hunt',   // 星核猎手（狼人阵营）
-  TRAIN: 'train', // 列车组（好人阵营）
+  HUNT: 'hunt',       // 星核猎手（狼人阵营）
+  TRAIN: 'train',     // 列车组（好人阵营）
+  NEUTRAL: 'neutral', // 中立派（流萤 / 昔涟 / 卡芙卡）
 }
 
 //  角色 key 
@@ -30,6 +37,11 @@ export const ROLE = {
   WITCH: 'witch',       // 姬子
   HUNTER: 'hunter',     // 丹恒（6 人局已上场：被放逐时发动「反击」带走一人）
   FIREFLY: 'firefly',   // 流萤（萤火使，每局必出）
+  // 以下为新增角色，上场表见 SETUPS_AI（当前只运营 6 人局，故尚未进任何身份池）
+  WHITE_WOLF: 'whiteWolf', // 白狼王（可自选亮牌自爆）
+  BOMB_WOLF: 'bombWolf',   // 自爆狼（被投出时爆炸带走一人）
+  XILIAN: 'xilian',        // 昔涟（开局绑定情侣）
+  KAFKA: 'kafka',          // 卡芙卡（摄梦人：连标同一人两晚处决）
 }
 
 //  角色定义 
@@ -113,15 +125,73 @@ export const ROLES = {
     name: '流萤',
     job: '萤火使',
     title: '萤火使',
-    camp: CAMP.TRAIN,
+    // 中立派：按自身条件结算，不领阵营的胜利 / 落败金币（见 computeRewards 的结算铁律）。
+    // 注意 countCamps 用的是「狼 / 非狼」口径，中立派计入非狼侧，故平衡性不受影响。
+    camp: CAMP.NEUTRAL,
     icon: 'fa-solid fa-fire-flame-simple',
     color: '#FFD966',
     card: lyCard,
     avatar: lyIcon,
-    short: '每晚照亮一人，使其当晚免于离场',
-    skill: '入梦时照亮一名乘客。被照亮者若当晚被银狼骇入，不会立即离场，而是延后到次日梦醒公布。',
-    tip: '不能连续两晚照亮同一人，也不能照亮自己。',
+    short: '每晚照亮一人；离场时拖住星核猎手一整夜',
+    skill: '入梦时照亮一名乘客。被照亮者若当晚被骇入，不会立即离场，而是延后到次日梦醒公布。你离场时萤火燃尽，星核猎手下一夜无法行动（含白狼王 / 自爆狼）。',
+    tip: '不能连续两晚照亮同一人，也不能照亮自己。与开拓者都活到最后，即可达成双人结局。',
     motto: '我愿化作萤火，照亮你前行的路。',
+  },
+  [ROLE.WHITE_WOLF]: {
+    key: ROLE.WHITE_WOLF,
+    name: '白狼王',
+    job: '狼人',
+    title: '星核猎手',
+    camp: CAMP.HUNT,
+    icon: 'fa-solid fa-crown',
+    color: '#A855F7',
+    card: yl999Card,
+    avatar: '',
+    short: '可自选亮牌自爆：带走一人并跳过当天投票',
+    skill: '你可以自选公开亮牌（全场播报「银狼 Lv.999 自爆」），立即指定一名乘客与你一同离场，随后当天跳过投票直接入梦。',
+    tip: '亮牌是可选的一次性杀招；不亮牌时按普通狼行动。',
+  },
+  [ROLE.BOMB_WOLF]: {
+    key: ROLE.BOMB_WOLF,
+    name: '自爆狼',
+    job: '狼人',
+    title: '星核猎手',
+    camp: CAMP.HUNT,
+    icon: 'fa-solid fa-bomb',
+    color: '#6D28D9',
+    card: yl999Card,
+    avatar: '',
+    short: '被投票放逐时爆炸，带走一人',
+    skill: '当你被投票放逐出梦境时立即「爆炸」，指定一名乘客与你一同离场。',
+    tip: '你的价值不在于活到最后，而在于换掉关键的好人。',
+  },
+  [ROLE.XILIAN]: {
+    key: ROLE.XILIAN,
+    name: '昔涟',
+    job: '丘比特',
+    title: '羁绊者',
+    camp: CAMP.NEUTRAL,
+    icon: 'fa-solid fa-heart',
+    color: '#EC4899',
+    card: xlCard,
+    avatar: '',
+    short: '开局与一人缔结羁绊，与对方互知身份',
+    skill: '开局与一名乘客缔结羁绊（对方是真人时可自主选择对象，也可改），两人互知身份。你与羁绊对象都活到最后即获胜。',
+    tip: '羁绊对象的阵营不一定和你相同 —— 先确认他站在哪一边。',
+  },
+  [ROLE.KAFKA]: {
+    key: ROLE.KAFKA,
+    name: '卡芙卡',
+    job: '摄梦人',
+    title: '中立派',
+    camp: CAMP.NEUTRAL,
+    icon: 'fa-solid fa-moon',
+    color: '#6366F1',
+    card: kfkCard,
+    avatar: '',
+    short: '每晚标记一人，连标两晚即处决',
+    skill: '入梦时标记一名乘客。若连续两晚标记同一人，那人将被处决出梦境。',
+    tip: '处决满两人即可达成自己的胜利条件，但别做得太明显。',
   },
 }
 
@@ -169,6 +239,8 @@ export const TERMS = {
 //  阶段 
 export const PHASE = {
   IDLE: 'idle',
+  // 开局准备期：全员缓冲（等人齐 / 昔涟选绑定），倒计时结束后进入第一夜
+  PREP: 'prep',
   NIGHT: 'night',
   DAY: 'day',
   // 昨夜离场的人先发言（遗言），让死者先把判断说完，再进讨论
@@ -188,6 +260,9 @@ export const SPEAK_MS = 35000
 
 // 各阶段默认时限（毫秒），帕姆按此倒计时自动推进。夜晚内部按角色分步走，NIGHT 只在整夜兜底时用
 export const PHASE_MS = {
+  // 准备期：看完牌点「确认身份」，全员确认就立刻入夜 —— 这个值只是兜底上限，
+  // 用来保证有人掉线/挂机时全桌不会被永远卡在准备期（原为 10s，昔涟来不及挑羁绊对象）
+  [PHASE.PREP]: 30000,
   [PHASE.NIGHT]: 60000,
   [PHASE.DAY]: 8000,      // 公布夜间结果，自动过场（单人模式可点「跳过」直接过）
   [PHASE.LAST_WORDS]: SPEAK_MS,
@@ -198,13 +273,14 @@ export const PHASE_MS = {
 }
 
 //  夜间分步
-export const NIGHT_STEPS = ['wolf', 'seer', 'witch', 'firefly']
+export const NIGHT_STEPS = ['wolf', 'seer', 'witch', 'firefly', 'kafka']
 
 export const NIGHT_STEP_LABEL = {
   wolf: '银狼 · 骇入',
   seer: '瓦尔特 · 感应',
   witch: '姬子 · 调饮',
   firefly: '流萤 · 照亮',
+  kafka: '卡芙卡 · 摄梦',
   done: '入梦结算',
 }
 
@@ -214,33 +290,62 @@ export const NIGHT_STEP_ROLE = {
   seer: ROLE.SEER,
   witch: ROLE.WITCH,
   firefly: ROLE.FIREFLY,
+  kafka: ROLE.KAFKA,
 }
 
 // 每一步的限时（毫秒）。完成阶段需要时间 —— 想调节奏只改这一个表。
+// 设定表：夜间每步统一 60s（原先 20/20/25/20s 偏紧，真人来不及读信息）
+// 银狼本夜最多因为平票重投几次（引擎与视图共用，别两边各写一个数）
+export const WOLF_REVOTE_MAX = 2
+
 export const NIGHT_STEP_MS = {
-  wolf: 20000,
-  seer: 20000,
-  witch: 25000,
-  firefly: 20000,
+  wolf: 60000,
+  seer: 60000,
+  witch: 60000,
+  firefly: 60000,
+  kafka: 60000,
 }
 
 //  人数配置表 
+// 用「每个角色几张」描述，而不是写死身份数组 —— 这样特殊狼能随机二选一，改数量也不用重排数组。
+// 规则：银狼 ≤2、特殊狼 0/1（不占银狼名额，额外 +1）、好人特殊各 1、平民 ≤4、流萤每局必出、
+// 昔涟 9 人起、卡芙卡 10 人起。每行合计必须等于人数。
 export const SETUPS_AI = {
-  // 6 人基本局
-  6: [ROLE.WOLF, ROLE.SEER, ROLE.WITCH, ROLE.HUNTER, ROLE.FIREFLY, ROLE.VILLAGER],
-  7: [ROLE.WOLF, ROLE.WOLF, ROLE.SEER, ROLE.WITCH, ROLE.HUNTER, ROLE.FIREFLY, ROLE.VILLAGER],
-  8: [ROLE.WOLF, ROLE.WOLF, ROLE.SEER, ROLE.WITCH, ROLE.HUNTER, ROLE.FIREFLY, ROLE.VILLAGER, ROLE.VILLAGER],
-  9: [ROLE.WOLF, ROLE.WOLF, ROLE.WOLF, ROLE.SEER, ROLE.WITCH, ROLE.HUNTER, ROLE.FIREFLY, ROLE.VILLAGER, ROLE.VILLAGER],
-  10: [ROLE.WOLF, ROLE.WOLF, ROLE.WOLF, ROLE.SEER, ROLE.WITCH, ROLE.HUNTER, ROLE.FIREFLY, ROLE.VILLAGER, ROLE.VILLAGER, ROLE.VILLAGER],
+  6:  { wolf: 1, specialWolf: 0, seer: 1, witch: 1, hunter: 1, villager: 1, firefly: 1, xilian: 0, kafka: 0 },
+  7:  { wolf: 1, specialWolf: 0, seer: 1, witch: 1, hunter: 1, villager: 2, firefly: 1, xilian: 0, kafka: 0 },
+  8:  { wolf: 1, specialWolf: 1, seer: 1, witch: 1, hunter: 1, villager: 2, firefly: 1, xilian: 0, kafka: 0 },
+  9:  { wolf: 1, specialWolf: 1, seer: 1, witch: 1, hunter: 1, villager: 2, firefly: 1, xilian: 1, kafka: 0 },
+  10: { wolf: 1, specialWolf: 1, seer: 1, witch: 1, hunter: 1, villager: 2, firefly: 1, xilian: 1, kafka: 1 },
+  11: { wolf: 2, specialWolf: 1, seer: 1, witch: 1, hunter: 1, villager: 2, firefly: 1, xilian: 1, kafka: 1 },
+  12: { wolf: 2, specialWolf: 1, seer: 1, witch: 1, hunter: 1, villager: 3, firefly: 1, xilian: 1, kafka: 1 },
 }
 
-// 本版本开放的局
+// 本版本开放的「基本局」人数（联机最少要够这一档才开得起来）
 export const BASE_TOTAL = 6
 
-//  身份池生成（流萤必出机制） 
+// 界面「选择对局人数」用：从小到大列出支持的人数
+export const SUPPORTED_SIZES = Object.keys(SETUPS_AI).map(Number).sort((a, b) => a - b)
+// 一局能开到多少人（= 上场表里最大那一档）。联机一桌的座位数上限就按它给，
+// 否则联机永远被钉死在 6 人局 —— 白狼王 / 自爆狼 / 昔涟 / 卡芙卡 只在上场表 ≥9 人时才进身份池
+export const MAX_TOTAL = SUPPORTED_SIZES[SUPPORTED_SIZES.length - 1]
+
+//  身份池生成（流萤必出；特殊狼在白狼王 / 自爆狼中二选一随机） 
 export function buildRolePool(totalCount) {
-  const base = SETUPS_AI[totalCount] || SETUPS_AI[BASE_TOTAL]
-  const pool = base.includes(ROLE.FIREFLY) ? [...base] : [...base, ROLE.FIREFLY]
+  const cfg = SETUPS_AI[totalCount] || SETUPS_AI[BASE_TOTAL]
+  const pool = []
+  const push = (role, n) => { for (let i = 0; i < (n || 0); i++) pool.push(role) }
+  push(ROLE.WOLF, cfg.wolf)
+  // 特殊狼最多 1 张，且随机二选一（两者共用 yl999 卡面，牌面会显示角色名，故不混淆）
+  if (cfg.specialWolf > 0) push(Math.random() < 0.5 ? ROLE.WHITE_WOLF : ROLE.BOMB_WOLF, 1)
+  push(ROLE.SEER, cfg.seer)
+  push(ROLE.WITCH, cfg.witch)
+  push(ROLE.HUNTER, cfg.hunter)
+  push(ROLE.VILLAGER, cfg.villager)
+  push(ROLE.FIREFLY, cfg.firefly)
+  push(ROLE.XILIAN, cfg.xilian)
+  push(ROLE.KAFKA, cfg.kafka)
+  // 兜底：流萤机制必出；数量对不上时用平民补齐 / 截断
+  if (!pool.includes(ROLE.FIREFLY)) pool.push(ROLE.FIREFLY)
   while (pool.length < totalCount) pool.push(ROLE.VILLAGER)
   return pool.slice(0, totalCount)
 }
@@ -249,6 +354,8 @@ export function buildRolePool(totalCount) {
 export const isWolfRole = (roleKey) => ROLES[roleKey]?.camp === CAMP.HUNT
 
 //  阵营统计 
+// 口径是「狼 / 非狼」而非「狼 / 好人」：中立派（流萤等）计入 train 侧，
+// 这样狼的 parity 判定（数够不够）不受中立派影响 —— 它们不算狼，也不共享好人的胜负奖励。
 export function countCamps(roleMap, aliveIds) {
   let hunt = 0
   let train = 0
@@ -295,16 +402,18 @@ export const REWARDS = {
   SURVIVE_ROUND: 50,         // 每活过一个完整昼夜
   VOTE_HIT_WOLF: 200,        // 投票投中的是星核猎手
   FIREFLY_SAVE: 300,         // 萤火护住被骇入者（玩家自己是流萤时）
+  // 中立派各自的条件奖励。常量先落位，引擎支持（昔涟绑定 / 卡芙卡处决计数）随之接入。
+  XILIAN_BOND: 1500,         // 昔涟与绑定者都活到最后（绑定者同享）
+  KAFKA_EXECUTE: 1200,       // 卡芙卡处决人数 ≥ 2
   QUIT_GRACE_MS: 3 * 60 * 1000,
 }
 
 //  流萤保护语义开关：true = 萤火只是「延迟一死」（被照亮者当晚不死，下一个梦醒仍会公布离场）
 export const FIREFLY_DELAY_DEATH = true
 
-// 参与满 3 分钟的判定：开始时间来自对局启动瞬间（本地时钟即可，联机不要求精确同步）
-export function passGracePeriod(startedAt, now = Date.now()) {
-  return startedAt > 0 && now - startedAt >= REWARDS.QUIT_GRACE_MS
-}
+// （原 passGracePeriod 已删：与 utils/werewolf.js:1855 逐字重复，
+//   而全项目实际 import 的是 utils 那份（useWerewolfMatch.js:29）—— 2026-10-09 去重。
+//   REWARDS.QUIT_GRACE_MS 仍被 utils 那份使用，常量保留。）
 
 //  角色计分（用于结算页展示「本局贡献」） 
 export function roleLabel(roleKey) {

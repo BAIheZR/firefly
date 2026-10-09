@@ -53,14 +53,14 @@
               </template>
               <template v-else>
                 萤宝会逐条给出提示词，你来猜出正确答案。
-                <br />每揭示一条提示，奖励 10 金币（初始 100，最低 10）。
+                <br />每揭示一条提示，奖励 10 金币（初始 80，最低 10）。
                 <br />猜中后自动抽下一题，无上限连续玩。
               </template>
             </p>
             <div class="welcome-meta">
               <span v-if="!isMp" class="meta-tag"><i class="fa-solid fa-bolt"></i> 消耗 10 行动点</span>
               <span v-else class="meta-tag"><i class="fa-solid fa-bolt"></i> 不消耗行动点</span>
-              <span class="meta-tag"><i class="fa-solid fa-coins"></i> 初始 100 金币</span>
+              <span class="meta-tag"><i class="fa-solid fa-coins"></i> 初始 80 金币</span>
               <span class="meta-tag"><i class="fa-solid fa-flag-checkered"></i> 同题竞速</span>
             </div>
             <button
@@ -204,6 +204,10 @@
                   <i class="fa-solid fa-coins"></i>
                   <b class="ok">+{{ h.reward }}</b>
                 </div>
+                <!-- 对手答对（含观战者看到的记录）：不能落进下面的 v-else，否则会被显示成「答错」 -->
+                <div class="hi-row" v-else-if="h.type === 'other'">
+                  <i class="fa-solid fa-user-check"></i> 对手答对
+                </div>
                 <div class="hi-row" v-else-if="h.type === 'giveup'">
                   <i class="fa-solid fa-flag"></i> 放弃
                 </div>
@@ -255,7 +259,8 @@ import { ref, computed, nextTick, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useGoldStore } from '@/config/gold'
-import { useInventoryStore } from '@/config/inventory'
+import { takeDailyQuota, DAILY_CAPS } from '@/utils/affectionDaily'
+import { useInventoryStore, changeAffection, getBaseActionCap } from '@/config/inventory'
 import { useMultiplayerStore } from '@/config/multiplayer'
 import { useUserStore } from '@/config/user'
 import { WORD_BANK, CATEGORY_LABELS, rewardForHintCount } from '@/config/guessWord'
@@ -285,16 +290,11 @@ const opponentName = computed(
   () => mp.mySession?.seats.find((p) => p.id !== mp.selfId)?.name || '等待对手…'
 )
 
-const BASE_ACTION_POINT = 50
-const ACTION_POINT_PER_LEVEL = 10
+// 行动点口径统一在 @/config/inventory（getBaseActionCap / BASE_ACTION_POINT …）
 // 行动点（与 Home/notify/Chess 保持同一口径：当前 = 上限 + 物品加成 + 恢复累计）
+// 当前 / 基础上限（口径统一在 inventory.js，别在这儿重算）
 const actionPointDisplay = computed(() => {
-  let level = 0
-  try {
-    const p = JSON.parse(localStorage.getItem('player_level_data') || '{}')
-    if (typeof p.level === 'number') level = p.level
-  } catch (e) {}
-  const cap = BASE_ACTION_POINT + level * ACTION_POINT_PER_LEVEL
+  const cap = getBaseActionCap()
   const cur = cap + (inventoryStore.actionBonus || 0) + (inventoryStore.actionRecover || 0)
   return `${cur} / ${cap}`
 })
@@ -307,6 +307,8 @@ const currentIndex = ref(-1)        // 当前题在题库中的下标（联机�
 const revealedHints = ref([])
 const answer = ref('')
 const submitting = ref(false)
+// 奖励锁：答对后立刻锁死，直到下一题真正抽出才解锁，防止快速连点重复加金币/跳题
+const awardLocked = ref(false)
 const roundNo = ref(0)
 const inputRef = ref(null)
 // 歧义选择：输入通用名命中多个答案时弹出选择框
@@ -456,6 +458,7 @@ function drawLocalQuestion() {
 
 // 应用一道题目（幂等，联机双方由消息驱动）
 function applyQuestion(idx, no, hintCount) {
+  awardLocked.value = false // 新题开始，解除奖励锁（单人/联机通用）
   const word = WORD_BANK[idx]
   if (!word) return
   currentIndex.value = idx
@@ -489,8 +492,14 @@ const normalizeStr = (s) => String(s || '').replace(/[\s·•\-_=+]/g, '').toLow
 
 // 猜中处理（单人/联机）
 function markCorrect(submitAns) {
+  if (awardLocked.value) return // 已结算过，连点直接忽略，防止重复加金币
+  awardLocked.value = true
   const reward = currentReward.value
   goldStore.addGold(reward, 'guess_word')
+  // 答对顺带涨好感（受每日上限约束，超出就一点不给）。
+  // 观战者不能提交答案，所以天然不会涨 —— 不用额外判定
+  const affGrant = takeDailyQuota('guess', DAILY_CAPS.guess, 5)
+  if (affGrant > 0) changeAffection(affGrant)
   history.value.unshift({
     type: 'correct',
     submitAnswer: submitAns,
@@ -517,6 +526,7 @@ function markCorrect(submitAns) {
   ElMessage.success(`猜中啦！奖励 ${reward} 金币，下一题来咯`)
   setTimeout(() => {
     drawLocalQuestion()
+    awardLocked.value = false // 下一题已抽出，才允许再次答题
     setBubble('宝宝真棒，下一题来啦，加油', goodImg)
   }, 1200)
 }
@@ -543,7 +553,7 @@ function markWrong(submitAns) {
 function submitAnswer() {
   // 旁观者不能答题（入口按钮也是禁用的，这里再兜一道）
   if (isWatcher.value) return
-  if (state.value !== 'playing' || submitting.value || roundOver.value) return
+  if (state.value !== 'playing' || submitting.value || roundOver.value || awardLocked.value) return
   const ans = answer.value.trim()
   if (!ans) return
   submitting.value = true
@@ -669,19 +679,45 @@ function onMpMessage(data, fromId) {
     case 'gw:hint':
       applyHintCount(data.count)
       break
-    case 'gw:correct':
+    case 'gw:correct': {
       // 对手抢先答对：公布答案，等桌主出下一题
       if (roundWinner.value === 'self') break
       roundWinner.value = 'other'
+      // ★ 补一条历史。以前这里只弹提示、不记历史，于是观战者（以及没抢到的那个人）
+      //   看到的历史列表一直是空的，复盘时完全不知道出过哪些题（2026-10-06 修）。
+      //   观战者不结算金币，所以 reward 固定 0。
+      history.value.unshift({
+        type: 'other',
+        submitAnswer: data.name ? `${data.name} 答对了` : '对手答对了',
+        correctAnswer: currentWord.value?.answer || '',
+        category: currentWord.value?.category || '',
+        variant: currentWord.value?.variant || '',
+        hintCount: revealedCount.value,
+        reward: 0,
+        roundNo: roundNo.value,
+      })
       ElMessage.warning(`${data.name} 抢先答对了！正确答案是「${currentWord.value?.answer}」`)
       if (amTableOwner.value) hostScheduleNext()
       break
-    case 'gw:giveup':
+    }
+    case 'gw:giveup': {
       if (roundWinner.value === 'self') break
       roundWinner.value = 'other'
+      // 同 gw:correct：放弃也要留档，否则观战者的历史依然是空的（2026-10-06 修）
+      history.value.unshift({
+        type: 'giveup',
+        submitAnswer: data.name ? `${data.name} 放弃了` : '对手放弃了',
+        correctAnswer: currentWord.value?.answer || '',
+        category: currentWord.value?.category || '',
+        variant: currentWord.value?.variant || '',
+        hintCount: revealedCount.value,
+        reward: 0,
+        roundNo: roundNo.value,
+      })
       ElMessage.info(`${data.name} 放弃了本题，正确答案是「${currentWord.value?.answer}」`)
       if (amTableOwner.value) hostScheduleNext()
       break
+    }
     case 'mp:sync-request':
       // 中途进入对局页（含观战者）→ 桌主补发当前题目与提示进度
       if (amTableOwner.value && state.value !== 'idle') {
@@ -695,6 +731,12 @@ function onMpMessage(data, fromId) {
       break
     case 'mp:room-closed':
       ElMessage.warning('房主已关闭房间')
+      goBackTarget()
+      break
+    case 'mp:table-closed':
+      // 桌主离开 / 解散本桌（2026-10-05 修：以前只更新桌列表，游戏页收不到，会卡在牌桌上）
+      ElMessage.warning('桌主已离开，本局结束')
+      mp.clearSession()
       goBackTarget()
       break
     default:

@@ -2,10 +2,9 @@
 import { defineStore } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/config/user'
+import { shrinkAvatar } from '@/utils/avatar'
 
-// 桌号的「宽限期」：刚开/刚进的桌，房主的全量广播还没回来时，
-// 本地 sessions 里查不到它 —— 这段时间内不许把它当成「已经不在了」。
-const SESSION_GRACE_MS = 4000
+// （原 SESSION_GRACE_MS「桌号宽限期」常量已删：它只被 staleSession 用，而后者全项目零调用 —— 2026-10-09）
 
 export const MP_PORT = 8765
 const ATTEMPT_TIMEOUT_MS = 6000
@@ -109,11 +108,11 @@ export const useMultiplayerStore = defineStore('multiplayer', {
     // 正在进行的桌（给别人观战用）
     playingSessions: (s) => s.sessions.filter((x) => x.status === 'playing'),
 
-    // 残留桌号：本地记着某桌但房间里已不存在（桌主退页导致整桌解散）
-    staleSession: (s) =>
-      !!s.sessionId &&
-      !s.sessions.some((x) => x.id === s.sessionId) &&
-      Date.now() - (s.sessionSetAt || 0) > SESSION_GRACE_MS,
+    // 说明：这里原本有个 staleSession getter（「本地记着某桌但房间里已不存在」，
+    // 配了 4 秒宽限 SESSION_GRACE_MS）。但**全项目零调用** —— 场景想到了、机制也写了，就是没接线。
+    // 而它想覆盖的「桌主退页导致整桌解散」现在已经由 mp:table-closed 主动通知解决，
+    // 所以连同 SESSION_GRACE_MS 一起删掉，不留半成品（2026-10-09 清理）。
+    //（sessionSetAt 仍被会话逻辑写入，保留。）
   },
 
   actions: {
@@ -314,6 +313,11 @@ export const useMultiplayerStore = defineStore('multiplayer', {
               this.resetRoom()
               this.lastError = '与房间的连接已断开'
               ElMessage.warning('与房间的连接已断开')
+              // ★ 兜底：必须跟 room-closed 一样通知游戏页。
+              //   房主直接关游戏窗口时，服务端可能来不及广播 room-closed（那条消息在进程退出时丢掉），
+              //   只 resetRoom() 的话游戏页收不到任何信号，就那样停在牌桌上 —— 没座位、也没法继续。
+              //   对游戏页来说「连接断了」和「房间被关了」是一回事：结算 + 退回大厅（2026-10-05 修）。
+              this.emitGame({ kind: 'mp:room-closed' })
             }
           }
           resolve({ ok: true, reason: '' })
@@ -485,12 +489,28 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           hostToken: res.hostToken,
           name: this.selfName,
           clientId: getClientId(),
+          // 头像随 join 一起进房间（压缩后的小图）—— 这样一进房别人就有你的头像，
+          // 不依赖「开局那一刻」的时序（2026-10-05）
+          avatar: await this.buildSelfAvatarPayload(),
         })
       } catch (e) {
         this.connecting = false
         this.pushLog('error', `创建房间异常：${e.message || e}`)
         ElMessage.error('创建房间失败：' + (e.message || ''))
         return false
+      }
+    },
+
+    // 联机用的头像 payload：本地原图是 200×200 PNG（上百 KB），直接塞进 join 会把
+    // 成员列表（每次有人进出都要重播一遍）撑爆，所以统一压成 96×96 JPEG（约 3~6KB）。
+    // 失败就返回空串 —— 没头像只是显示人形图标，不该影响进房间。
+    async buildSelfAvatarPayload() {
+      try {
+        const raw = localStorage.getItem('avatarData') || ''
+        if (!raw) return ''
+        return (await shrinkAvatar(raw)) || ''
+      } catch (e) {
+        return ''
       }
     },
 
@@ -510,7 +530,15 @@ export const useMultiplayerStore = defineStore('multiplayer', {
       const candidates = buildWsCandidates(raw, this.port || MP_PORT)
       return this.connectWithFallback(
         candidates,
-        { type: 'join', roomCode, password: password || '', name: this.selfName, clientId: getClientId() },
+        {
+          type: 'join',
+          roomCode,
+          password: password || '',
+          name: this.selfName,
+          clientId: getClientId(),
+          // 同 createRoom：头像随 join 进房间（压缩后的小图）
+          avatar: await this.buildSelfAvatarPayload(),
+        },
         `加入房间 ${roomCode}（输入地址「${raw}」）`
       )
     },
@@ -833,10 +861,32 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           // 桌主走了、或一个座位都不剩 → 散桌
           if (fromId === t.ownerId || !t.seats.length) {
             this.sessions = this.sessions.filter((x) => x.id !== d.sid)
-          } else if (t.status === 'playing' && t.seats.length < t.cap) {
-            // 打到一半有人跑了：退回招人状态，让别人还能补位
-            t.status = 'open'
-            t.declined = t.declined.filter((x) => !t.seats.some((p) => p.id === x))
+            // ★ 散桌必须明确通知「还坐在那张桌上的人」。
+            //   以前只更新 sessions 列表 —— 游戏页收不到任何信号，就一直停在牌桌上：
+            //   引擎的 state 只在桌主内存里，他走了这局本来就续不下去（2026-10-05 修）。
+            //   这条带 sid，客户端侧按桌号过滤，只会投给正好坐在那张桌上的人。
+            this.sendRoom({
+              kind: 'mp:table-closed',
+              sid: d.sid,
+              reason: fromId === t.ownerId ? 'owner-left' : 'empty',
+            })
+            // 同上：房主的游戏页也要退出去（broadcast 不含发送者自己）
+            this.emitGame({ kind: 'mp:table-closed', reason: fromId === t.ownerId ? 'owner-left' : 'empty' })
+          } else {
+            if (t.status === 'playing' && t.seats.length < t.cap) {
+              // 打到一半有人跑了：退回招人状态，让别人还能补位
+              t.status = 'open'
+              t.declined = t.declined.filter((x) => !t.seats.some((p) => p.id === x))
+            }
+            // ★ 桌还活着、只是有人离席 —— 必须转告同桌其他人。
+            //   玩家点「返回游戏大厅」走的是 session-leave，而这条**只定向发给房主**；
+            //   服务端的 member-left 只在断线 / 主动退房间时才发。
+            //   所以游戏页以前收不到任何信号：既没提示，也不会把席位交给 AI 代打（2026-10-05 修）。
+            this.sendRoom({ kind: 'mp:seat-left', sid: d.sid, memberId: fromId })
+            // ★ 房主自己**不在那条广播的接收范围内** —— broadcast 会把发送者（也就是房主）排除掉，
+            //   所以房主的游戏页收不到，表现就是「别人看到了、房主自己没看到」。
+            //   这里本地补一发（2026-10-05 修）。
+            this.emitGame({ kind: 'mp:seat-left', memberId: fromId })
           }
           return this.broadcastSessions()
         }
@@ -846,6 +896,10 @@ export const useMultiplayerStore = defineStore('multiplayer', {
           // 只有桌主能散自己的桌；房主也能散（方便清场）
           if (!t || (fromId !== t.ownerId && fromId !== this.hostId)) return this.broadcastSessions()
           this.sessions = this.sessions.filter((x) => x.id !== d.sid)
+          // 同 mp:session-leave：散桌要让桌上的人知道，他们才能退出去（2026-10-05 修）
+          this.sendRoom({ kind: 'mp:table-closed', sid: d.sid, reason: 'owner-ended' })
+          // 同上：房主的游戏页也要退出去（broadcast 不含发送者自己）
+          this.emitGame({ kind: 'mp:table-closed', reason: 'owner-ended' })
           return this.broadcastSessions()
         }
 

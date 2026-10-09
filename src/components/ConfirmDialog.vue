@@ -46,10 +46,14 @@ const handleCancel = () => {
   inset: 0;
   background: rgba(0, 0, 0, 0.5);
   display: flex;
-  align-items: center;
+  /* ★ 不用 align-items:center —— 配合 .cd-box 的 margin:auto（见那里的注释） */
+  align-items: flex-start;
   justify-content: center;
   z-index: 9999;
   backdrop-filter: blur(4px);
+  /* ★ 允许纵向滚动：确认文案长（或小屏/横屏）时，弹框不会滚不动 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
   /* 移动端：安全区内边距，避免贴边被圆角/刘海裁切 */
   padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
     max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
@@ -64,6 +68,9 @@ const handleCancel = () => {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
   text-align: center;
   border: 1px solid #3FA98A;
+  /* ★ 用 auto 边距居中：flex 容器一开 overflow，align-items:center 会让
+     超出视口的部分（尤其**顶部**）永远滚不到。auto 边距是标准解法。 */
+  margin: auto;
 }
 
 .cd-icon {

@@ -449,9 +449,14 @@
   inset: 0;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
-  align-items: center;
+  /* ★ 不用 align-items:center —— 配合 .pick-box 的 margin:auto（见那里的注释） */
+  align-items: flex-start;
   justify-content: center;
   z-index: 3000;
+  padding: 20px;
+  /* ★ 允许纵向滚动：候选答案多的时候卡片会比视口高，原来完全滚不动 */
+  overflow-y: auto;
+  overscroll-behavior: contain;
   backdrop-filter: blur(2px);
 }
 .pick-box {
@@ -461,6 +466,9 @@
   padding: 22px 24px 18px;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
   border: 1px solid rgba(155, 123, 255, 0.35);
+  /* ★ 用 auto 边距居中：flex 容器开了 overflow 后，align-items:center 会让
+     超出视口的顶部内容滚不到。auto 边距是标准解法（既能居中、又能滚）。 */
+  margin: auto;
 }
 .pick-title {
   font-size: 17px;

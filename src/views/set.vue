@@ -136,7 +136,7 @@
           <div class="form-row">
             <div class="form-info">
               <div class="form-label">AI 对话（流萤）</div>
-              <div class="form-sub">配置 AI 接口后，点击主页人物立绘即可与流萤对话。人物设定已内置、不可修改；支持任意 OpenAI 兼容接口（OpenAI / DeepSeek / Kimi / 智谱 / 通义千问 / Ollama 等）</div>
+              <div class="form-sub">配置 AI 接口后，点击主页人物立绘即可与流萤对话。人物设定已内置、不可修改；支持任意 OpenAI 兼容接口（OpenAI / DeepSeek / Kimi / 智谱 / 通义千问 等）</div>
             </div>
             <div class="ai-config">
               <div class="ai-field">
@@ -155,11 +155,11 @@
               </div>
               <div class="ai-field">
                 <span class="ai-label">API Key</span>
-                <input type="password" class="form-input" placeholder="sk-..." v-model="aiConfig.apiKey" :disabled="aiConfig.modelId === 'ollama'" />
+                <input type="password" class="form-input" placeholder="sk-..." v-model="aiConfig.apiKey" />
               </div>
               <div class="ai-tip">
                 <i class="fa-solid fa-circle-info"></i>
-                <span>选择预置模型会自动匹配对应 API 地址与模型名，只需填写 API Key；Ollama 本地模型无需 Key。</span>
+                <span>选择预置模型会自动匹配对应 API 地址与模型名，全部模型都需要填写 API Key。</span>
               </div>
               <button class="btn-gold" @click="handleSaveAIConfig">
                 <i class="fa-solid fa-floppy-disk"></i>
@@ -433,7 +433,12 @@
             </div>
             <div class="info-item">
               <div class="info-key">反馈社区群</div>
-              <div class="info-val">1104426831</div>
+              <div class="info-val">
+                <button class="info-group-btn" @click="openQqGroup">
+                  {{ QQ_GROUP }}
+                  <i class="fa-solid fa-qrcode"></i>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -443,7 +448,34 @@
               本项目是一个养成类二创游戏，或许有bug和未完善的地方,请及时反馈给开发者
             </p>
           </div>
+
         </section>
+
+        <!-- 反馈社群二维码：用扫码代替「调起 QQ」——
+             两端都能扫、不依赖私有协议，也不会替玩家提交加群申请。
+             ★ 必须 Teleport 到 body：弹窗原本写在 <section> 里，
+               而 section 上有 transform / filter 之类的属性会创建**新的堆叠上下文**，
+               于是 .qr-mask 的 z-index 只在那个 section 内有效，会被后面的 section 盖住
+               （实测截图：卡片只露出上半截，下半截被"感谢墙"压住）。2026-10-09 -->
+        <Teleport to="body">
+          <div v-if="qrVisible" class="qr-mask" @click.self="qrVisible = false">
+            <div class="qr-card">
+              <div class="qr-title">
+                <i class="fa-solid fa-comments"></i>
+                反馈社区群
+              </div>
+              <div class="qr-body">
+                <i v-if="qrLoading" class="fa-solid fa-spinner fa-spin qr-spin"></i>
+                <img v-else-if="qrDataUrl" :src="qrDataUrl" alt="反馈社群二维码" class="qr-img" />
+              </div>
+              <div class="qr-tip">
+                用手机 QQ 扫码加入
+                <span>群号 {{ QQ_GROUP }}</span>
+              </div>
+              <button class="qr-close" @click="qrVisible = false">关闭</button>
+            </div>
+          </div>
+        </Teleport>
 
         <!-- 感谢墙 -->
         <section id="thanks" ref="sectionRefs" class="content-section">
@@ -652,6 +684,7 @@ import { useGoldStore } from '@/config/gold'
 import { useInventoryStore } from '@/config/inventory'
 import { useTasksStore } from '@/config/tasks'
 import { useSaveSlotsStore, SAVE_KEYS } from '@/config/saveSlots'
+import QRCode from 'qrcode'
 import { loadAIConfig, saveAIConfig, AI_MODELS } from '@/services/ai'
 import AgreementModal from '@/components/AgreementModal.vue'
 import { AGREEMENT_ACCEPTED_KEY } from '@/config/agreement'
@@ -665,6 +698,45 @@ const goldStore = useGoldStore()
 const inventoryStore = useInventoryStore()
 const tasksStore = useTasksStore()
 const saveSlotsStore = useSaveSlotsStore()
+
+//  反馈社区群 
+const QQ_GROUP = '1104426831'
+
+// 群分享链接：QQ 里打开群 → 右上角「⋮」→ 分享群 → 复制链接
+// 形如 https://qm.qq.com/cgi-bin/qm/qr?k=xxxxxx&jump_from=webapi
+// ★ 留空也能用 —— 那时二维码里编的是群号（扫出来是一串数字，需要手动搜索添加）
+const QQ_GROUP_URL =
+  'https://qm.qq.com/cgi-bin/qm/qr?k=pnHi5NtKHEaidz9UihrLcjPNzVToSdYK&jump_from=webapi&authKey=YvksokWGnYpi9HJ3+HYNgKS4rP9IyqjWssyWPXUHECedbFcKeCuLi5hR4SlgeTaD'
+const qrVisible = ref(false)
+const qrDataUrl = ref('')
+const qrLoading = ref(false)
+
+// 打开反馈群：弹出二维码让玩家自己扫。
+//
+// 为什么最终选了二维码（而不是调起 QQ）：
+//   ① mqqapi://card/show_pslcard 是**手机 QQ** 的协议，PC 版（含最新版 QQNT）不支持，
+//      只弹一句误导性的「请更新到最新版」—— 用户实测踩到；
+//   ② 官方「加群组件」能用，但要我去 qun.qq.com 换一个 idkey，多一道依赖；
+//   ③ 二维码两端都能扫、不依赖任何私有协议，也**完全不涉及"自动提交加群"** ——
+//      扫完加不加，完全由玩家在手机上决定。
+const openQqGroup = async () => {
+  qrVisible.value = true
+  if (qrDataUrl.value) return // 生成过就不再重复算（二维码内容不会变）
+  qrLoading.value = true
+  try {
+    const text = QQ_GROUP_URL || QQ_GROUP
+    qrDataUrl.value = await QRCode.toDataURL(text, {
+      width: 280,
+      margin: 1,
+      color: { dark: '#1a1a1a', light: '#ffffff' },
+    })
+  } catch (e) {
+    qrVisible.value = false
+    showCustomAlert(`二维码生成失败，请手动搜索群号：${QQ_GROUP}`, 'info')
+  } finally {
+    qrLoading.value = false
+  }
+}
 
 // 暗黑模式（useDark 自动持久化并切换 <html class="dark">）
 const isDark = useDark({ storageKey: 'theme_dark', initialValue: 'light' })
@@ -708,15 +780,7 @@ const creditsList = ref([
     homeLinkText: '萤萤昭耀的个人空间-哔哩哔哩',
     modelLink: '',
     modelLinkText: '',
-  },
-  {
-    name: '背手动作',
-    author: '李三岁',
-    homeLink: 'https://www.aplaybox.com/u/394658396',
-    homeLinkText: 'PlayBox 主页',
-    modelLink: ' https://www.aplaybox.com/details/motion/DlS6SxrKhPBJ',
-    modelLinkText: 'PlayBox 模型',
-  },
+  }
 ])
 
 // 借物表链接：Electron 环境下用系统浏览器（Windows 优先 Edge）打开，浏览器环境降级为新标签页
@@ -1495,12 +1559,15 @@ function handleSaveAIConfig() {
     showCustomAlert('请填写 API 地址和模型名称', 'error')
     return
   }
-  // Ollama 本地模型无需 API Key；其他模型需要
-  if (aiConfig.value.modelId !== 'ollama' && !aiConfig.value.apiKey.trim()) {
+  if (!aiConfig.value.apiKey.trim()) {
     showCustomAlert('请填写 API Key', 'error')
     return
   }
   saveAIConfig(aiConfig.value)
+  // 存完立刻回读：aiConfig 只在 onMounted 读一次（set.vue:1760），
+  // 不回读的话界面会停在旧值，玩家会以为「保存没生效 / 下拉框被固定住了」，
+  // 只能靠重启才发现真相
+  aiConfig.value = loadAIConfig()
   showCustomAlert('AI 配置已保存', 'success')
 }
 

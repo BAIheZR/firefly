@@ -54,6 +54,9 @@ let Live2DModelRef = null
 let resizeObserver = null
 let contentBox = null // { cx, cy, w, h }：模型画布像素空间中的内容外框
 let disposed = false
+// 容器尺寸重试计数 / 定时器（见 mount() 里「容器尺寸为 0」那段的说明）
+let sizeRetry = 0
+let sizeRetryTimer = null
 let loadSeq = 0 // 竞态令牌：切服装/切页面时旧的一次加载要能作废
 let clearColorFallback = null // 清屏色兜底回调（挂在 ticker 上，teardown 要摘掉）
 
@@ -235,7 +238,20 @@ async function mount() {
     if (seq !== loadSeq || disposed) return
 
     const { w, h } = hostSize()
-    if (w <= 0 || h <= 0) throw new Error('容器尺寸为 0')
+    if (w <= 0 || h <= 0) {
+      // ★ 容器尺寸可能为 0（keep-alive 切回 / v-if 重挂 / 布局还没算完）。
+      //   以前这里直接 throw，被 catch 成「加载失败」，而且**再也没有第二次机会** ——
+      //   handleResize 开头是 `if (!app) return`，app 还没建起来，ResizeObserver 也救不了。
+      //   于是切走 Live2D 皮肤再切回来时整块空着（2026-10-06 修）。
+      //   改成等下一帧再看，最多 40 次 ≈ 2s；尺寸一就绪就继续，不重置计时器。
+      if (sizeRetry < 40) {
+        sizeRetry += 1
+        sizeRetryTimer = setTimeout(() => { if (!disposed) mount() }, 50)
+        return
+      }
+      throw new Error('容器尺寸为 0（重试超时）')
+    }
+    sizeRetry = 0 // 尺寸就绪，重置计数，下一次重挂可以重新等
 
     const created = new ApplicationRef()
     await created.init({
@@ -300,6 +316,8 @@ async function mount() {
 }
 
 function teardown(clearStatus = true) {
+  // 重试定时器也要清：不清的话「切走页面」后它还会再拉一次 mount（2026-10-06）
+  if (sizeRetryTimer) { clearTimeout(sizeRetryTimer); sizeRetryTimer = null }
   if (resizeObserver) {
     resizeObserver.disconnect()
     resizeObserver = null
@@ -337,6 +355,9 @@ function teardown(clearStatus = true) {
   if (clearStatus) status.value = 'idle'
 }
 
+// 头部/眼球跟随灵敏度：>1 更灵敏（指针还没移多远就转到极限），<1 更克制
+const L2D_FOLLOW_SENSITIVITY = 0.5
+
 //  视线跟随：canvas 是 pointer-events:none 拿不到 pointermove，故挂在 window 上换算 [-1,1] 注视点。
 // 不用 model.focus（收世界坐标、用整张画布归一化并压到单位圆，只剩方向没有比例响应），改为自己算
 function onPointerMove(e) {
@@ -357,8 +378,8 @@ function onPointerMove(e) {
   const oy = sh / 2
 
   // y 取反：focus 的 y 正值代表「往上看」，而屏幕坐标 y 向下为正
-  const fx = (wx - ox) / (sw / 2)
-  const fy = -(wy - oy) / (sh / 2)
+  const fx = (wx - ox) / (sw / 2) * L2D_FOLLOW_SENSITIVITY
+  const fy = -(wy - oy) / (sh / 2) * L2D_FOLLOW_SENSITIVITY
 
   model.lookTo(fx, fy)
 }

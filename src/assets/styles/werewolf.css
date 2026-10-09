@@ -402,6 +402,11 @@
 .ww-tag.is-good { color: var(--ww-good); }
 .ww-tag.is-plain { color: var(--ww-text-faint); }
 .ww-tag.is-votecount { color: var(--ww-wolf); }
+/* 中途离席、由 AI 代打的座位：标签醒目 + 整张座位压暗、头像改虚线框。
+   光靠一句会消失的提示，别人过一会儿就忘了这人已经走了（2026-10-05） */
+.ww-tag.is-away { color: var(--ww-gold); }
+.ww-seat.is-away { opacity: 0.62; }
+.ww-seat.is-away .ww-seat-avatar { border-style: dashed; }
 
 /*  自己面板：窄屏竖排（卡在上、行动面板在下），宽屏横排（卡在左、面板在右）
     竖排时不显式写 width —— flex column 默认 stretch 就会撑满；

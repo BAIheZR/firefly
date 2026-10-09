@@ -560,6 +560,123 @@
   color: var(--c-text);
 }
 
+/* 反馈社区群：群号做成可点按钮 —— 点了会检测本机 QQ，装了就直接打开群资料卡 */
+.info-group-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1px solid var(--c-primary, #3FA98A);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--c-primary, #3FA98A);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.22s ease, color 0.22s ease;
+}
+.info-group-btn:hover {
+  background: var(--c-primary, #3FA98A);
+  color: #fff;
+}
+.info-group-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.info-group-btn i {
+  font-size: 11px;
+}
+
+/*  反馈社群二维码弹窗  */
+.qr-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  display: flex;
+  justify-content: center;
+  /* ★ 不用 align-items:center —— 见下面 .qr-card 的 margin:auto 说明 */
+  align-items: flex-start;
+  padding: 24px 20px;
+  /* ★ 关键：允许纵向滚动。原来没写这条，内容一旦比视口高就完全滚不动 */
+  overflow-y: auto;
+  /* 滚到尽头时不要连带滚动背后的页面 */
+  overscroll-behavior: contain;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(2px);
+}
+.qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 22px;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  /* ★ 用 margin:auto 居中，而不是靠父级的 align-items:center。
+     flex 容器一旦开了 overflow，用 center 会让超出部分（尤其**顶部**）永远滚不到 —— 这是经典坑。
+     auto 边距既能居中、又能正常滚，是标准解法。 */
+  margin: auto;
+}
+.qr-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--c-text, #1a1a1a);
+}
+.qr-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 280px;
+  height: 280px;
+}
+.qr-img {
+  display: block;
+  width: 280px;
+  height: 280px;
+  border-radius: 8px;
+}
+.qr-spin {
+  font-size: 28px;
+  color: var(--c-primary, #3FA98A);
+}
+.qr-tip {
+  font-size: 12.5px;
+  line-height: 1.7;
+  text-align: center;
+  color: #6b7280;
+}
+.qr-tip span {
+  color: var(--c-text, #1a1a1a);
+  font-weight: 600;
+}
+.qr-close {
+  padding: 7px 22px;
+  border: none;
+  border-radius: 999px;
+  background: var(--c-primary, #3FA98A);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.2s ease;
+}
+.qr-close:hover {
+  filter: brightness(1.08);
+}
+
+/* 深色模式 */
+html.dark .qr-card {
+  background: #2a2a2e;
+}
+html.dark .qr-title,
+html.dark .qr-tip span {
+  color: #e5e5e5;
+}
+
 .about-text-title {
   font-size: 15px;
   font-weight: 600;

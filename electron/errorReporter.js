@@ -244,6 +244,9 @@ function reportPayload() {
     source: currentReport?.source || '',
     env: envInfo(),
     recentLog: recentText(60),
+    // ★ 完整报告全文 —— 与写入 Logs/最新-错误报告.txt 的内容**逐字一致**。
+    //   给弹窗直接显示，用户就不必再去 Logs 目录翻那个 txt 了（2026-10-09）
+    copyText: buildCopyText(),
   }
 }
 

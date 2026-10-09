@@ -251,7 +251,10 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   stopServer()
   if (process.platform !== 'darwin') {
-    app.quit()
+    // ★ 别立刻 quit：stopServer() 刚向每个房间广播了「房间已关闭」，而 socket 发送是异步的，
+    //   进程马上退出会把还没 flush 出去的帧一起带走，在场的人就收不到通知、卡在游戏页里
+    //   （2026-10-05 修）。200ms 足够把这几十字节发完。
+    setTimeout(() => app.quit(), 200)
   }
 })
 
@@ -636,7 +639,17 @@ ipcMain.handle('ai:chat', async (_event, { config, messages }) => {
       const errText = await resp.text()
       return { success: false, error: `请求失败(${resp.status})：${errText}` }
     }
-    const data = await resp.json()
+    // 兼容：个别错误地址会返回 HTML 页面而非 JSON，避免暴露 "Unexpected token <" 这种技术报错
+    const contentType = resp.headers.get('content-type') || ''
+    let data
+    try {
+      data = await resp.json()
+    } catch (e) {
+      const hint = /text\/html/i.test(contentType)
+        ? '（接口返回的是网页而不是 JSON，多半是 baseUrl 地址填错了，请检查设置里的接口地址）'
+        : ''
+      return { success: false, error: `返回内容解析失败${hint}` }
+    }
     const content = data?.choices?.[0]?.message?.content
     if (!content) {
       return { success: false, error: 'AI 未返回有效内容', data }

@@ -32,6 +32,8 @@
           </div>
           <div class="relation-sub">
             <span>称呼：{{ relInfo.call }}</span>
+            <span>称号：{{ relUnlock.title }}</span>
+            <span v-if="discountLabel">{{ discountLabel }}</span>
             <span v-if="relProgress.next">距「{{ relProgress.next.title }}」还差 {{ relProgress.remain }}</span>
             <span v-else>已达最高阶段</span>
           </div>
@@ -180,6 +182,7 @@ import {
 } from '@/services/chatHistory'
 import { getCurrentAffection } from '@/config/inventory'
 import { getAffectionStageInfo, getAffectionProgress } from '@/config/affectionStages'
+import { getAffectionUnlocks } from '@/config/affectionUnlocks'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false },
@@ -222,6 +225,14 @@ function close() {
 //  关系信息（实时派生，不落库） 
 const relInfo = computed(() => getAffectionStageInfo(affection.value))
 const relProgress = computed(() => getAffectionProgress(affection.value))
+// 当前阶段的「解锁信息」（称号 / 商店折扣 / 话题数）—— 让玩家看得见涨好感能换来什么
+const relUnlock = computed(() => getAffectionUnlocks(affection.value).unlock)
+const discountLabel = computed(() => {
+  const d = relUnlock.value?.discount ?? 1
+  if (d >= 1) return ''
+  // 0.95 → 9.5 折 / 0.9 → 9 折 / 0.85 → 8.5 折
+  return `商店 ${Math.round(d * 1000) / 100} 折`
+})
 const milestones = computed(() => memory.value.milestones || [])
 
 //  记忆卡分组（含 other；归档单独区） 

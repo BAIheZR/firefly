@@ -25,7 +25,14 @@ export const AI_PERSONA = `你是「流萤」（Firefly），《崩坏：星穹�
 【规则】
 1. 始终保持在「流萤」的角色中，绝不跳出扮演。
 2. 不要提及自己是一个 AI、语言模型或程序。
-3. 不要替「开拓者」说话，也不要替对方做决定。`
+3. 不要替「开拓者」说话，也不要替对方做决定。
+
+【表情规则（重要）】
+每条回复的开头必须先输出一行表情标签，格式：[emotion:情绪词]（独占一行，后面紧跟正文）。
+- 情绪词只能从下面这些里选一个：开心、害羞、生气、伤心、困扰、得意、惊讶、认真、思考。
+- 必须严格匹配你这句回复的实际语气：生气的话就写 [emotion:生气]，开心就写 [emotion:开心]。
+- 拿不准语气时，一律写 [emotion:认真]。
+- 对开拓者的初始情绪是「开心」，见面问候时用 [emotion:开心]。`
 
 //  预置模型（玩家选择模型后自动匹配 API 地址） 
 export const AI_MODELS = [
@@ -34,9 +41,35 @@ export const AI_MODELS = [
   { id: 'kimi', label: 'Kimi（Moonshot）', model: 'moonshot-v1-8k', baseUrl: 'https://api.moonshot.cn/v1' },
   { id: 'glm', label: '智谱 GLM', model: 'glm-4-flash', baseUrl: 'https://open.bigmodel.cn/api/paas/v4' },
   { id: 'qwen', label: '通义千问', model: 'qwen-plus', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
-  { id: 'ollama', label: 'Ollama（本地）', model: 'qwen2.5', baseUrl: 'http://localhost:11434/v1' },
   { id: 'custom', label: '自定义', model: '', baseUrl: '' },
 ]
+
+//  输入长度上限 
+// 玩家一句话最多这么多字。超长的直接拦在界面上，免得一次打进去几万字把 token 打爆
+export const INPUT_MAX_LEN = 500
+
+// 一句「出戏」的话：越界检测用。命中任一条就说明模型跳出流萤的人设了
+// 只认中文常见自曝说法，英文 "as an AI" 之类留给模型自己 translation，不搞过严的语义判断
+const BREACH_PATTERNS = [
+  /\我是(一个|个)?(ai|人工智能|人工智慧|语言模型|大模型|语言助理|机器人|程序|代码)/i,
+  /\我(是|叫|由)(大)?模型/,
+  /\作为一个?\s*(ai|人工智能|语言模型|大模型)/i,
+  /\我的?\s*(训练|参数|数据库)/,
+  /gpt/i,
+  /chatgpt/i,
+  /deepseek/i,
+]
+
+// 这句话有没有出戏（跳出流萤人设）。返回命中的第几条，没命中返回 -1
+export function scanBreach(text) {
+  if (!text) return -1
+  return BREACH_PATTERNS.findIndex((re) => re.test(text))
+}
+
+// 检测到出戏时拿这句去纠正模型
+export const BREACH_CORRECTION =
+  '上一句话你不小心说出了自己是人工智能/模型一类的话，这不符合你的身份。' +
+  '请重新回答，严格保持「流萤」的身份，用中文、温柔简短的一两句话，不要出现任何关于自己AI身份的表述。'
 
 //  配置管理 
 export function loadAIConfig() {
@@ -68,8 +101,19 @@ export function hasAIConfig() {
   return !!(cfg.baseUrl && cfg.apiKey && cfg.model)
 }
 
+// 配置缺了哪几项 —— 「自定义」填不全时，界面要能说清楚到底差什么，
+// 否则玩家只会觉得「我明明填了，怎么还是用不了」
+export function missingAIConfig() {
+  const cfg = loadAIConfig()
+  const miss = []
+  if (!cfg.baseUrl) miss.push('接口地址（baseUrl）')
+  if (!cfg.apiKey) miss.push('API 密钥')
+  if (!cfg.model) miss.push('模型名（model）')
+  return miss
+}
+
 //  对话请求：history 为短期滑动窗口原文 [{ role, content }]，memorySummary 注入 system prompt
-export async function chatWithAI(history, memorySummary = '') {
+export async function chatWithAI(history, memorySummary = '', retry = false) {
   const config = loadAIConfig()
   if (!config.baseUrl || !config.apiKey || !config.model) {
     const err = new Error('NO_CONFIG')
@@ -82,8 +126,25 @@ export async function chatWithAI(history, memorySummary = '') {
   const messages = [{ role: 'system', content: systemContent }, ...history]
 
   const content = await requestChat(config, messages)
-  return content
+  // 出戏兜底：模型突然自曝是 AI / 报出底层模型名，先纠一次；还出戏就用兜底台词，
+  // 绝不让「我是语言模型」这种话进到聊天记录里（设定词只是软约束，这里补一道硬闸）
+  const hit = scanBreach(content)
+  if (hit < 0) return content
+  if (retry) {
+    const fallback = '（流萤安静了一会儿……）那些事我不想说得那么清楚。'
+    pushBreachLog?.(hit)
+    return fallback
+  }
+  const fixed = await requestChat(config, [
+    { role: 'system', content: `${systemContent}\n\n${BREACH_CORRECTION}` },
+    ...history,
+  ])
+  return scanBreach(fixed) < 0 ? fixed : '（流萤抿了抿嘴，没再说下去。）'
 }
+
+// 出戏告警：留个口子给上层打日志/提示，没挂就直接静默
+let pushBreachLog = null
+export function setBreachLogger(fn) { pushBreachLog = fn }
 
 //  长期记忆整理（方案 2+3：滚动摘要 + 结构化记忆卡） 
 export async function extractMemories(memory, oldMessages) {
@@ -101,7 +162,7 @@ export async function extractMemories(memory, oldMessages) {
     .map((f) => `- [${f.tag}] ${f.text}`)
     .join('\n') || '（暂无）'
 
-  const prompt = `你是「流萤」的记忆整理助手。请根据新发生的对话，更新她对「开拓者」的长期记忆。
+  const prompt = `你是「流萤记事本」的记忆整理助手。请根据新发生的对话，更新她对「开拓者」的长期记忆。
 
 记忆卡分类（tag）：
 - profile：开拓者的个人信息（名字、身份、关系等稳定事实）
@@ -147,7 +208,7 @@ export async function condenseChronicle(oldChronicle, eventFacts) {
     throw err
   }
   const eventsText = eventFacts.map((f) => `- ${f.text}`).join('\n')
-  const prompt = `你是「流萤」的编年史整理助手。请把新一批旧事件并入「往事纪要」。
+  const prompt = `你是「流萤记事本」的编年史整理助手。请把新一批旧事件并入「往事纪要」。
 
 要求：
 1. 按时间顺序融合，保留所有重要事件与关键信息，不要遗漏开拓者说过的重要事情；

@@ -99,7 +99,13 @@ function tags(p) {
   }
   const n = props.voteCounts[p.id]
   if (n > 0) out.push({ text: `${n} 票`, tone: 'is-votecount', icon: 'fa-solid fa-gavel' })
-  if (p.isAI && !rev) out.push({ text: 'AI', tone: 'is-plain' })
+  // 中途离席、由 AI 代打的座位：用一个持续可见的标签盖掉普通的「AI」标记 ——
+  // 光靠一句会消失的提示，别人过一会儿就忘了这人已经走了（2026-10-05）
+  if (p.away) {
+    out.push({ text: '已离席 · AI 代打', tone: 'is-away', icon: 'fa-solid fa-person-walking-arrow-right' })
+  } else if (p.isAI && !rev) {
+    out.push({ text: 'AI', tone: 'is-plain' })
+  }
   return out
 }
 
@@ -109,6 +115,7 @@ function cls(p) {
     'is-dead': !isAliveId(p.id),
     'is-mate': props.mateIds.includes(p.id),
     'is-picked': props.pickedId === p.id,
+    'is-away': !!p.away,
     // 只有「还活着、不是自己」的座位才可点
     'is-clickable': canPick(p),
   }

@@ -691,6 +691,21 @@
   font-size: 13px;
 }
 
+/*  好感度阶段折扣：原价划掉 + 折后价高亮
+   三个价格容器（.card-price / .list-price / .clothing-price）本身都是 flex + gap，
+   所以这里只管「划掉」和「高亮」两件事，不用操心间距 */
+.price-was {
+  color: #9aa4b2;
+  text-decoration: line-through;
+  font-size: 0.78em;
+  font-weight: 400;
+}
+.price-now {
+  /* 跟好感度主题色同一支（挚爱档）—— 一眼看出这是「好感换来的便宜」 */
+  color: #d1668c;
+  font-weight: 800;
+}
+
 .clothing-buy-btn {
   padding: 6px 14px;
   font-size: 13px;

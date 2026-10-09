@@ -2,8 +2,8 @@
   <div class="slot-select-overlay">
     <div class="slot-select-panel">
       <div class="slot-select-header">
-        <i class="fa-solid fa-dragon"></i>
-        <h1>选择存档</h1>
+        
+        <h1>选择存档切换角色</h1>
         <p>萤光纪游 · 共 5 个存档位，可分别保存「大号」「小号」互不干扰</p>
       </div>
 
@@ -220,9 +220,9 @@ function formatGold(n) {
   justify-content: center;
   padding: 32px;
   background:
-    radial-gradient(1200px 600px at 20% 10%, rgba(56, 168, 184, 0.35), transparent 60%),
-    radial-gradient(1000px 600px at 80% 90%, rgba(232, 153, 73, 0.3), transparent 60%),
-    linear-gradient(160deg, #0e1a24 0%, #10242c 45%, #1c2b20 100%);
+    radial-gradient(1200px 600px at 20% 10%, rgba(63, 169, 138, 0.35), transparent 60%),
+    radial-gradient(1000px 600px at 80% 90%, rgba(218, 165, 32, 0.28), transparent 60%),
+    linear-gradient(160deg, #0e201a 0%, #123028 45%, #1a2e25 100%);
   animation: slotFadeIn 0.3s ease;
 }
 
@@ -238,8 +238,8 @@ function formatGold(n) {
   overflow-y: auto;
   padding: 32px 28px;
   border-radius: 18px;
-  background: rgba(16, 30, 38, 0.72);
-  border: 1px solid rgba(63, 169, 138, 0.35);
+  background: rgba(14, 38, 30, 0.72);
+  border: 1px solid rgba(63, 169, 138, 0.4);
   backdrop-filter: blur(18px);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
@@ -249,7 +249,7 @@ function formatGold(n) {
   margin-bottom: 26px;
 }
 .slot-select-header i {
-  color: #38a8b8;
+  color: #DAA520;
   font-size: 26px;
   margin-right: 8px;
 }
@@ -257,12 +257,12 @@ function formatGold(n) {
   display: inline-block;
   margin: 0;
   font-size: 26px;
-  color: #f3e6c8;
+  color: #f5ecd9;
   letter-spacing: 2px;
 }
 .slot-select-header p {
   margin: 8px 0 0;
-  color: #9bb8bf;
+  color: #9fc4b3;
   font-size: 13px;
 }
 
@@ -284,16 +284,16 @@ function formatGold(n) {
 }
 .slot-card:hover {
   transform: translateY(-4px);
-  border-color: rgba(63, 169, 138, 0.7);
+  border-color: rgba(218, 165, 32, 0.7);
   box-shadow: 0 10px 26px rgba(0, 0, 0, 0.4);
 }
 .slot-card.empty {
   border-style: dashed;
-  border-color: rgba(255, 255, 255, 0.22);
+  border-color: rgba(63, 169, 138, 0.35);
 }
 .slot-card.current {
-  border-color: rgba(56, 168, 184, 0.8);
-  box-shadow: 0 0 0 1px rgba(56, 168, 184, 0.5);
+  border-color: rgba(63, 169, 138, 0.8);
+  box-shadow: 0 0 0 1px rgba(63, 169, 138, 0.5);
 }
 
 .slot-card-top {
@@ -304,20 +304,20 @@ function formatGold(n) {
 }
 .slot-no {
   font-size: 12px;
-  color: #9bb8bf;
+  color: #9fc4b3;
 }
 .slot-tag {
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 10px;
-  background: rgba(56, 168, 184, 0.25);
-  color: #8fe0ea;
+  background: rgba(63, 169, 138, 0.25);
+  color: #9fe8cc;
 }
 
 .slot-card-name {
   font-size: 20px;
   font-weight: 600;
-  color: #f3e6c8;
+  color: #f5ecd9;
   margin-bottom: 10px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -333,17 +333,17 @@ function formatGold(n) {
 }
 .meta-item {
   font-size: 13px;
-  color: #c9d6db;
+  color: #cfe0d6;
 }
 .meta-item i {
   width: 18px;
-  color: #e89949;
+  color: #DAA520;
   margin-right: 4px;
 }
 
 .slot-card-time {
   font-size: 11px;
-  color: #6f858c;
+  color: #7fa395;
   margin-bottom: 12px;
 }
 
@@ -367,12 +367,12 @@ function formatGold(n) {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(56, 168, 184, 0.16);
-  color: #8fe0ea;
+  background: rgba(63, 169, 138, 0.18);
+  color: #9fe8cc;
   font-size: 20px;
 }
 .slot-empty-text {
-  color: #9bb8bf;
+  color: #9fc4b3;
   font-size: 14px;
 }
 
@@ -403,17 +403,17 @@ function formatGold(n) {
   transition: all 0.18s ease;
 }
 .slot-btn:hover:not(:disabled) {
-  border-color: rgba(63, 169, 138, 0.8);
+  border-color: rgba(218, 165, 32, 0.8);
   color: #ffd27a;
   transform: translateY(-2px);
 }
 .slot-btn.primary {
-  background: linear-gradient(135deg, #38a8b8, #2c7d8a);
-  border-color: rgba(56, 168, 184, 0.6);
+  background: linear-gradient(135deg, #3FA98A, #2d8a6e);
+  border-color: rgba(63, 169, 138, 0.6);
   color: #fff;
 }
 .slot-btn.primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #45bccd, #3493a0);
+  background: linear-gradient(135deg, #5BC9A0, #3FA98A);
   color: #fff;
 }
 .slot-btn.danger {
@@ -456,7 +456,7 @@ function formatGold(n) {
     padding: 18px 14px;
     border-radius: 14px;
     /* 移动端已全局关闭毛玻璃，改不透明底避免深色背景下看不清文字 */
-    background: rgba(16, 30, 38, 0.94);
+    background: rgba(14, 38, 30, 0.94);
   }
 
   .slot-select-header {
@@ -476,6 +476,24 @@ function formatGold(n) {
   .slot-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 10px;
+  }
+
+  /* 移动端精简：隐藏 meta 信息，卡片更紧凑避免按钮溢出 */
+  .slot-card-meta {
+    display: none;
+  }
+  .slot-card {
+    min-height: 170px;
+    padding: 12px;
+  }
+  .slot-card-actions {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .slot-card-actions .slot-btn {
+    flex: 1 1 auto;
+    padding: 7px 8px;
+    font-size: 12px;
   }
 
   .slot-select-footer {

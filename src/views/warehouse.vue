@@ -22,54 +22,50 @@
             <ViewSwitcher v-model="allView" :options="viewOptions">
               <template #default="{ current }">
                 <div v-if="allData.length" :key="current" :class="current === 'card' ? 'item-cards' : 'item-list'">
-                  <div v-for="item in allData" :key="item.id" :class="current === 'card' ? 'item-card' : 'list-item'">
-                    <div :class="current === 'card' ? 'card-icon' : 'list-icon'">
-                      <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
-                      <i v-else :class="item.icon || 'fa-solid fa-box'"></i>
-                    </div>
-                    <template v-if="current === 'card'">
-                      <el-popover title="效果" :content="item.decs2 || item.desc" placement="top" trigger="hover" :width="220" popper-class="gold-popover">
-                        <template #reference>
+                  <el-popover v-for="item in allData" :key="item.id" title="效果" :content="item.decs2 || item.desc" placement="top" trigger="click" :width="220" popper-class="gold-popover">
+                    <template #reference>
+                      <div :class="current === 'card' ? 'item-card' : 'list-item'">
+                        <div :class="current === 'card' ? 'card-icon' : 'list-icon'">
+                          <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
+                          <i v-else :class="item.icon || 'fa-solid fa-box'"></i>
+                        </div>
+                        <template v-if="current === 'card'">
                           <div class="card-name">{{ item.name }}</div>
+                          <div class="card-desc">{{ item.desc }}</div>
+                          <div class="card-price">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            {{ item.count }}
+                          </div>
+                          <div v-if="item.category !== 'clothing'" class="card-sell">
+                            <i class="fa-solid fa-coins"></i> 出售 +{{ sellPriceOf(item) }}
+                          </div>
+                          <button v-if="item.category === 'clothing'" class="buy-btn" disabled>不可出售</button>
+                          <div v-else class="card-btns">
+                            <button class="buy-btn" @click.stop="handleUse(item)">使用</button>
+                            <button class="buy-btn" @click.stop="handleSell(item)">出售</button>
+                          </div>
                         </template>
-                      </el-popover>
-                      <div class="card-desc">{{ item.desc }}</div>
-                      <div class="card-price">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                        {{ item.count }}
-                      </div>
-                      <div v-if="item.category !== 'clothing'" class="card-sell">
-                        <i class="fa-solid fa-coins"></i> 出售 +{{ sellPriceOf(item) }}
-                      </div>
-                      <button v-if="item.category === 'clothing'" class="buy-btn" disabled>不可出售</button>
-                      <div v-else class="card-btns">
-                        <button class="buy-btn" @click="handleUse(item)">使用</button>
-                        <button class="buy-btn" @click="handleSell(item)">出售</button>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="list-info">
-                        <el-popover title="效果" :content="item.decs2 || item.desc" placement="top" trigger="hover" :width="220" popper-class="gold-popover">
-                          <template #reference>
+                        <template v-else>
+                          <div class="list-info">
                             <div class="list-name">{{ item.name }}</div>
-                          </template>
-                        </el-popover>
-                        <div class="list-desc">{{ item.desc }}</div>
-                      </div>
-                      <div class="list-price">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                        {{ item.count }}
-                        <span v-if="item.category !== 'clothing'" class="list-sell">
-                          <i class="fa-solid fa-coins"></i>+{{ sellPriceOf(item) }}
-                        </span>
-                      </div>
-                      <button v-if="item.category === 'clothing'" class="list-buy-btn" disabled>不可出售</button>
-                      <div v-else class="list-btns">
-                        <button class="list-buy-btn" @click="handleUse(item)">使用</button>
-                        <button class="list-buy-btn" @click="handleSell(item)">出售</button>
+                            <div class="list-desc">{{ item.desc }}</div>
+                          </div>
+                          <div class="list-price">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            {{ item.count }}
+                            <span v-if="item.category !== 'clothing'" class="list-sell">
+                              <i class="fa-solid fa-coins"></i>+{{ sellPriceOf(item) }}
+                            </span>
+                          </div>
+                          <button v-if="item.category === 'clothing'" class="list-buy-btn" disabled>不可出售</button>
+                          <div v-else class="list-btns">
+                            <button class="list-buy-btn" @click.stop="handleUse(item)">使用</button>
+                            <button class="list-buy-btn" @click.stop="handleSell(item)">出售</button>
+                          </div>
+                        </template>
                       </div>
                     </template>
-                  </div>
+                  </el-popover>
                 </div>
                 <div v-else class="empty-state">
                   <i class="fa-regular fa-folder-open"></i>
@@ -83,52 +79,48 @@
             <ViewSwitcher v-model="itemView" :options="viewOptions">
               <template #default="{ current }">
                 <div v-if="itemData.length" :key="current" :class="current === 'card' ? 'item-cards' : 'item-list'">
-                  <div v-for="item in itemData" :key="item.id" :class="current === 'card' ? 'item-card' : 'list-item'">
-                    <div :class="current === 'card' ? 'card-icon' : 'list-icon'">
-                      <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
-                      <i v-else :class="item.icon || 'fa-solid fa-box'"></i>
-                    </div>
-                    <template v-if="current === 'card'">
-                      <el-popover title="效果" :content="item.decs2 || item.desc" placement="top" trigger="hover" :width="220" popper-class="gold-popover">
-                        <template #reference>
+                  <el-popover v-for="item in itemData" :key="item.id" title="效果" :content="item.decs2 || item.desc" placement="top" trigger="click" :width="220" popper-class="gold-popover">
+                    <template #reference>
+                      <div :class="current === 'card' ? 'item-card' : 'list-item'">
+                        <div :class="current === 'card' ? 'card-icon' : 'list-icon'">
+                          <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
+                          <i v-else :class="item.icon || 'fa-solid fa-box'"></i>
+                        </div>
+                        <template v-if="current === 'card'">
                           <div class="card-name">{{ item.name }}</div>
+                          <div class="card-desc">{{ item.desc }}</div>
+                          <div class="card-price">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            {{ item.count }}
+                          </div>
+                          <div class="card-sell">
+                            <i class="fa-solid fa-coins"></i> 出售 +{{ sellPriceOf(item) }}
+                          </div>
+                          <div class="card-btns">
+                            <button class="buy-btn" @click.stop="handleUse(item)">使用</button>
+                            <button class="buy-btn" @click.stop="handleSell(item)">出售</button>
+                          </div>
                         </template>
-                      </el-popover>
-                      <div class="card-desc">{{ item.desc }}</div>
-                      <div class="card-price">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                        {{ item.count }}
-                      </div>
-                      <div class="card-sell">
-                        <i class="fa-solid fa-coins"></i> 出售 +{{ sellPriceOf(item) }}
-                      </div>
-                      <div class="card-btns">
-                        <button class="buy-btn" @click="handleUse(item)">使用</button>
-                        <button class="buy-btn" @click="handleSell(item)">出售</button>
-                      </div>
-                    </template>
-                    <template v-else>
-                      <div class="list-info">
-                        <el-popover title="效果" :content="item.decs2 || item.desc" placement="top" trigger="hover" :width="220" popper-class="gold-popover">
-                          <template #reference>
+                        <template v-else>
+                          <div class="list-info">
                             <div class="list-name">{{ item.name }}</div>
-                          </template>
-                        </el-popover>
-                        <div class="list-desc">{{ item.desc }}</div>
-                      </div>
-                      <div class="list-price">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                        {{ item.count }}
-                        <span class="list-sell">
-                          <i class="fa-solid fa-coins"></i>+{{ sellPriceOf(item) }}
-                        </span>
-                      </div>
-                      <div class="list-btns">
-                        <button class="list-buy-btn" @click="handleUse(item)">使用</button>
-                        <button class="list-buy-btn" @click="handleSell(item)">出售</button>
+                            <div class="list-desc">{{ item.desc }}</div>
+                          </div>
+                          <div class="list-price">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            {{ item.count }}
+                            <span class="list-sell">
+                              <i class="fa-solid fa-coins"></i>+{{ sellPriceOf(item) }}
+                            </span>
+                          </div>
+                          <div class="list-btns">
+                            <button class="list-buy-btn" @click.stop="handleUse(item)">使用</button>
+                            <button class="list-buy-btn" @click.stop="handleSell(item)">出售</button>
+                          </div>
+                        </template>
                       </div>
                     </template>
-                  </div>
+                  </el-popover>
                 </div>
                 <div v-else class="empty-state">
                   <i class="fa-regular fa-folder-open"></i>
@@ -142,47 +134,47 @@
             <ViewSwitcher v-model="clothingView" :options="viewOptions">
               <template #default="{ current }">
                 <div v-if="current === 'card' && clothingData.length" key="card" class="clothing-cards">
-                  <div v-for="item in clothingData" :key="item.id" class="clothing-card">
-                    <div class="clothing-portrait">
-                      <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="portrait-img" :class="{ 'portrait-img-hanld': item.id === 108, 'portrait-img-xbd': item.id === 103 }" />
-                      <div v-else class="portrait-fallback">
-                        <i :class="item.icon || 'fa-solid fa-shirt'"></i>
-                      </div>
-                    </div>
-                    <el-popover title="效果" :content="item.decs2 || item.desc" placement="top" trigger="hover" :width="220" popper-class="gold-popover">
-                      <template #reference>
+                  <el-popover v-for="item in clothingData" :key="item.id" title="效果" :content="item.decs2 || item.desc" placement="top" trigger="click" :width="220" popper-class="gold-popover">
+                    <template #reference>
+                      <div class="clothing-card">
+                        <div class="clothing-portrait">
+                          <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="portrait-img" :class="{ 'portrait-img-hanld': item.id === 108, 'portrait-img-xbd': item.id === 103 }" />
+                          <div v-else class="portrait-fallback">
+                            <i :class="item.icon || 'fa-solid fa-shirt'"></i>
+                          </div>
+                        </div>
                         <div class="clothing-name">{{ item.name }}</div>
-                      </template>
-                    </el-popover>
-                    <div class="clothing-footer">
-                      <div class="clothing-price">
-                        <i class="fa-solid fa-boxes-stacked"></i>
-                        {{ item.count }}
+                        <div class="clothing-footer">
+                          <div class="clothing-price">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                            {{ item.count }}
+                          </div>
+                          <button class="clothing-buy-btn" disabled>不可出售</button>
+                        </div>
                       </div>
-                      <button class="clothing-buy-btn" disabled>不可出售</button>
-                    </div>
-                  </div>
+                    </template>
+                  </el-popover>
                 </div>
                 <div v-else-if="current === 'list' && clothingData.length" key="list" class="item-list">
-                  <div v-for="item in clothingData" :key="item.id" class="list-item">
-                    <div class="list-icon">
-                      <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
-                      <i v-else :class="item.icon || 'fa-solid fa-shirt'"></i>
-                    </div>
-                    <div class="list-info">
-                      <el-popover title="效果" :content="item.decs2 || item.desc" placement="top" trigger="hover" :width="220" popper-class="gold-popover">
-                        <template #reference>
+                  <el-popover v-for="item in clothingData" :key="item.id" title="效果" :content="item.decs2 || item.desc" placement="top" trigger="click" :width="220" popper-class="gold-popover">
+                    <template #reference>
+                      <div class="list-item">
+                        <div class="list-icon">
+                          <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="item-img" />
+                          <i v-else :class="item.icon || 'fa-solid fa-shirt'"></i>
+                        </div>
+                        <div class="list-info">
                           <div class="list-name">{{ item.name }}</div>
-                        </template>
-                      </el-popover>
-                      <div class="list-desc">{{ item.desc }}</div>
-                    </div>
-                    <div class="list-price">
-                      <i class="fa-solid fa-boxes-stacked"></i>
-                      {{ item.count }}
-                    </div>
-                    <button class="list-buy-btn" disabled>不可出售</button>
-                  </div>
+                          <div class="list-desc">{{ item.desc }}</div>
+                        </div>
+                        <div class="list-price">
+                          <i class="fa-solid fa-boxes-stacked"></i>
+                          {{ item.count }}
+                        </div>
+                        <button class="list-buy-btn" disabled>不可出售</button>
+                      </div>
+                    </template>
+                  </el-popover>
                 </div>
                 <div v-else key="empty" class="empty-state">
                   <i class="fa-regular fa-folder-open"></i>

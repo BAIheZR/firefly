@@ -19,19 +19,35 @@
     <SlotSelection v-if="saveSlots.showSelector" :first-run="saveSlots.currentSlotId == null" />
     <!-- 使用条款：首次启动强制同意（force 模式不可关闭），设置页可再次查看 -->
     <AgreementModal v-model="agreementVisible" mode="force" @accepted="onAgreementAccepted" />
+    <!-- 好感度变化飘字：任何地方调 changeAffection() 都会在这里飘一个 +N / -N。
+         以前只有主页按住才看得到数字，玩家感受不到自己在变好 -->
+    <div class="aff-float-layer">
+      <TransitionGroup name="aff-float">
+        <div
+          v-for="f in affFloats"
+          :key="f.id"
+          class="aff-float"
+          :class="{ 'is-minus': f.delta < 0 }"
+        >
+          <i class="fa-solid fa-heart"></i>
+          {{ f.delta > 0 ? '+' : '' }}{{ f.delta }}
+        </div>
+      </TransitionGroup>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useGoldStore } from './config/gold'
-import { useInventoryStore, getBuffMultiplier, changeAffection } from './config/inventory'
+import { useInventoryStore, getBuffMultiplier, changeAffection, BASE_ACTION_POINT, ACTION_POINT_PER_LEVEL } from './config/inventory'
 import { useTasksStore } from './config/tasks'
 import { useBackgroundStore } from './config/background'
 import { useAudioSettingsStore } from './config/music'
 import { useSaveSlotsStore } from './config/saveSlots'
 import { useMultiplayerStore } from './config/multiplayer'
 import { clearCurrentChat } from './services/chatHistory'
+import { playSfx } from './utils/sfx'
 import MiniPlayer from './components/MiniPlayer.vue'
 import GreetingToast from './components/GreetingToast.vue'
 import GlobalBackground from './components/GlobalBackground.vue'
@@ -77,8 +93,8 @@ if (initResult.needSelect) {
 // 行动点恢复：每 3 分钟恢复 1 点（乘「行动点恢复」加成倍率），上限 = 50 + 等级×10，
 // 已满则不恢复；离线时按上次结算到现在的真实流逝时间补发
 const ACTION_RECOVER_INTERVAL = 3 * 60 * 1000
-const BASE_ACTION_POINT = 50
-const ACTION_POINT_PER_LEVEL = 10 // 50 * 20% = 10
+// BASE_ACTION_POINT / ACTION_POINT_PER_LEVEL 统一从 @/config/inventory 导入
+// （原先 App / Chess / GuessWord / Home 各定义一份，改数值时容易漏改 —— 2026-10-09 收敛）
 const LAST_RECOVER_KEY = 'player_action_recover_time'
 
 // 读取当前等级（与 Home/notify 共享 localStorage）
@@ -112,8 +128,16 @@ function applyRecovery() {
   const cap = BASE_ACTION_POINT + readLevel() * ACTION_POINT_PER_LEVEL
   const bonus = store.actionBonus || 0
   const recover = store.actionRecover || 0
-  // 剩余可恢复空间 = 上限 - 当前 = -(物品加成 + 恢复累计)
-  const room = cap - (cap + bonus + recover)
+  // 可恢复空间 = 上限 − 当前。口径以 inventory.js:360 为准：
+  //   「当前行动点 = cap + actionBonus + actionRecover」
+  //   actionBonus 是买来的**永久上限扩展**（属于上限），actionRecover 是消耗后待恢复的余额。
+  //   所以 上限 = cap + bonus、当前 = cap + bonus + recover → room = -recover。
+  //   旧写法 `cap − (cap + bonus + recover)` 多减了一个 bonus：只要买过行动点加成物品，
+  //   恢复空间就被那支加成吃掉，行动点永远回不满（2026-10-09 修）。
+  //   拆成 max/current 两个中间量而不是直接写 -recover —— 让口径一眼可核对。
+  const maxAction = cap + bonus
+  const currentAction = cap + bonus + recover
+  const room = maxAction - currentAction
   if (room <= 0) {
     // 已满或超上限，不恢复；推进起点，避免满值时累积追偿
     localStorage.setItem(LAST_RECOVER_KEY, String(now))
@@ -131,6 +155,36 @@ let recoverTimer = null
 // 在线好感度：每在线 5 分钟 +1（享受「好感度增长」加成倍率）
 const AFFECTION_INTERVAL = 5 * 60 * 1000
 let affectionTimer = null
+
+//  好感度变化飘字 
+// changeAffection() 里会 window.dispatchEvent('affection-change')，这里收下来飘一下。
+// 做成全局的（而不是各页面自己搞）—— 好感度来源分散在聊天/游戏/签到/用物品里，
+// 挨个页面加提示既重复又会漏（2026-10-09）
+const affFloats = ref([])
+let affFloatSeq = 0
+const onAffectionChange = (e) => {
+  const delta = Number(e?.detail?.delta) || 0
+  if (!delta) return
+  playSfx('heart') // 好感度变化配一声柔和的音
+  const id = ++affFloatSeq
+  affFloats.value.push({ id, delta })
+  // 1.6s 后移除，跟 CSS 动画时长对齐
+  setTimeout(() => {
+    affFloats.value = affFloats.value.filter((x) => x.id !== id)
+  }, 1600)
+}
+
+//  全局点击音 
+// 用**一处事件委托**，而不是给几十个按钮各挂一次监听（那样既啰嗦又必然漏掉后加的按钮）。
+// 只对「真的可点的控件」响 —— 选择器里带上项目自己的几个列表/卡片类名。
+const CLICK_SFX_SELECTOR =
+  'button, a, [role="button"], .nav-btn, .tab-item, .list-item, .item-card, .clothing-card, .game-menu-item'
+const onGlobalClickSfx = (e) => {
+  const el = e.target?.closest?.(CLICK_SFX_SELECTOR)
+  if (!el) return
+  if (el.disabled || el.getAttribute('aria-disabled') === 'true') return
+  playSfx('click')
+}
 
 // 退出游戏（关闭窗口）时自动清空本次聊天原文，下次启动从问候语重新开始；长期记忆卡不受影响
 const onAppExit = () => {
@@ -150,6 +204,9 @@ onMounted(() => {
   window.addEventListener('beforeunload', onAppExit)
   window.addEventListener('pagehide', onAppExit)
   document.addEventListener('visibilitychange', onVisibilityChange)
+  window.addEventListener('affection-change', onAffectionChange)
+  // 用 pointerdown 而不是 click：音效要跟手，"按下就响"比"抬起才响"手感好得多
+  window.addEventListener('pointerdown', onGlobalClickSfx, { passive: true })
 })
 onBeforeUnmount(() => {
   if (recoverTimer) clearInterval(recoverTimer)
@@ -157,9 +214,54 @@ onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', onAppExit)
   window.removeEventListener('pagehide', onAppExit)
   document.removeEventListener('visibilitychange', onVisibilityChange)
+  window.removeEventListener('affection-change', onAffectionChange)
+  window.removeEventListener('pointerdown', onGlobalClickSfx)
 })
 </script>
 
 <style>
 /* 全局样式已在 main.css 中定义 */
+
+/*  好感度变化飘字（全局，任何页面都飘）  */
+.aff-float-layer {
+  position: fixed;
+  right: 24px;
+  top: 84px;              /* 避开顶部导航 */
+  z-index: 4000;
+  pointer-events: none;   /* 不挡任何点击 */
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+.aff-float {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #e08fb0, #d1668c);
+  box-shadow: 0 4px 14px rgba(209, 102, 140, 0.35);
+  white-space: nowrap;
+}
+/* 掉好感用冷色，跟涨好感一眼区分开 */
+.aff-float.is-minus {
+  background: linear-gradient(135deg, #8a94a4, #6b7784);
+  box-shadow: 0 4px 14px rgba(107, 119, 132, 0.3);
+}
+.aff-float-enter-active,
+.aff-float-leave-active {
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.aff-float-enter-from {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.92);
+}
+.aff-float-leave-to {
+  opacity: 0;
+  transform: translateY(-14px);
+}
 </style>
