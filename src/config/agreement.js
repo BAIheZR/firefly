@@ -4,8 +4,8 @@ export const AGREEMENT_ACCEPTED_KEY = 'agreement_accepted_v2'
 
 export const AGREEMENT_TEXT = `「萤光纪游」软件使用同意条款（含免责声明）
 生效日期：2026年9月26日
-更新日期：2026年10月4日
-当前版本：1.2.5
+更新日期：2026年10月9日
+当前版本：1.4.0
 运营者/开发者：BAIheZR（个人开发者）
 官方发布页：https://github.com/BAIheZR/firefly
 
