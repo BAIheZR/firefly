@@ -456,7 +456,7 @@
              ★ 必须 Teleport 到 body：弹窗原本写在 <section> 里，
                而 section 上有 transform / filter 之类的属性会创建**新的堆叠上下文**，
                于是 .qr-mask 的 z-index 只在那个 section 内有效，会被后面的 section 盖住
-               （实测截图：卡片只露出上半截，下半截被"感谢墙"压住）。2026-10-09 -->
+               （实测截图：卡片只露出上半截，下半截被后面的 section 压住）。2026-10-09 -->
         <Teleport to="body">
           <div v-if="qrVisible" class="qr-mask" @click.self="qrVisible = false">
             <div class="qr-card">
@@ -476,33 +476,6 @@
             </div>
           </div>
         </Teleport>
-
-        <!-- 感谢墙 -->
-        <section id="thanks" ref="sectionRefs" class="content-section">
-          <div class="page-title">
-            <i class="fa-solid fa-heart"></i>
-            <span>感谢墙</span>
-          </div>
-
-          <div class="thanks-lead">
-            欢迎大家游玩此作品
-          </div>
-
-          <div class="thanks-section">
-            <div class="thanks-cat">开发</div>
-            <div class="thanks-list">
-              <div class="thanks-card" v-for="i in 4" :key="'d'+i">
-                <div class="thanks-avatar">
-                  <i class="fa-solid fa-user"></i>
-                </div>
-                <div class="thanks-name">
-   {{ ['个人+群友','个人+AI','群友',"米哈游"][i-1] }}
-</div>
-                <div class="thanks-role">{{ ['策划','程序','测试',"素材提供"][i-1] }}</div>
-              </div>
-            </div>
-          </div>
-        </section>
 
         <!-- 官方游戏启动 -->
         <section id="launch" ref="sectionRefs" class="content-section">
@@ -749,7 +722,6 @@ const navItems = [
   { key: 'game', label: '游戏设置', icon: 'fa-solid fa-gamepad' },
   { key: 'appearance', label: '外观', icon: 'fa-solid fa-palette' },
   { key: 'about', label: '关于', icon: 'fa-solid fa-circle-info' },
-  { key: 'thanks', label: '感谢墙', icon: 'fa-solid fa-heart' },
   { key: 'launch', label: '官方游戏', icon: 'fa-solid fa-rocket' },
   { key: 'credits', label: '借物致谢', icon: 'fa-solid fa-cube' }
 ]
@@ -1014,8 +986,6 @@ const loadSettings = () => {
 
 // 导入存档文件引用
 const importFileInput = ref(null)
-
-// 感谢墙
 
 // 头像裁剪逻辑（从 setting.html 移植，Vue 响应式重构）
 const avatarData = ref(localStorage.getItem('avatarData') || '')
@@ -1503,7 +1473,7 @@ const handleNavClick = (item) => {
 }
 
 // 滚动时自动高亮当前导航项
-const sectionKeys = ['account', 'game', 'appearance', 'about', 'thanks', 'launch']
+const sectionKeys = ['account', 'game', 'appearance', 'about', 'launch']
 
 const handleScroll = () => {
   const scrollY = window.scrollY

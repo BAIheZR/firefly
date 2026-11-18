@@ -71,8 +71,15 @@ let resizeObserver = null
 // 眼球追踪相关（硬编码默认值，无 UI）
 const EYE_ROTATION_SCALE = 0.8
 const HEAD_FOLLOW_SCALE = 0.5
-const EYE_SMOOTHNESS = 0.1
-const BLINK_FREQUENCY = 4
+const EYE_SMOOTHNESS = 0.09
+// 眨眼节奏（毫秒）：闭合快、停留短、睁开稍慢，按真实时间推进，帧率变化不影响速度
+const BLINK_MIN_INTERVAL = 2500       // 两次眨眼的随机间隔下限
+const BLINK_RANDOM_INTERVAL = 3500    // 额外随机量
+const BLINK_CLOSE_MS = 70
+const BLINK_HOLD_MS = 20
+const BLINK_OPEN_MS = 130
+// 瞳孔随眨眼收缩的强度（走模型自带的「瞳小」顶点表情，强度低不会缩没）
+const PUPIL_SHRINK = 0.35
 const IDLE_HEAD_MOVEMENT = true
 // 模型头骨的「0 度」未必是「看向屏幕正前方」，可能因模型默认姿态/相机位置而偏头或低头。
 //   LOOK_FWD_PITCH：上下（正值抬头 / 负值低头，依骨骼轴向而定）
@@ -95,7 +102,9 @@ const currentEyeRotR = new THREE.Euler(0, 0, 0)
 const currentHeadRot = new THREE.Euler(0, 0, 0)
 
 let blinkTimer = null
-let blinkProgress = 0
+let blinkStartTime = 0
+let blinkAmplitude = 1
+let blinkQueued = 0
 let isBlinking = false
 let lastMouseMoveTime = Date.now()
 let morphMesh = null
@@ -417,8 +426,9 @@ const initScene = () => {
     if (skipThisFrame(now)) return
     const dt = frameDelta(now)
     updateEyeTracking()
-    updateBlink()
+    // 眨眼必须放在表情插值之后：否则会被 morphTargets 的 0 目标逐帧拉回去，眨眼变弱
     updateMorphTransition(dt)
+    updateBlink(now)
     forceCloseMouth()
     updateIdleHeadMovement(dt)
     updateBreathing(dt)
@@ -446,8 +456,8 @@ watch(
           if (skipThisFrame(now)) return
           const dt = frameDelta(now)
           updateEyeTracking()
-          updateBlink()
           updateMorphTransition(dt)
+          updateBlink(now)
           forceCloseMouth()
           updateIdleHeadMovement(dt)
           updateBreathing(dt)
@@ -1034,9 +1044,9 @@ const updateEyeTracking = () => {
   currentEyeRotR.x = lerp(currentEyeRotR.x, targetEyeRotR.x, s)
   currentEyeRotR.y = lerp(currentEyeRotR.y, targetEyeRotR.y, s)
   currentEyeRotR.z = lerp(currentEyeRotR.z, targetEyeRotR.z, s)
-  currentHeadRot.x = lerp(currentHeadRot.x, targetHeadRot.x, s * 0.7)
-  currentHeadRot.y = lerp(currentHeadRot.y, targetHeadRot.y, s * 0.7)
-  currentHeadRot.z = lerp(currentHeadRot.z, targetHeadRot.z, s * 0.7)
+  currentHeadRot.x = lerp(currentHeadRot.x, targetHeadRot.x, s * 0.5)
+  currentHeadRot.y = lerp(currentHeadRot.y, targetHeadRot.y, s * 0.5)
+  currentHeadRot.z = lerp(currentHeadRot.z, targetHeadRot.z, s * 0.5)
 
   // 眼球追踪（部分模型骨骼轴向不兼容，可关闭）
   if (props.eyeTracking) {
@@ -1053,31 +1063,59 @@ const updateEyeTracking = () => {
   }
 }
 
-// 眨眼
+// 眨眼：按真实时间推进（帧率无关），闭合快、睁开稍慢，并随机加入连眨 / 半眨
 const startBlinkLoop = () => {
   const scheduleNext = () => {
+    const wait = BLINK_MIN_INTERVAL + Math.random() * BLINK_RANDOM_INTERVAL
     blinkTimer = setTimeout(() => {
+      const roll = Math.random()
+      blinkAmplitude = roll < 0.1 ? 0.6 : 1   // 10% 半眨
+      blinkQueued = roll > 0.85 ? 1 : 0       // 15% 连眨第二下
       isBlinking = true
-      blinkProgress = 0
+      blinkStartTime = performance.now()
       scheduleNext()
-    }, BLINK_FREQUENCY * 1000 + Math.random() * 2000)
+    }, wait)
   }
   scheduleNext()
 }
 
-const updateBlink = () => {
-  if (!isBlinking || !morphMesh) return
-  blinkProgress += 0.15
-  let eyelidScale = 1
-  if (blinkProgress < 1) eyelidScale = 1 - blinkProgress
-  else if (blinkProgress < 2) eyelidScale = blinkProgress - 1
-  else { isBlinking = false; eyelidScale = 1 }
+// 缓出：开头快、结尾慢，比线性更接近真实眼皮
+const easeOutQuad = (t) => 1 - (1 - t) * (1 - t)
 
-  const dict = morphMesh.morphTargetDictionary
-  const influences = morphMesh.morphTargetInfluences
+const updateBlink = (now = performance.now()) => {
+  let closed = 0
+  if (isBlinking) {
+    const elapsed = now - blinkStartTime
+    const holdEnd = BLINK_CLOSE_MS + BLINK_HOLD_MS
+    const openEnd = holdEnd + BLINK_OPEN_MS
+    if (elapsed < BLINK_CLOSE_MS) {
+      closed = blinkAmplitude * easeOutQuad(elapsed / BLINK_CLOSE_MS)
+    } else if (elapsed < holdEnd) {
+      closed = blinkAmplitude
+    } else if (elapsed < openEnd) {
+      closed = blinkAmplitude * (1 - easeOutQuad((elapsed - holdEnd) / BLINK_OPEN_MS))
+    } else {
+      closed = 0
+      // 连眨：紧接着用稍轻的幅度再眨一下
+      if (blinkQueued > 0) {
+        blinkQueued--
+        blinkAmplitude = 0.8
+        blinkStartTime = now
+      } else {
+        isBlinking = false
+      }
+    }
+  }
+
+  const dict = morphMesh?.morphTargetDictionary
+  const influences = morphMesh?.morphTargetInfluences
+  const blinkIndex = dict?.['まばたき'] ?? dict?.['眨眼'] ?? dict?.['blink'] ?? dict?.['Eye_Close01']
+  const pupilIndex = dict?.['瞳小']
+
   if (dict && influences) {
-    const blinkIndex = dict['まばたき'] ?? dict['眨眼'] ?? dict['blink']
-    if (blinkIndex !== undefined) influences[blinkIndex] = 1 - eyelidScale
+    if (blinkIndex !== undefined) influences[blinkIndex] = closed
+    // 眼珠随眨眼轻微收缩再恢复：只驱动「瞳小」且限制在低强度，避免瞳孔消失
+    if (pupilIndex !== undefined) influences[pupilIndex] = closed * PUPIL_SHRINK
   }
 }
 

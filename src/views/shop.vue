@@ -91,7 +91,7 @@
                     <template #reference>
                       <div class="clothing-card">
                         <div class="clothing-portrait">
-                          <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="portrait-img" :class="{ 'portrait-img-hanld': item.id === 108, 'portrait-img-xbd': item.id === 103 }" />
+                          <img v-if="isImg(item.icon)" :src="item.icon" :alt="item.name" class="portrait-img" :class="{ 'portrait-img-xbd': item.id === 102 }" />
                           <div v-else class="portrait-fallback">
                             <i :class="item.icon || 'fa-solid fa-shirt'"></i>
                           </div>

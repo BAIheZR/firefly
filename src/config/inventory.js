@@ -169,6 +169,22 @@ export const useInventoryStore = defineStore('inventory', {
             goldStore.setGold(parsed.gold)
             localStorage.setItem('game_gold_migrated', '1')
           }
+          // == 旧存档迁移：服装 102/103 的 id 曾在某次版本更新中对调 ==
+          // 旧版：102=仲夏萤火之约、103=小不点；新版：102=小不点、103=仲夏萤火之约。
+          // 老玩家的存档里存的是旧 id，导致「买了小不点 → 更新后变成仲夏」。
+          // 这里一次性把 inventory 与 equippedClothingId 里的 102/103 对调回来，且只执行一次。
+          if (!localStorage.getItem('clothing_id_swap_migrated')) {
+            const inv = this.inventory
+            const v102 = inv[102] || 0
+            const v103 = inv[103] || 0
+            // 交换 102/103 的值（保留 0 时直接删除该键）
+            if (v103 > 0) inv[102] = v103; else delete inv[102]
+            if (v102 > 0) inv[103] = v102; else delete inv[103]
+            // equippedClothingId 若是 102/103，也交换
+            if (this.equippedClothingId === 102) this.equippedClothingId = 103
+            else if (this.equippedClothingId === 103) this.equippedClothingId = 102
+            localStorage.setItem('clothing_id_swap_migrated', '1')
+          }
         } catch (e) {
           console.warn('读取存档失败，使用默认值')
         }

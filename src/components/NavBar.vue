@@ -1,11 +1,34 @@
 <template>
-  <nav class="nav-bar">
-    <!-- 左侧：用户头像 -->
+  <nav class="nav-bar" :class="{ 'menu-open': showGameMenu }">
+    <!-- 左侧：给木游戏入口（原头像位置） -->
     <div class="nav-left">
-      <div class="avatar-wrapper" @click="handleAvatarClick">
-        <img v-if="avatarData" :src="avatarData" class="avatar-img" />
-        <i v-else class="fa-solid fa-user avatar-icon"></i>
-      </div>
+      <button
+        type="button"
+        class="game-fab"
+        :class="{ open: showGameMenu }"
+        title="给木"
+        @click="toggleGameMenu"
+        @mouseenter="emit('game-entry-hover')"
+      >
+        <i class="fa-solid fa-gamepad"></i>
+        <span>给木</span>
+      </button>
+      <Transition name="game-menu">
+        <div v-if="showGameMenu" class="game-menu">
+          <button type="button" class="game-menu-item" @click="goChess">
+            <img :src="chessImg" alt="五子棋" class="menu-item-img" />
+            <span>五子棋</span>
+          </button>
+          <button type="button" class="game-menu-item" @click="goGuessWord">
+            <span class="menu-item-icon-text">字</span>
+            <span>猜字谜</span>
+          </button>
+          <button type="button" class="game-menu-item" disabled title="萤火夜话暂未开放">
+            <img :src="wolfImg" alt="萤火夜话" class="menu-item-img" />
+            <span>萤火夜话</span>
+          </button>
+        </div>
+      </Transition>
     </div>
 
     <!-- 中间：时间 -->
@@ -37,12 +60,25 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import chessImg from '@/images/game/chess.png'
+import wolfImg from '@/images/game/wolf/ly.png'
+
 const router = useRouter()
-// = 头像 =
-const avatarData = ref(localStorage.getItem('avatarData') || '')
-onMounted(() => {
-  avatarData.value = localStorage.getItem('avatarData') || ''
-})
+const emit = defineEmits(['game-entry-hover'])
+
+// = 给木：游戏入口 =
+const showGameMenu = ref(false)
+const toggleGameMenu = () => {
+  showGameMenu.value = !showGameMenu.value
+}
+const goChess = () => {
+  showGameMenu.value = false
+  router.push('/chess')
+}
+const goGuessWord = () => {
+  showGameMenu.value = false
+  router.push('/guess-word')
+}
 
 // = 当前时间 =
 const now = ref(new Date())
@@ -79,10 +115,6 @@ const rightButtons = ref([
   { key: 'menu', title: '菜单', icon: 'fa-solid fa-bars', action: 'menu' }
 ])
 
-const handleAvatarClick = () => {
-  console.log('点击了头像')
-}
-
 const handleClick = (btn) => {
   const routeMap = {
     notify: '/notify',
@@ -95,12 +127,8 @@ const handleClick = (btn) => {
     router.push(path)
   } else {
     console.log(`暂无该页面: ${btn.action}`)
-    
   }
 }
-
-
-
 </script>
 
 <style scoped src="@/assets/styles/NavBar.css"></style>

@@ -621,11 +621,6 @@
   display: block;
 }
 
-/* 韩国联动服装立绘：缩小 + 下移 */
-.portrait-img-hanld {
-  object-position: center 5%;
-}
-
 /* 小不点立绘：人物下移 */
 .portrait-img-xbd {
   object-position: center 1%;

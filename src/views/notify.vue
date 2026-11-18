@@ -77,7 +77,7 @@
                 <i class="fa-solid fa-music"></i>
                 <span>音乐</span>
               </button>
-              <button class="nav-btn nav-btn-wide" @click="goTo('/multiplayer')" title="多人游戏">
+              <button class="nav-btn nav-btn-wide" disabled title="多人游戏暂未开放">
                 <i class="fa-solid fa-tower-broadcast"></i>
                 <span>多人游戏</span>
               </button>
@@ -484,6 +484,7 @@
               >
                 <template v-if="cell.date">
                   <div class="cell-day">{{ cell.date }}</div>
+                  <div v-if="cell.festival" class="cell-festival">{{ cell.festival }}</div>
                   <div v-if="cell.signed" class="cell-check">
                     <i class="fa-solid fa-check"></i>
                   </div>
@@ -625,6 +626,7 @@ import { useUserStore } from '@/config/user'
 import { useTasksStore } from '@/config/tasks'
 import { useToastStore } from '@/config/toast'
 import { getSignGreeting } from '@/config/greetings'
+import { getFestival } from '@/config/festivals'
 import MemoryViewer from '@/components/MemoryViewer.vue'
 import fireflyYuan from '@/images/game/firefly_yuan.png'
 // 开箱素材：gift.png=未开箱 / gift_open.png=已开箱（均为透明 PNG）
@@ -864,6 +866,7 @@ const calendarCells = computed(() => {
       isToday,
       isWeekend,
       isFuture,
+      festival: getFestival(y, m, d),
     })
   }
   return cells
@@ -1531,33 +1534,20 @@ const syncInventoryStats = () => {
 //公告
 const announcement = ref({
   title: '系统公告',
-  text: `【v1.4.0 更新】
+  text: `【v1.4.1 更新】
+· 导航栏改版：移除左上角头像，「给木」游戏入口移入导航栏
+· 好感度与行动点改为进度条显示，并保留具体数值
+· 眨眼更自然：加入缓动曲线、随机半眨与连眨，瞳孔随眨眼轻微收缩
+· 角色头部/眼球的跟随转动速度调慢，动作更柔和
+· 任务进度条改为薄荷绿→金色双色渐变
+· 多人游戏、萤火夜话入口暂时关闭维护，功能与存档保留
+· 设置页移除「感谢墙」
+———
+【v1.4.0 更新】
 · AI 对话新增表情系统：流萤会根据情绪做出对应表情（开心/生气/伤心/害羞等），聊天时看向正前方、好感度较高时还会脸红
 · 移除默认待机动作，角色改用自然待机姿态
 · 表情过渡更自然（约 1 秒渐变），聊天中表情保持当前状态、关闭聊天才恢复
-· 修复：聊天时部分表情（开心等）不显示的问题
-———
-【v1.3.0 更新】
-· 好感度系统重做：上限 2000 / 下限 -999，新增「疏远」档；签到（含连签加成）、和流萤聊天、小游戏、猜字谜都能涨好感；每档解锁称号、商店折扣与对话话题；好感变化会在右上角飘字提示
-· 狼人杀/五子棋 AI 增强：会悍跳、会跟风集火，且不再误伤同伴
-· 新增音效系统（点击 / 开箱 / 升级等），可在设置页调节音量
-· 修复：升级后主页行动点不刷新；每日免费重抽要到早上 8 点才重置；开箱辉光颜色随稀有度而变化
-· 开箱开出已拥有的服装会自动折算为金币，并在结果中提示
-· 切换服装不再重新加载模型，换肤更流畅
-· 报错弹窗新增「完整报告」区块，无需再去 Logs 目录翻文件
-· 修复玩家反馈的问题
-———
-【v1.2.5 金币平衡调整】
-为平衡金币的获取与消耗，本次对各玩法收益与商店价格做了统一调整：猜字谜答对奖励由 100 下调至 80（每多一条提示仍 -10，保底 10）；商店四款服装价格由 15000 降至 12000；五子棋提升了落子与胜利的金币奖励，并降低了单人局的行动点消耗。
-———
-【v1.2.0 更新】
-1.新增「狼人杀」游戏
-2.新增「开宝箱」玩法
-3.实装四款 Live2D 角色模型
-4.适配移动端
-5.商店/仓库卡片新增悬浮动画，仓库物品显示出售价
-———
-往期：增加ai记忆功能、商店新增物品和装饰品、新增首页专属背景配置；添加同意条款和多人联机；添加模型适配鼠标跟随；增加报错弹框功能；修复部分bug`,
+· 修复：聊天时部分表情（开心等）不显示的问题`,
 })
 
 // 公告版本号 = 应用版本号（来源见顶部 import 的 pkg）

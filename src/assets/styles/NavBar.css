@@ -6,41 +6,148 @@
   width: 100%;
   background-color: rgba(255, 255, 255, );
   backdrop-filter: blur(0px);
+  /* 菜单展开时需要盖住页面内容（人物 / 背景） */
+  position: relative;
+  z-index: 1;
 }
 
-/* 左侧头像 */
+.nav-bar.menu-open {
+  z-index: 1200;
+}
+
+/* 左侧：给木游戏入口（原头像位） */
 .nav-left {
   flex-shrink: 0;
+  position: relative;
 }
 
-.avatar-wrapper {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
+/* 两端为椭圆弧的胶囊形（非圆形 / 矩形 / 正方形） */
+.game-fab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 26px;
+  border-radius: 999px;
+  border: 2px solid #3fa98a;
+  background: rgba(63, 169, 138, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+  transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.game-fab i {
+  font-size: 18px;
+  color: #3fa98a;
+  transition: color 0.3s ease;
+}
+
+.game-fab:hover,
+.game-fab.open {
+  transform: translateY(-2px) scale(1.04);
+  border-color: #5bc9a0;
+  background: rgba(91, 201, 160, 0.25);
+  color: #5bc9a0;
+  box-shadow: 0 10px 30px rgba(91, 201, 160, 0.4), 0 0 0 6px rgba(63, 169, 138, 0.15);
+}
+
+.game-fab:hover i,
+.game-fab.open i {
+  color: #5bc9a0;
+}
+
+/* 弹出菜单：挂在按钮下方 */
+.game-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid #3fa98a;
+  border-radius: 14px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  min-width: 170px;
+  z-index: 10;
+}
+
+.game-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  color: #4a3a10;
+  transition: all 0.25s ease;
+}
+
+.game-menu-item:hover {
+  border-color: #5bc9a0;
+  background: rgba(91, 201, 160, 0.12);
+  color: #2e8b6f;
+  transform: translateX(4px);
+}
+
+/* 暂未开放的入口：保留展示但不可点击 */
+.game-menu-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.game-menu-item:disabled:hover {
+  border-color: transparent;
+  background: transparent;
+  color: #4a3a10;
+  transform: none;
+}
+
+.menu-item-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.menu-item-icon-text {
+  width: 36px;
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  transition: all 0.3s ease;
-  overflow: hidden;
+  border-radius: 50%;
+  border: 2px solid #3fa98a;
+  background: rgba(63, 169, 138, 0.12);
+  font-size: 20px;
+  font-weight: 700;
+  color: #3fa98a;
 }
 
-.avatar-wrapper:hover {
-  transform: scale(1.05);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+/* 菜单过渡 */
+.game-menu-enter-active,
+.game-menu-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+  transform-origin: top left;
 }
-
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.avatar-icon {
-  font-size: 36px;
-  color: #fff;
+.game-menu-enter-from,
+.game-menu-leave-to {
+  opacity: 0;
+  transform: translateY(-8px) scale(0.95);
 }
 
 .stat-item {
@@ -143,34 +250,38 @@
   border-radius: 10px;
   cursor: pointer;
   transition: all 0.2s ease;
-  background: transparent;
-  border: 1px solid transparent;
+  /* 深色半透明底垫在图标下面，保证在任意背景图上都能看清 */
+  background: rgba(20, 40, 34, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
 }
 
 .nav-btn:hover {
   transform: translateY(-3px) scale(1.08);
-  background: transparent;
-  border-color: #3FA98A;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  background: rgba(20, 40, 34, 0.62);
+  border-color: #DAA520;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .nav-btn i {
   font-size: 20px;
-  color: #3FA98A;
+  color: #c9f5e3;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
   transition: color 0.2s ease;
 }
 
 .nav-btn:hover i {
-  color: #5BC9A0;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  color: #FFD27A;
+  box-shadow: none;
 }
 
 /* ====
-   移动端：顶部条只留「头像 + 时间」，四个入口交给底部 MobileTabBar
+   移动端：顶部条只留「给木 + 时间」，四个入口交给底部 MobileTabBar
    ==== */
 @media (max-width: 768px) {
   .nav-bar {
-    /* 顶部安全区：避免头像被刘海/状态栏遮住 */
+    /* 顶部安全区：避免入口按钮被刘海/状态栏遮住 */
     padding: calc(var(--safe-top, 0px) + 6px) 14px 6px;
     align-items: center;
     /* 顶部条本身不需要毛玻璃（移动端已全局关闭），加一层浅底保证文字可读 */
@@ -182,14 +293,27 @@
     display: none;
   }
 
-  .avatar-wrapper {
-    width: 46px;
-    height: 46px;
-    border-width: 1.5px;
+  .game-fab {
+    padding: 8px 16px;
+    font-size: 14px;
+    gap: 6px;
+    /* 移动端关闭 backdrop-filter 后，半透明底易被背景吞掉，改实色保证可读 */
+    background: rgba(45, 122, 95, 0.82);
   }
 
-  .avatar-icon {
-    font-size: 22px;
+  .game-fab i {
+    font-size: 15px;
+  }
+
+  .game-menu {
+    min-width: 150px;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .game-menu-item {
+    padding: 10px 12px;
+    font-size: 14px;
   }
 
   /* 48px 的时钟在手机上占了半条导航，缩到 30px 并允许换行收紧 */
@@ -213,8 +337,8 @@
   .stat-time {
     font-size: 22px;
   }
-  .avatar-wrapper {
-    width: 38px;
-    height: 38px;
+  .game-fab {
+    padding: 6px 12px;
+    font-size: 13px;
   }
 }

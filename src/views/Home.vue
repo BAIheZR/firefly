@@ -2,31 +2,7 @@
   <div class="home" :class="{ 'home-bg-active': homeBgVisible }">
     <!-- 首页专属背景层：启用时覆盖默认背景，仅作用于背景，不影响内容 -->
     <div v-if="homeBgVisible" class="home-bg-overlay" :style="homeBgStyle"></div>
-    <NavBar />
-
-    <!-- 给木：五子棋 / 猜字谜 / 萤火夜话 入口（左上角） -->
-    <div class="game-fab-wrap">
-      <button type="button" class="game-fab" :class="{ open: showGameMenu }" title="给木" @click="toggleGameMenu" @mouseenter="onHoverGameEntry">
-        <i class="fa-solid fa-gamepad"></i>
-        <span>给木</span>
-      </button>
-      <Transition name="game-menu">
-        <div v-if="showGameMenu" class="game-menu">
-          <button type="button" class="game-menu-item" @click="goChess">
-            <img :src="chessImg" alt="五子棋" class="menu-item-img" />
-            <span>五子棋</span>
-          </button>
-          <button type="button" class="game-menu-item" @click="goGuessWord">
-            <span class="menu-item-icon-text">字</span>
-            <span>猜字谜</span>
-          </button>
-          <button type="button" class="game-menu-item" @click="goWerewolf">
-            <img :src="wolfImg" alt="萤火夜话" class="menu-item-img" />
-            <span>萤火夜话</span>
-          </button>
-        </div>
-      </Transition>
-    </div>
+    <NavBar @game-entry-hover="onHoverGameEntry" />
 
     <!-- 主页人物：默认形象为 3D PMX 模型；穿戴服装时显示对应 2D 立绘图片 -->
     <div
@@ -86,11 +62,17 @@
         <div v-show="statsVisible" class="character-stats">
           <div class="stats-row">
             <span class="stats-label">好感度</span>
-            <span class="stats-value">{{ affection }}</span>
+            <div class="stats-bar">
+              <div class="stats-bar-fill" :style="{ width: affectionPercent + '%' }"></div>
+            </div>
+            <span class="stats-value">{{ affection }}/{{ AFFECTION_MAX }}</span>
           </div>
           <div class="stats-row">
             <span class="stats-label">行动点</span>
-            <span class="stats-value">{{ actionPoint }}</span>
+            <div class="stats-bar">
+              <div class="stats-bar-fill stats-bar-ap" :style="{ width: apPercent + '%' }"></div>
+            </div>
+            <span class="stats-value">{{ actionPoint }}/{{ actionPointMax }}</span>
           </div>
         </div>
       </Transition>
@@ -182,11 +164,10 @@ import { ref, reactive, computed, onMounted, onBeforeUnmount, onActivated, onDea
 // 默认形象立绘：3D 模型挂掉时的兜底（跟签到页「默认形象」用的是同一张）
 import fireflyYuan from '@/images/game/firefly_yuan.png'
 import { useInventoryStore, BASE_ACTION_POINT, ACTION_POINT_PER_LEVEL } from '@/config/inventory'
+import { AFFECTION_MAX } from '@/config/affectionStages'
 import { useBackgroundStore } from '@/config/background'
 import { getLoginGreeting, getSignGreeting, getAffectionStage, getAffectionGreeting, getHoverGreeting, getClickGreeting } from '@/config/greetings'
 import { isTouchDevice } from '@/utils/device'
-import chessImg from '@/images/game/chess.png'
-import wolfImg from '@/images/game/wolf/ly.png'
 import iconImg from '@/images/item/icon.png'
 
 const router = useRouter()
@@ -287,23 +268,6 @@ const onLive2DError = (e) => {
   saveRenderMode()
 }
 
-const showGameMenu = ref(false)
-const toggleGameMenu = () => {
-  showGameMenu.value = !showGameMenu.value
-}
-const goChess = () => {
-  showGameMenu.value = false
-  router.push('/chess')
-}
-const goGuessWord = () => {
-  showGameMenu.value = false
-  router.push('/guess-word')
-}
-// 萤火夜话：单人模式（帕姆当判官，剩下的座位由 AI 乘客补上）
-const goWerewolf = () => {
-  showGameMenu.value = false
-  router.push('/werewolf')
-}
 const goIdle = () => {
   router.push({ path: '/idle', query: { autoStart: '1' } })
 }
@@ -515,6 +479,12 @@ const actionBonus = computed(() => inventoryStore.actionBonus)
 const actionRecover = computed(() => inventoryStore.actionRecover)
 // 行动点 = 基础(50 + 等级 * 10) + 物品累计加成 + 恢复累计
 const actionPoint = computed(() => BASE_ACTION_POINT + level.value * ACTION_POINT_PER_LEVEL + actionBonus.value + actionRecover.value)
+// 行动点上限 = 基础(50 + 等级 * 10) + 物品永久加成（消耗后待恢复的余额不计入上限）
+const actionPointMax = computed(() => BASE_ACTION_POINT + level.value * ACTION_POINT_PER_LEVEL + actionBonus.value)
+// 进度条百分比（0~100，负数/超上限一律夹紧）
+const clampPercent = (v) => Math.max(0, Math.min(100, Math.round(v)))
+const affectionPercent = computed(() => clampPercent((affection.value / AFFECTION_MAX) * 100))
+const apPercent = computed(() => clampPercent((actionPoint.value / (actionPointMax.value || 1)) * 100))
 
 // 好感度/行动点面板：桌面端按住鼠标右键显示，松开隐藏
 const statsVisible = ref(false)

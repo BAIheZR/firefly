@@ -215,6 +215,17 @@
   transform: translateY(-3px);
   color: var(--c-primary-light);
 }
+/* 禁用态：入口保留但不可点击（多人游戏暂未开放） */
+.nav-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.nav-btn:disabled:hover {
+  background: rgba(63, 169, 138, 0.08);
+  border-color: rgba(63, 169, 138, 0.2);
+  transform: none;
+  color: var(--c-primary);
+}
 .nav-btn i { font-size: 20px; }
 /* 多人游戏入口：通栏宽按钮 */
 .nav-btn-wide {
@@ -1389,6 +1400,17 @@
   color: #555;
   font-weight: 500;
 }
+/* 节日名：格子窄，单行省略，避免把日期挤换行 */
+.cell-festival {
+  max-width: 100%;
+  font-size: 10px;
+  line-height: 1.2;
+  color: #d1695f;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .cell-check {
   position: absolute;
   top: 4px;
@@ -1584,15 +1606,9 @@
 }
 .task-progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #3a5070, #38a8b8, #72c490, #e6dd78, #e89949, #d64f22);
-  background-size: 200% 100%;
-  animation: progressShine 6s linear infinite;
+  background: linear-gradient(90deg, #3FA98A, #DAA520);
   border-radius: 11px;
   transition: width 0.5s;
-}
-@keyframes progressShine {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 200% 50%; }
 }
 .task-progress-text {
   position: absolute;
