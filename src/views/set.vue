@@ -356,6 +356,19 @@
             </div>
           </div>
 
+          <div class="section-title">首页模型</div>
+
+          <div class="form-row">
+            <div class="form-info">
+              <div class="form-label">使用模型动作</div>
+              <div class="form-sub">开启后首页 3D 模型会随机播放动作；关闭则保持默认站姿</div>
+            </div>
+            <label class="switch">
+              <input type="checkbox" v-model="modelMotionEnabled" @change="handleToggleModelMotion" />
+              <span class="slider-check"></span>
+            </label>
+          </div>
+
           <div class="section-title">首页背景</div>
 
           <div class="form-row">
@@ -761,6 +774,14 @@ const creditsList = ref([
     modelLinkText: 'PlayBox 模型',
   },
   {
+    name: '猫耳流萤动作（你想气死妈妈吗？）',
+    author: '何禾冰',
+    homeLink: 'https://www.aplaybox.com/u/437847450',
+    homeLinkText: 'PlayBox 主页',
+    modelLink: 'https://www.aplaybox.com/details/motion/T5Wi5VVMoteH',
+    modelLinkText: 'PlayBox 动作',
+  },
+  {
     name: '商店仓库素材来源',
     author: '米哈游',
     homeLink: 'https://sr.mihoyo.com/',
@@ -867,6 +888,12 @@ const bgFileInput = ref(null)
 const homeBgEnabledLocal = ref(false)
 const homeBgOpacityLocal = ref(100)
 const homeBgFileInput = ref(null)
+
+// 首页模型动作开关（默认开启）
+const modelMotionEnabled = ref(localStorage.getItem('model_motion_enabled') !== 'false')
+const handleToggleModelMotion = () => {
+  localStorage.setItem('model_motion_enabled', String(modelMotionEnabled.value))
+}
 
 // 初始化背景本地状态
 const initBgLocalState = () => {

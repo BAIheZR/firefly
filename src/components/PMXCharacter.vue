@@ -54,6 +54,8 @@ const props = defineProps({
   defaultPose: { type: Boolean, default: true },
   // 调整模式：允许拖动移动模型、滚轮缩放（由 Home 的「调整」按钮开启）
   adjustMode: { type: Boolean, default: false },
+  // 是否播放模型动作（设置页可关闭，关闭后保持默认站姿）
+  motion: { type: Boolean, default: true },
 })
 const emit = defineEmits(['transform-change', 'error'])
 
@@ -74,8 +76,8 @@ const EYE_ROTATION_SCALE = 0.8
 const HEAD_FOLLOW_SCALE = 0.5
 const EYE_SMOOTHNESS = 0.09
 // 眨眼节奏（毫秒）：闭合快、停留短、睁开稍慢，按真实时间推进，帧率变化不影响速度
-const BLINK_MIN_INTERVAL = 2500       // 两次眨眼的随机间隔下限
-const BLINK_RANDOM_INTERVAL = 3500    // 额外随机量
+const BLINK_MIN_INTERVAL = 5000       // 两次眨眼的随机间隔下限
+const BLINK_RANDOM_INTERVAL = 5000    // 额外随机量（合计 5~10 秒）
 const BLINK_CLOSE_MS = 70
 const BLINK_HOLD_MS = 20
 const BLINK_OPEN_MS = 130
@@ -110,6 +112,19 @@ let isBlinking = false
 let lastMouseMoveTime = Date.now()
 let morphMesh = null
 let lookForward = false // 进入聊天时看向正前方（取消面部跟随鼠标）
+
+// 动作测试：dz 模型包里的三个 VMD，加载完成后随机挑一个，播到 1.5s 定住
+const DZ_MOTION_PATHS = [
+  '/models/dz/动作1/动作1.vmd',
+  '/models/dz/动作2/动作2.vmd',
+  '/models/dz/动作3/动作3.vmd',
+]
+let motionMixer = null
+let motionAction = null
+let motionFrozen = false
+let modelManager = null
+let restPose = [] // 模型默认姿态快照，关闭动作时用来还原
+const MOTION_FREEZE_AT = 1.5 // 秒：播放到此处定住姿势
 
 // 呼吸动画：模型整体微微上下浮动 + 纵向轻微缩放
 let breathingTime = 0
@@ -419,13 +434,18 @@ const initScene = () => {
     // 移动端限帧：跳过本帧时连物理推进一起跳过，否则 30fps 下动作会加速
     if (skipThisFrame(now)) return
     const dt = frameDelta(now)
-    updateEyeTracking()
+    // 播放 VMD 时由动画驱动骨骼，暂停跟眼/待机/呼吸，避免每帧互相覆盖
+    if (motionMixer) {
+      updateMotion(dt)
+    } else {
+      updateEyeTracking()
+      updateIdleHeadMovement(dt)
+      updateBreathing(dt)
+    }
     // 眨眼必须放在表情插值之后：否则会被 morphTargets 的 0 目标逐帧拉回去，眨眼变弱
     updateMorphTransition(dt)
     updateBlink(now)
     forceCloseMouth()
-    updateIdleHeadMovement(dt)
-    updateBreathing(dt)
     updateHairSpring(dt)
     if (outlineEffect.value && scene.value && camera.value) {
       outlineEffect.value.render(scene.value, camera.value)
@@ -449,12 +469,16 @@ watch(
           animationId = requestAnimationFrame(animate)
           if (skipThisFrame(now)) return
           const dt = frameDelta(now)
-          updateEyeTracking()
+          if (motionMixer) {
+            updateMotion(dt)
+          } else {
+            updateEyeTracking()
+            updateIdleHeadMovement(dt)
+            updateBreathing(dt)
+          }
           updateMorphTransition(dt)
           updateBlink(now)
           forceCloseMouth()
-          updateIdleHeadMovement(dt)
-          updateBreathing(dt)
           updateHairSpring(dt)
           if (outlineEffect.value && scene.value && camera.value) {
             outlineEffect.value.render(scene.value, camera.value)
@@ -560,6 +584,73 @@ const disposeContactShadow = () => {
   shadowGroup = null
 }
 
+const captureRestPose = (model) => {
+  restPose = []
+  model.traverse((c) => {
+    if (c.isBone) {
+      restPose.push({
+        bone: c,
+        position: c.position.clone(),
+        quaternion: c.quaternion.clone(),
+        scale: c.scale.clone(),
+      })
+    }
+  })
+}
+
+const restoreRestPose = () => {
+  for (const p of restPose) {
+    p.bone.position.copy(p.position)
+    p.bone.quaternion.copy(p.quaternion)
+    p.bone.scale.copy(p.scale)
+  }
+}
+
+const stopMotion = () => {
+  motionAction = null
+  motionFrozen = false
+  if (!motionMixer) return
+  motionMixer.stopAllAction()
+  motionMixer.uncacheRoot(motionMixer.getRoot())
+  motionMixer = null
+}
+
+// 推进动作；到 MOTION_FREEZE_AT 秒精确停在那一帧，姿势保持不动
+const updateMotion = (dt) => {
+  if (motionFrozen) return
+  motionMixer.update(dt)
+  if (motionAction && motionAction.time >= MOTION_FREEZE_AT) {
+    motionAction.time = MOTION_FREEZE_AT
+    motionAction.paused = true
+    motionMixer.update(0) // 以 1.5s 的姿态重算一次，避免定在下一帧
+    motionFrozen = true
+  }
+}
+
+// 临时动作测试：随机挑 dz 动作库中的一个 VMD，播到 1.5s 后定住姿势
+const playRandomMotion = (mesh, manager) => {
+  const path = DZ_MOTION_PATHS[Math.floor(Math.random() * DZ_MOTION_PATHS.length)]
+  console.log('[PMX] 随机动作:', path)
+  stopMotion()
+  // 单独建 loader：主 loader 设了 basePath，会把绝对路径再拼一次
+  const animLoader = new MMDLoader(manager)
+  animLoader.loadAnimation(
+    toRuntimeUrl(path),
+    mesh,
+    (clip) => {
+      if (currentModel.value !== mesh) return // 模型已换掉，丢弃这次结果
+      if (!props.motion) return // 加载期间已关闭动作
+      motionMixer = new THREE.AnimationMixer(mesh)
+      motionAction = motionMixer.clipAction(clip)
+      motionAction.setLoop(THREE.LoopOnce, 1)
+      motionAction.clampWhenFinished = true
+      motionAction.play()
+    },
+    undefined,
+    (err) => console.warn('[PMX] 动作加载失败:', path, err)
+  )
+}
+
 const loadPMXModel = () => {
   // 防御：scene 没建起来就什么都别做。正常路径由 boot() 保证「尺寸就绪」后才会走到这里，
   // 但万一将来有人直接调它，不该再抛 TypeError 把整个组件带崩（2026-10-06）
@@ -584,6 +675,7 @@ const loadPMXModel = () => {
   })
 
   const loader = new MMDLoader(manager)
+  modelManager = manager
   loader.setPath(toRuntimeUrl(props.basePath))
 
   loader.load(
@@ -645,6 +737,10 @@ const loadPMXModel = () => {
       createContactShadow(-size.y / 2, Math.max(size.x, size.z))
       // 应用用户保存的大小/位置/朝向调整（作用于 pivot）
       loadSavedTransform()
+
+      // 临时动作测试：随机播放 dz 里的一个 VMD
+      captureRestPose(mesh)
+      if (props.motion) playRandomMotion(mesh, manager)
 
       loading.value = false
     },
@@ -1218,11 +1314,26 @@ const disposeModel = (model) => {
   })
 }
 
+// 设置页开关模型动作时立即生效
+watch(
+  () => props.motion,
+  (on) => {
+    if (!currentModel.value) return
+    if (!on) {
+      stopMotion()
+      restoreRestPose()
+    } else if (!motionMixer) {
+      playRandomMotion(currentModel.value, modelManager)
+    }
+  }
+)
+
 // 模型/路径变化时（换装）自动重新加载
 watch(
   () => [props.model, props.basePath],
   () => {
     if (!scene.value) return
+    stopMotion()
     if (modelPivot && scene.value) scene.value.remove(modelPivot)
     disposeContactShadow()
     modelPivot = null
@@ -1279,6 +1390,7 @@ onBeforeUnmount(() => {
   if (blinkTimer) clearTimeout(blinkTimer)
   if (emotionTimer) { clearTimeout(emotionTimer); emotionTimer = null }
   if (animationId) cancelAnimationFrame(animationId)
+  stopMotion()
   if (modelPivot && scene.value) scene.value.remove(modelPivot)
   disposeContactShadow()
   modelPivot = null

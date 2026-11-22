@@ -24,6 +24,7 @@
         :basePath="DEFAULT_MODEL_CFG.basePath"
         :eyeTracking="DEFAULT_MODEL_CFG.eyeTracking"
         :defaultPose="DEFAULT_MODEL_CFG.defaultPose"
+        :motion="modelMotionEnabled"
         :adjustMode="adjustMode"
         @transform-change="onTransformChange"
         @error="onPmxError"
@@ -183,6 +184,9 @@ const homeBgStyle = computed(() => {
 
 // keep-alive 激活状态：控制 PMXCharacter 是否渲染/追踪鼠标
 const pageActive = ref(true)
+
+// 是否播放模型动作（设置页可开关，默认开启）
+const modelMotionEnabled = ref(localStorage.getItem('model_motion_enabled') !== 'false')
 
 // = 主页形象展示 =
 // 默认形象（未穿戴任何服装）使用 3D PMX 模型；穿戴服装时改显对应 2D 立绘图片
@@ -747,6 +751,8 @@ onActivated(() => {
   //   于是在个人页升级后回到主页，行动点上限还是旧的，要手动刷新才生效（2026-10-09 修）
   loadPlayerStats()
   inventoryStore.loadData()
+  // 设置页可能改过「使用模型动作」，回到首页时同步
+  modelMotionEnabled.value = localStorage.getItem('model_motion_enabled') !== 'false'
 })
 
 onDeactivated(() => {
