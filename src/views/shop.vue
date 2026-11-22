@@ -1,26 +1,26 @@
 <template>
   <div class="warehouse">
     <div class="warehouse-body">
-      <button class="back-btn" title="返回主页" @click="goBack">
+      <button v-if="!embedded" class="back-btn" title="返回主页" @click="goBack">
         <i class="fa-solid fa-arrow-left"></i>
         <span>返回</span>
       </button>
-      <div class="shop-title">商店</div>
+      <div v-if="!embedded" class="shop-title">商店</div>
 
-      <!-- 金币 + 仓库图标 -->
-      <div class="top-actions">
+      <!-- 金币 + 仓库图标（嵌进背包时由外壳统一显示金币，这里不再重复） -->
+      <div v-if="!embedded" class="top-actions">
         <div class="gold-display" title="金币">
           <i class="fa-solid fa-coins"></i>
           <span>{{ goldStore.currentGold }}</span>
         </div>
-        <button class="warehouse-btn" title="仓库" @click="goWarehouse">
+        <button v-if="!embedded" class="warehouse-btn" title="仓库" @click="goWarehouse">
           <i class="fa-solid fa-warehouse"></i>
         </button>
       </div>
 
       <!-- 标签页 -->
       <div class="nav">
-        <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
+        <el-tabs v-model="activeName" class="demo-tabs">
           <el-tab-pane label="物品" name="first">
             
             <ViewSwitcher v-model="itemView" :options="viewOptions">
@@ -153,7 +153,7 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ref, computed } from 'vue'
 import ViewSwitcher from '@/components/ViewSwitcher.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
@@ -161,8 +161,12 @@ import { useInventoryStore } from '@/config/inventory'
 import { useGoldStore } from '@/config/gold'
 import { applyShopDiscount } from '@/config/affectionUnlocks'
 import { ElMessageBox } from 'element-plus'
+import { goBackOrHome } from '@/utils/nav'
 
 const router = useRouter()
+const route = useRoute()
+// 作为「背包」的子页嵌入时，隐藏自己的返回键与标题（由 Bag.vue 提供外壳）
+const embedded = computed(() => route.path.startsWith('/bag'))
 const store = useInventoryStore()
 const goldStore = useGoldStore()
 
@@ -192,17 +196,7 @@ const clothingBuyDisabled = ref(false)
 const itemData = computed(() => store.shopItems('item'))
 const clothingData = computed(() => store.shopItems('clothing'))
 
-const goBack = () => {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/')
-  }
-}
-
-const handleClick = (tab) => {
-  console.log('切换标签:', tab)
-}
+const goBack = () => goBackOrHome(router)
 
 const handleBuy = (item) => {
   // 服装且已拥有 → 弹出警告

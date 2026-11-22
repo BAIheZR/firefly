@@ -59,11 +59,9 @@ const emptySpeaking = () => ({ mode: '', order: [], index: 0, said: {} })
 export const playerOf = (state, id) => state.players.find((p) => p.id === id) || null
 export const isAlive = (state, id) => state.alive.includes(id)
 export const aliveIds = (state) => state.alive.slice()
-export const roleOf = (state, id) => state.roleMap[id] || null
 
 export const wolfIds = (state) => Object.keys(state.roleMap).filter((id) => isWolfRole(state.roleMap[id]))
 export const aliveWolves = (state) => wolfIds(state).filter((id) => isAlive(state, id))
-export const aliveTeammates = (state, id) => aliveWolves(state).filter((x) => x !== id)
 
 // 参战玩家，判官帕姆不占座位
 export const seatedPlayers = (state) => state.players
@@ -753,10 +751,6 @@ export function hunterPending(state, playerId) {
   if (!state.hunterId || state.hunterId !== playerId) return false
   return !state.hunterDone
 }
-
-// 现在还在等谁，AI 判官据此判断能否收阶段
-export const hunterActorsPending = (state) =>
-  state.phase === PHASE.HUNTER && state.hunterId && !state.hunterDone ? [state.hunterId] : []
 
 // 开枪带走一名存活乘客
 export function submitHunterShoot(state, actorId, targetId) {
@@ -1562,11 +1556,6 @@ export function aiSpeakPlan(state, actorId) {
     }
   }
   return { text: pick(AI_SPEAK.generic), claim: null }
-}
-
-// 兼容旧签名：只要文本的调用方（既有断言、遗言等）继续用它
-export function aiSpeak(state, actorId) {
-  return aiSpeakPlan(state, actorId).text
 }
 
 // 遗言比普通发言更确定，有信息的角色会把情报带出来

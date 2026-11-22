@@ -284,20 +284,11 @@ export const NIGHT_STEP_LABEL = {
   done: '入梦结算',
 }
 
-// 每一步归谁管 —— 引擎据此判断「这一步该谁出手」（真人不在这一步就自动放行）
-export const NIGHT_STEP_ROLE = {
-  wolf: ROLE.WOLF,
-  seer: ROLE.SEER,
-  witch: ROLE.WITCH,
-  firefly: ROLE.FIREFLY,
-  kafka: ROLE.KAFKA,
-}
-
-// 每一步的限时（毫秒）。完成阶段需要时间 —— 想调节奏只改这一个表。
-// 设定表：夜间每步统一 60s（原先 20/20/25/20s 偏紧，真人来不及读信息）
 // 银狼本夜最多因为平票重投几次（引擎与视图共用，别两边各写一个数）
 export const WOLF_REVOTE_MAX = 2
 
+// 每一步的限时（毫秒）。完成阶段需要时间 —— 想调节奏只改这一个表。
+// 设定表：夜间每步统一 60s（原先 20/20/25/20s 偏紧，真人来不及读信息）
 export const NIGHT_STEP_MS = {
   wolf: 60000,
   seer: 60000,

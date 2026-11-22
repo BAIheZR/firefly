@@ -1,11 +1,21 @@
 <template>
   <div class="notify-page">
     <div class="notify-body">
-      <button class="back-btn" title="返回主页" @click="goBack">
-        <i class="fa-solid fa-arrow-left"></i>
-        <span>返回</span>
-      </button>
-      <div class="notify-title">签到 &amp; 进阶</div>
+      <header class="notify-topbar">
+        <button class="back-btn" title="返回主页" @click="goBack">
+          <i class="fa-solid fa-arrow-left"></i>
+          <span>返回</span>
+        </button>
+        <div class="notify-heading">
+          <div class="notify-title">日常</div>
+          <div class="notify-subtitle">签到 · 任务 · 奖励</div>
+        </div>
+        <div class="notify-quick-stats">
+          <span class="quick-stat">签到 <b>{{ totalSignDays }}</b> 天</span>
+          <span class="quick-stat">任务 <b>{{ tasksStore.completedCount }}/{{ tasksStore.totalCount }}</b></span>
+          <span class="quick-stat">待领 <b class="claim-num">{{ tasksStore.claimableCount }}</b></span>
+        </div>
+      </header>
 
       <div class="layout">
         <aside class="sidebar">
@@ -54,33 +64,6 @@
             <div class="stat-mini">
               <i class="fa-solid fa-fire"></i>
               <span>{{ consecutiveDays }} 天连签</span>
-            </div>
-          </div>
-
-          <!-- 快捷传送 -->
-          <div class="quick-nav">
-            <div class="section-label">快捷传送</div>
-            <div class="nav-grid">
-              <button class="nav-btn" @click="goTo('/shop')" title="商店">
-                <i class="fa-solid fa-store"></i>
-                <span>商店</span>
-              </button>
-              <button class="nav-btn" @click="goTo('/warehouse')" title="仓库">
-                <i class="fa-solid fa-warehouse"></i>
-                <span>仓库</span>
-              </button>
-              <button class="nav-btn" @click="goTo('/set')" title="设置">
-                <i class="fa-solid fa-gear"></i>
-                <span>设置</span>
-              </button>
-              <button class="nav-btn" @click="goTo('/music')" title="音乐">
-                <i class="fa-solid fa-music"></i>
-                <span>音乐</span>
-              </button>
-              <button class="nav-btn nav-btn-wide" disabled title="多人游戏暂未开放">
-                <i class="fa-solid fa-tower-broadcast"></i>
-                <span>多人游戏</span>
-              </button>
             </div>
           </div>
 
@@ -414,18 +397,6 @@
               </div>
             </div>
           </div>
-
-          <!-- 统计卡片 -->
-          <div class="sidebar-stats">
-            <div class="sidebar-stat">
-              <span class="num">{{ totalSignDays }}</span>
-              <span class="label">总签到</span>
-            </div>
-            <div class="sidebar-stat">
-              <span class="num">{{ tasksStore.completedCount }}/{{ tasksStore.totalCount }}</span>
-              <span class="label">任务进度</span>
-            </div>
-          </div>
         </aside>
 
         <main class="main-content">
@@ -612,7 +583,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, reactive, onMounted, nextTick } from 'vue'
 import { ElMessageBox } from 'element-plus'
 import { useRouter } from 'vue-router'
 import { useInventoryStore, changeAffection, ALL_ITEMS } from '@/config/inventory'
@@ -627,6 +598,7 @@ import { useTasksStore } from '@/config/tasks'
 import { useToastStore } from '@/config/toast'
 import { getSignGreeting } from '@/config/greetings'
 import { getFestival } from '@/config/festivals'
+import { goBackOrHome } from '@/utils/nav'
 import MemoryViewer from '@/components/MemoryViewer.vue'
 import fireflyYuan from '@/images/game/firefly_yuan.png'
 // 开箱素材：gift.png=未开箱 / gift_open.png=已开箱（均为透明 PNG）
@@ -664,17 +636,7 @@ onMounted(() => {
   checkDailyLogin()
 })
 
-const goBack = () => {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/')
-  }
-}
-
-const goTo = (path) => {
-  router.push(path)
-}
+const goBack = () => goBackOrHome(router)
 
 // 流萤的记忆
 const showMemory = ref(false)
@@ -1535,19 +1497,16 @@ const syncInventoryStats = () => {
 const announcement = ref({
   title: '系统公告',
   text: `【v1.4.1 更新】
-· 导航栏改版：移除左上角头像，「给木」游戏入口移入导航栏
-· 好感度与行动点改为进度条显示，并保留具体数值
-· 眨眼更自然：加入缓动曲线、随机半眨与连眨，瞳孔随眨眼轻微收缩
-· 角色头部/眼球的跟随转动速度调慢，动作更柔和
-· 任务进度条改为薄荷绿→金色双色渐变
-· 多人游戏、萤火夜话入口暂时关闭维护，功能与存档保留
-· 设置页移除「感谢墙」
+· 更名「萤养日记 / Firefly Care Diary」，旧数据首次启动自动迁移（旧目录保留）；建议装好后卸载旧版，避免混用
+· 自动保存改为每 30 分钟备份且不覆盖旧备份；设置页可开关退出时自动保存，并隐藏本机路径
+· AI 聊天优化：聊天中保持表情、不再回默认，修复开心等表情不显示；角色固定看向正前方，关闭聊天后恢复
+· 修复「小不点」服装显示成「仲夏之约」的问题，老存档自动修正
+· 界面改版：主页与导航改为纸感风格；新增背包（商店 + 仓库合并）和游乐场（五子棋 / 猜字谜 / 萤火夜话 / 挂机）；日常、设置、任务、音乐页布局调整
+· 移除「背手」待机动作与重复音乐入口，清理无用依赖、图片与冗余代码
+· 联机、萤火夜话入口暂时关闭维护，功能与存档保留
 ———
 【v1.4.0 更新】
-· AI 对话新增表情系统：流萤会根据情绪做出对应表情（开心/生气/伤心/害羞等），聊天时看向正前方、好感度较高时还会脸红
-· 移除默认待机动作，角色改用自然待机姿态
-· 表情过渡更自然（约 1 秒渐变），聊天中表情保持当前状态、关闭聊天才恢复
-· 修复：聊天时部分表情（开心等）不显示的问题`,
+· AI 对话新增表情系统（按情绪变化，高好感会脸红）；聊天时看向正前方，关闭后恢复`,
 })
 
 // 公告版本号 = 应用版本号（来源见顶部 import 的 pkg）

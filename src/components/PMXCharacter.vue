@@ -11,6 +11,7 @@ import { MMDLoader } from 'three/addons/loaders/MMDLoader.js'
 import { TGALoader } from 'three/addons/loaders/TGALoader.js'
 import { OutlineEffect } from 'three/addons/effects/OutlineEffect.js'
 import { isMobileDevice } from '@/utils/device'
+import { toRuntimeUrl } from '@/utils/assetUrl'
 import { EMOTION_MORPHS, BLUSH_MORPH_INDEX, BLUSH_AFFECTION_THRESHOLD } from '@/config/emotion'
 
 //  移动端渲染预算 
@@ -109,13 +110,6 @@ let isBlinking = false
 let lastMouseMoveTime = Date.now()
 let morphMesh = null
 let lookForward = false // 进入聊天时看向正前方（取消面部跟随鼠标）
-
-// 资源路径适配：打包后 file:// 下以 "/" 开头的路径会被当成磁盘根目录，统一转成相对页面基准的 URL
-const toRuntimeUrl = (p) => {
-  if (!p) return p
-  if (/^[a-z][a-z0-9+.-]*:/i.test(p)) return p // 已是完整 URL（http: / file: / data: / blob: …），原样返回
-  return new URL(p.replace(/^\/+/, ''), document.baseURI).href
-}
 
 // 呼吸动画：模型整体微微上下浮动 + 纵向轻微缩放
 let breathingTime = 0

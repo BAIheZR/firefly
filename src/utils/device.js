@@ -19,9 +19,6 @@ export const isMobileDevice =
   /Android|iPhone|iPod|Mobile|HarmonyOS|MiuiBrowser|MicroMessenger|webOS|BlackBerry|Opera Mini/i.test(ua) ||
   (isTouchDevice && /iPad|Tablet|PlayBook|Silk/i.test(ua))
 
-// 低性能设备：移动端一律按低性能处理（3D 模型与 backdrop-filter 在手机上开销很大，统一降级更可控）
-export const isLowPowerDevice = isMobileDevice
-
 // 是否处于「视口窄」状态 —— 布局跟随它，而不是跟随设备类型
 export const isNarrow = ref(false)
 
@@ -53,16 +50,3 @@ export const canLockOrientation =
   !!screen.orientation &&
   typeof screen.orientation.lock === 'function'
 
-// 用户是否要求减少动效（系统级无障碍设置，移动端省电模式下也会命中）
-export const prefersReducedMotion =
-  typeof window !== 'undefined' &&
-  typeof window.matchMedia === 'function' &&
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches
-
-// 便捷组合：需要同时拿布局与性能判定的组件用这个
-export function useDevice() {
-  return {
-    isNarrow, isPortrait, isShortViewport,
-    isTouchDevice, isMobileDevice, isLowPowerDevice, canLockOrientation,
-  }
-}

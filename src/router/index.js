@@ -12,17 +12,33 @@ const routes = [
   {
     path: '/set',
     name: 'Set',
-    component: () => import('@/views/Set.vue')
+    component: () => import('@/views/set.vue')
   },
+  // 背包：商店 / 仓库合并为同一页面的两个 tab（开箱下一步接入）
   {
-    path: '/shop',
-    name: 'Shop',
-    component: () => import('@/views/Shop.vue')
+    path: '/bag',
+    component: () => import('@/views/Bag.vue'),
+    redirect: '/bag/shop',
+    children: [
+      {
+        path: 'shop',
+        name: 'BagShop',
+        component: () => import('@/views/shop.vue')
+      },
+      {
+        path: 'warehouse',
+        name: 'BagWarehouse',
+        component: () => import('@/views/warehouse.vue')
+      }
+    ]
   },
+  // 旧地址保持可用，统一重定向到背包
+  { path: '/shop', redirect: '/bag/shop' },
+  { path: '/warehouse', redirect: '/bag/warehouse' },
   {
-    path: '/warehouse',
-    name: 'Warehouse',
-    component: () => import('@/views/Warehouse.vue')
+    path: '/play',
+    name: 'Play',
+    component: () => import('@/views/Play.vue')
   },
   {
     path: '/notify',

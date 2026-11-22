@@ -40,13 +40,14 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useGoldStore } from './config/gold'
-import { useInventoryStore, getBuffMultiplier, changeAffection, BASE_ACTION_POINT, ACTION_POINT_PER_LEVEL } from './config/inventory'
+import { useInventoryStore, getBuffMultiplier, changeAffection, getBaseActionCap } from './config/inventory'
 import { useTasksStore } from './config/tasks'
 import { useBackgroundStore } from './config/background'
 import { useAudioSettingsStore } from './config/music'
 import { useSaveSlotsStore } from './config/saveSlots'
 import { useMultiplayerStore } from './config/multiplayer'
 import { clearCurrentChat } from './services/chatHistory'
+import { startAutoSave, stopAutoSave, runAutoSave, isExitAutoSaveEnabled } from './services/autoSave'
 import { playSfx } from './utils/sfx'
 import MiniPlayer from './components/MiniPlayer.vue'
 import GreetingToast from './components/GreetingToast.vue'
@@ -93,19 +94,9 @@ if (initResult.needSelect) {
 // 行动点恢复：每 3 分钟恢复 1 点（乘「行动点恢复」加成倍率），上限 = 50 + 等级×10，
 // 已满则不恢复；离线时按上次结算到现在的真实流逝时间补发
 const ACTION_RECOVER_INTERVAL = 3 * 60 * 1000
-// BASE_ACTION_POINT / ACTION_POINT_PER_LEVEL 统一从 @/config/inventory 导入
+// 等级与基础上限统一走 @/config/inventory 的 getBaseActionCap()
 // （原先 App / Chess / GuessWord / Home 各定义一份，改数值时容易漏改 —— 2026-10-09 收敛）
 const LAST_RECOVER_KEY = 'player_action_recover_time'
-
-// 读取当前等级（与 Home/notify 共享 localStorage）
-function readLevel() {
-  let level = 0
-  try {
-    const p = JSON.parse(localStorage.getItem('player_level_data') || '{}')
-    if (typeof p.level === 'number') level = p.level
-  } catch (e) {}
-  return level
-}
 
 // 依据真实流逝时间结算行动点恢复（在线定时器与离线补发共用）
 function applyRecovery() {
@@ -125,7 +116,7 @@ function applyRecovery() {
   // 不足一个恢复周期：保留剩余时间，不推进起点
   if (elapsed < ACTION_RECOVER_INTERVAL) return
 
-  const cap = BASE_ACTION_POINT + readLevel() * ACTION_POINT_PER_LEVEL
+  const cap = getBaseActionCap()
   const bonus = store.actionBonus || 0
   const recover = store.actionRecover || 0
   // 可恢复空间 = 上限 − 当前。口径以 inventory.js:360 为准：
@@ -152,6 +143,8 @@ function applyRecovery() {
 }
 
 let recoverTimer = null
+// 退出保存握手：卸载时解绑主进程的 'app:prepare-exit-save' 监听
+let unregisterExitSave = null
 // 在线好感度：每在线 5 分钟 +1（享受「好感度增长」加成倍率）
 const AFFECTION_INTERVAL = 5 * 60 * 1000
 let affectionTimer = null
@@ -207,8 +200,22 @@ onMounted(() => {
   window.addEventListener('affection-change', onAffectionChange)
   // 用 pointerdown 而不是 click：音效要跟手，"按下就响"比"抬起才响"手感好得多
   window.addEventListener('pointerdown', onGlobalClickSfx, { passive: true })
+  // 自动保存：运行期间每 30 分钟一次（常开；未选存档槽时自动跳过）
+  startAutoSave()
+  // 退出保存：主进程在关窗前拦一下，等这里写完（或 2.5s 超时）才真正退出
+  unregisterExitSave = window.electronAPI?.onPrepareExitSave?.(async () => {
+    try {
+      if (isExitAutoSaveEnabled()) await runAutoSave('exit')
+    } catch (e) {
+      console.warn('[自动保存] 退出保存失败：', e)
+    } finally {
+      window.electronAPI?.notifyExitSaveFinished?.()
+    }
+  })
 })
 onBeforeUnmount(() => {
+  if (typeof unregisterExitSave === 'function') unregisterExitSave()
+  stopAutoSave()
   if (recoverTimer) clearInterval(recoverTimer)
   if (affectionTimer) clearInterval(affectionTimer)
   window.removeEventListener('beforeunload', onAppExit)

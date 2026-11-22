@@ -1,4 +1,4 @@
-# 萤光纪游 (Firefly)
+# 萤养日记 (Firefly Care Diary)
 
 基于 Electron + Vue 3 + Element Plus 开发的桌面养成类小游戏，内置 3D MMD 角色流萤。
 
@@ -45,7 +45,6 @@ npm run dist
 
 - `src/images/` — 2D 立绘、商品图、背景图
 - `public/models/` — MMD 3D 模型
-- `public/animations/` — MMD 动作数据 (.vmd)
 - `public/live2d/` — Live2D 模型资产（运行时核心 `public/live2dcubismcore.min.js` 已随仓库提供，模型本体需自备）
 
 ### Live2D 模型命名规范

@@ -76,12 +76,6 @@ export function saveProfile(profile) {
   }
 }
 
-export function resetProfile() {
-  try {
-    localStorage.removeItem(KEY)
-  } catch (e) { /* ignore */ }
-}
-
 //  自适应开关（设备级偏好，不随存档槽走）
 // 默认开启。关掉后 AI 完全按你选的难度来，不做任何升降档。
 export function loadAdaptive() {

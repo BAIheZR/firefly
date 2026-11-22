@@ -1,66 +1,135 @@
+/* ============================================================
+   顶部导航 · 方案 C「米色纸感」
+   - 绿色从「大面积底色」退回到「悬停点缀」，只保留品牌感，不再压画面
+   - 硬描边改成 1px 低对比内描边 + 柔和暖阴影
+   - 图标统一为 24 网格 / 1.75 描边线性图标（见 NavBar.vue 内 SVG 精灵）
+   ============================================================ */
+
 .nav-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 24px;
   width: 100%;
-  background-color: rgba(255, 255, 255, );
+  background-color: transparent;
   backdrop-filter: blur(0px);
   /* 菜单展开时需要盖住页面内容（人物 / 背景） */
   position: relative;
   z-index: 1;
+
+  /* —— 方案 C 调色板（只在这里改，子元素全部走变量）—— */
+  --paper: rgba(247, 242, 232, 0.90);          /* 常态纸面 */
+  --paper-hover: rgba(252, 248, 240, 0.99);    /* 悬停更亮一点 */
+  --paper-solid: #fbf7ee;                      /* 菜单实底 */
+  --paper-line: rgba(176, 138, 74, 0.35);      /* 常态描边 */
+  --paper-line-strong: rgba(176, 138, 74, 0.68); /* 悬停描边 */
+  --gold: #b08a4a;                             /* 主棕金 */
+  --gold-deep: #8a6a2e;                        /* 悬停文字 */
+  --ink: #3a3126;                              /* 主文字 */
+  --ink-soft: #6b5a40;                         /* 次级文字/图标 */
+  --shadow-soft: 0 8px 22px rgba(90, 70, 40, 0.16);
+  --shadow-hover: 0 10px 26px rgba(90, 70, 40, 0.22), 0 0 0 1px rgba(176, 138, 74, 0.30);
 }
 
 .nav-bar.menu-open {
   z-index: 1200;
 }
 
-/* 左侧：给木游戏入口（原头像位） */
+/* 图标精灵本体不占位 */
+.icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* 统一线性图标：颜色由 currentColor 继承，描边参数集中在这里 */
+.ic {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* 左侧：品牌字标 + 给木入口 */
 .nav-left {
   flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
   position: relative;
 }
 
-/* 两端为椭圆弧的胶囊形（非圆形 / 矩形 / 正方形） */
+.nav-brand {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.nav-brand-cn {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--ink);
+}
+
+.nav-brand-en {
+  margin-top: 3px;
+  font-size: 9px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  opacity: 0.75;
+}
+
+/* 给木按钮与它的下拉菜单：菜单要锚在这个包裹层上，而不是整个 nav-left */
+.nav-give {
+  position: relative;
+}
+
+/* 两端为椭圆弧的胶囊形 */
 .game-fab {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 12px 26px;
+  padding: 11px 24px;
   border-radius: 999px;
-  border: 2px solid #3fa98a;
-  background: rgba(63, 169, 138, 0.18);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  color: #fff;
+  border: 1px solid var(--paper-line);
+  background: var(--paper);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: var(--ink);
   font-size: 16px;
   font-weight: 600;
   font-family: inherit;
   letter-spacing: 1px;
   cursor: pointer;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
-  transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-soft);
+  transition: transform 0.3s ease, border-color 0.3s ease, background 0.3s ease,
+    color 0.3s ease, box-shadow 0.3s ease;
 }
 
-.game-fab i {
-  font-size: 18px;
-  color: #3fa98a;
+.game-fab .ic {
+  color: var(--ink-soft);
   transition: color 0.3s ease;
 }
 
 .game-fab:hover,
 .game-fab.open {
-  transform: translateY(-2px) scale(1.04);
-  border-color: #5bc9a0;
-  background: rgba(91, 201, 160, 0.25);
-  color: #5bc9a0;
-  box-shadow: 0 10px 30px rgba(91, 201, 160, 0.4), 0 0 0 6px rgba(63, 169, 138, 0.15);
+  transform: translateY(-2px) scale(1.03);
+  border-color: var(--paper-line-strong);
+  background: var(--paper-hover);
+  color: var(--gold-deep);
+  box-shadow: var(--shadow-hover);
 }
 
-.game-fab:hover i,
-.game-fab.open i {
-  color: #5bc9a0;
+.game-fab:hover .ic,
+.game-fab.open .ic {
+  color: var(--gold);
 }
 
 /* 弹出菜单：挂在按钮下方 */
@@ -70,23 +139,23 @@
   left: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid #3fa98a;
+  gap: 6px;
+  padding: 10px;
+  background: var(--paper-solid);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid var(--paper-line);
   border-radius: 14px;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
-  min-width: 170px;
+  box-shadow: 0 14px 34px rgba(90, 70, 40, 0.20);
+  min-width: 176px;
   z-index: 10;
 }
 
 .game-menu-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 10px;
+  padding: 8px 10px;
   border-radius: 10px;
   border: 1px solid transparent;
   background: transparent;
@@ -94,15 +163,16 @@
   font-family: inherit;
   font-size: 15px;
   font-weight: 600;
-  color: #4a3a10;
+  color: var(--ink);
+  text-align: left;
   transition: all 0.25s ease;
 }
 
 .game-menu-item:hover {
-  border-color: #5bc9a0;
-  background: rgba(91, 201, 160, 0.12);
-  color: #2e8b6f;
-  transform: translateX(4px);
+  border-color: var(--paper-line);
+  background: rgba(176, 138, 74, 0.10);
+  color: var(--gold-deep);
+  transform: translateX(3px);
 }
 
 /* 暂未开放的入口：保留展示但不可点击 */
@@ -114,28 +184,27 @@
 .game-menu-item:disabled:hover {
   border-color: transparent;
   background: transparent;
-  color: #4a3a10;
+  color: var(--ink);
   transform: none;
 }
 
-.menu-item-img {
-  width: 36px;
-  height: 36px;
-  object-fit: contain;
-}
-
-.menu-item-icon-text {
-  width: 36px;
-  height: 36px;
+/* 菜单项图标底座：比主按钮更轻，避免菜单里一堆色块 */
+.thumb {
+  width: 32px;
+  height: 32px;
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  border: 2px solid #3fa98a;
-  background: rgba(63, 169, 138, 0.12);
-  font-size: 20px;
-  font-weight: 700;
-  color: #3fa98a;
+  border-radius: 9px;
+  border: 1px solid rgba(176, 138, 74, 0.25);
+  background: rgba(176, 138, 74, 0.10);
+  color: var(--gold-deep);
+}
+
+.thumb .ic {
+  width: 18px;
+  height: 18px;
 }
 
 /* 菜单过渡 */
@@ -150,64 +219,27 @@
   transform: translateY(-8px) scale(0.95);
 }
 
-.stat-item {
+/* 时间模块：垫一层淡纸底，白天/夜晚背景上都能读 */
+.time-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
-  border-radius: 12px;
-  border: 1px solid transparent;
+  padding: 6px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(176, 138, 74, 0.20);
+  background: rgba(251, 247, 238, 0.66);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px rgba(90, 70, 40, 0.10);
   transition: all 0.2s ease;
   position: relative;
 }
 
-.stat-item:hover {
-  transform: translateY(-3px);
-  background: transparent;
-  border-color: #3FA98A;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-}
-
-.stat-icon {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border-radius: 8px;
-}
-
-.stat-icon i {
-  font-size: 18px;
-  color: #3FA98A;
-}
-
-.stat-content {
-  display: flex;
-  flex-direction: column;
-}
-
-.stat-label {
-  font-size: 12px;
-  color: #888;
-  line-height: 1;
-  margin-bottom: 2px;
-}
-
-.stat-value {
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
-  line-height: 1.2;
-}
-
-/* 时间模块 */
-.time-item {
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0;
-  padding: 6px 16px;
+.time-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--paper-line-strong);
+  background: rgba(252, 248, 240, 0.82);
+  box-shadow: var(--shadow-soft);
 }
 
 .time-item .stat-content {
@@ -220,19 +252,19 @@
 .stat-time {
   font-size: 48px;
   font-weight: 700;
-  color: #fff;
+  color: var(--ink);
   letter-spacing: 1px;
   line-height: 1.1;
-  -webkit-text-stroke: 1px #3FA98A;
-  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  -webkit-text-stroke: 0;
+  text-shadow: none;
 }
 
 .stat-date {
   font-size: 14px;
-  color: rgba(8, 8, 8, 0.85);
+  color: rgba(58, 49, 38, 0.62);
   letter-spacing: 1px;
   margin-top: 4px;
-  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+  text-shadow: none;
 }
 
 /* 右侧按钮 */
@@ -247,33 +279,27 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
+  border-radius: 11px;
   cursor: pointer;
   transition: all 0.2s ease;
-  /* 深色半透明底垫在图标下面，保证在任意背景图上都能看清 */
-  background: rgba(20, 40, 34, 0.45);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background: rgba(247, 242, 232, 0.78);
+  border: 1px solid rgba(176, 138, 74, 0.28);
+  color: var(--ink-soft);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.nav-btn .ic {
+  width: 19px;
+  height: 19px;
 }
 
 .nav-btn:hover {
-  transform: translateY(-3px) scale(1.08);
-  background: rgba(20, 40, 34, 0.62);
-  border-color: #DAA520;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
-}
-
-.nav-btn i {
-  font-size: 20px;
-  color: #c9f5e3;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
-  transition: color 0.2s ease;
-}
-
-.nav-btn:hover i {
-  color: #FFD27A;
-  box-shadow: none;
+  transform: translateY(-3px) scale(1.06);
+  background: var(--paper-hover);
+  border-color: var(--gold);
+  color: var(--gold-deep);
+  box-shadow: var(--shadow-soft);
 }
 
 /* ====
@@ -293,33 +319,51 @@
     display: none;
   }
 
+  /* 窄屏放不下品牌字标，只留给木 + 时间 */
+  .nav-brand {
+    display: none;
+  }
+
+  /* 移动端不再用实心深绿，改成接近实底的纸面（关闭毛玻璃后仍可读） */
   .game-fab {
     padding: 8px 16px;
     font-size: 14px;
     gap: 6px;
-    /* 移动端关闭 backdrop-filter 后，半透明底易被背景吞掉，改实色保证可读 */
-    background: rgba(45, 122, 95, 0.82);
+    background: rgba(247, 242, 232, 0.94);
+    border-color: rgba(176, 138, 74, 0.42);
   }
 
-  .game-fab i {
-    font-size: 15px;
+  .game-fab .ic {
+    width: 15px;
+    height: 15px;
   }
 
   .game-menu {
-    min-width: 150px;
-    padding: 10px;
-    gap: 8px;
+    min-width: 156px;
+    padding: 9px;
+    gap: 5px;
   }
 
   .game-menu-item {
-    padding: 10px 12px;
+    padding: 8px 9px;
     font-size: 14px;
+    gap: 9px;
   }
 
-  /* 48px 的时钟在手机上占了半条导航，缩到 30px 并允许换行收紧 */
+  .thumb {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
+  .thumb .ic {
+    width: 17px;
+    height: 17px;
+  }
+
+  /* 48px 的时钟在手机上占了半条导航，缩到 30px 并收紧内边距 */
   .stat-time {
     font-size: 30px;
-    -webkit-text-stroke-width: 0.5px;
   }
 
   .stat-date {
@@ -328,7 +372,8 @@
   }
 
   .time-item {
-    padding: 2px 6px;
+    padding: 4px 10px;
+    border-radius: 10px;
   }
 }
 

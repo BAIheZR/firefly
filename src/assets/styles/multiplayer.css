@@ -452,64 +452,6 @@
   width: 100%;
 }
 
-/* 房间已创建视图 */
-.mp-room-created {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-.mp-room-code {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 18px;
-  background: rgba(63, 169, 138, 0.08);
-  border-radius: 14px;
-}
-.mp-room-label {
-  font-size: 12px;
-  color: #7a8a82;
-}
-.mp-room-code-value {
-  font-size: 34px;
-  font-weight: 700;
-  letter-spacing: 6px;
-  color: #3fa98a;
-  font-family: monospace;
-}
-.mp-room-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.mp-room-link-box {
-  padding: 10px 12px;
-  border: 1px solid rgba(63, 169, 138, 0.35);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.7);
-  font-size: 12px;
-  color: #2c3e35;
-  word-break: break-all;
-  font-family: monospace;
-  line-height: 1.5;
-}
-.mp-room-tip {
-  font-size: 12px;
-  color: #7a8a82;
-  line-height: 1.5;
-}
-.mp-room-waiting {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 12px;
-  color: #3fa98a;
-  font-size: 14px;
-  font-weight: 600;
-}
-
 /* 房间状态栏（连接成功后显示） */
 .mp-room-bar {
   display: flex;

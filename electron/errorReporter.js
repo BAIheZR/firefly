@@ -211,7 +211,7 @@ function buildCopyText() {
   const env = envInfo()
   const a = currentReport?.analysis || DEFAULT_ANALYSIS
   return [
-    '=== 萤光纪游 错误报告（请把本页全部内容发送给开发者）===',
+    '=== 萤养日记 错误报告（请把本页全部内容发送给开发者）===',
     `时间：${env.time}`,
     `版本：v${env.version} | Electron ${env.electron} | Chromium ${env.chrome}`,
     `系统：${env.os} | CPU ${env.cpu} | 内存 ${env.memory} | 硬件加速：${env.hw}`,
@@ -266,7 +266,7 @@ function showErrorWindow() {
     height: 700,
     minWidth: 520,
     minHeight: 460,
-    title: '萤光纪游 - 错误报告',
+    title: '萤养日记 - 错误报告',
     show: false,
     autoHideMenuBar: true,
     resizable: true,
@@ -448,7 +448,7 @@ export function initErrorReporter() {
     cleanOldLogs()
     const env = envInfo()
     log('INFO', '启动', [
-      `萤光纪游 v${env.version} 启动`,
+      `萤养日记 v${env.version} 启动`,
       `Electron ${env.electron} | Chromium ${env.chrome} | Node ${env.node}`,
       `系统：${env.os} | CPU ${env.cpu} | 内存 ${env.memory}`,
       `硬件加速：${env.hw} | 参数：${process.argv.slice(1).join(' ') || '（无）'}`,

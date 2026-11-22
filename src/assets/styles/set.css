@@ -111,30 +111,6 @@
   background: var(--c-primary);
 }
 
-.save-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: calc(100% - 24px);
-  margin: 16px 12px 0;
-  padding: 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: #fff;
-  background: linear-gradient(135deg, var(--c-primary) 0%, var(--c-primary-light) 100%);
-  border: none;
-  border-radius: var(--r-md);
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-
-.save-btn:hover {
-  background: linear-gradient(135deg, var(--c-primary-light) 0%, var(--c-primary) 100%);
-  transform: scale(1.03);
-  box-shadow: 0 4px 14px rgba(45, 122, 95, 0.35);
-}
-
 /* = 右侧内容 = */
 .set-main {
   flex: 1;
@@ -230,30 +206,6 @@
   box-shadow: 0 0 0 3px rgba(45, 122, 95, 0.12);
 }
 
-.form-select {
-  width: 160px;
-  padding: 8px 14px;
-  font-size: 14px;
-  color: var(--c-text);
-  background: var(--c-cream-deep);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: var(--r-md);
-  outline: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.form-select:focus {
-  border-color: var(--c-primary);
-  background: #fff;
-}
-
-.form-select:disabled {
-  color: var(--c-text-hint);
-  cursor: not-allowed;
-  background: var(--c-cream-deep);
-}
-
 /* = 头像上传 = */
 .avatar-upload {
   display: flex;
@@ -346,22 +298,6 @@
 .btn-ghost:hover {
   color: var(--c-text);
   border-color: var(--c-text-hint);
-}
-
-/* = 内联输入组 = */
-.inline-group {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.inline-group .form-input {
-  width: 140px;
-}
-
-.save-inline {
-  margin-left: auto;
 }
 
 /* = 用户名确认组 = */
@@ -529,6 +465,14 @@
   margin-bottom: 4px;
 }
 
+/* 英文副名：让「萤养日记 / Firefly Care Diary」成对出现 */
+.about-name-en {
+  font-size: 12px;
+  letter-spacing: 0.6px;
+  color: var(--c-text-hint);
+  margin-bottom: 6px;
+}
+
 .about-ver {
   font-size: 13px;
   color: var(--c-text-hint);
@@ -688,35 +632,6 @@ html.dark .qr-tip span {
   font-size: 14px;
   color: var(--c-text-sub);
   line-height: 1.7;
-}
-
-.oss-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 10px;
-}
-
-.oss-item {
-  padding: 12px 14px;
-  background: var(--c-cream-deep);
-  border-radius: var(--r-md);
-  transition: all 0.2s ease;
-}
-
-.oss-item:hover {
-  background: rgba(63, 169, 138, 0.08);
-}
-
-.oss-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--c-text);
-  margin-bottom: 2px;
-}
-
-.oss-desc {
-  font-size: 12px;
-  color: var(--c-text-sub);
 }
 
 /* = 裁剪弹窗 = */
@@ -1185,10 +1100,8 @@ html.dark .qr-tip span {
   }
 
   .form-input,
-  .form-select,
   .path-input,
   .username-confirm-group .form-input,
-  .inline-group .form-input,
   .ai-config .form-input,
   .ai-config .ai-select {
     width: 100%;
@@ -1332,5 +1245,158 @@ html.dark .qr-tip span {
     min-width: 0;
     word-break: break-all;
     text-align: right;
+  }
+}
+
+/* 方案 A 纸感：主色由绿改为棕金（只覆盖主色变量，危险色/成功色不动） */
+.set-page {
+  --c-primary: #b08a4a;
+  --c-primary-mid: #a5763c;
+  --c-primary-light: #c79a55;
+  --c-primary-dark: #8a6a2e;
+}
+
+/* ===== 方案 A 纸感：页头 / 导航 / 内容卡片 ===== */
+.set-header {
+  max-width: 1200px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.set-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(176, 138, 74, 0.35);
+  background: rgba(251, 247, 238, 0.86);
+  color: #6b5a40;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.set-back:hover {
+  color: #8a6a2e;
+  border-color: rgba(176, 138, 74, 0.68);
+}
+
+.set-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--c-text);
+}
+
+.set-ver {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--c-text-hint);
+}
+.set-save-top {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid rgba(176, 138, 74, 0.32);
+  border-radius: 10px;
+  background: rgba(251, 247, 238, 0.9);
+  color: #8a6a2e;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.set-save-top:hover {
+  background: rgba(176, 138, 74, 0.12);
+  border-color: rgba(176, 138, 74, 0.6);
+}
+
+.set-nav .nav-item {
+  border-radius: 12px;
+}
+
+.set-nav .nav-item.active {
+  background: linear-gradient(145deg, #c79a55, #a5763c);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(176, 138, 74, 0.28);
+}
+
+.set-nav .nav-item.active i {
+  color: #fff;
+}
+
+.content-section {
+  background: rgba(251, 247, 238, 0.92);
+  border: 1px solid rgba(176, 138, 74, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(90, 70, 40, 0.1);
+}
+
+/* ===== 大屏铺开：减少全屏时两侧空白 ===== */
+@media (min-width: 1200px) {
+  .set-header,
+  .set-body {
+    max-width: 1480px;
+  }
+  .set-body {
+    gap: 28px;
+  }
+  .set-nav,
+  .set-nav :deep(.el-affix) {
+    width: 260px;
+  }
+  .set-main {
+    display: block;
+    column-count: 2;
+    column-gap: 20px;
+    column-fill: balance;
+  }
+  .content-section {
+    display: inline-block;
+    width: 100%;
+    margin: 0 0 20px;
+    padding: 24px 30px;
+    vertical-align: top;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@media (min-width: 1600px) {
+  .set-header,
+  .set-body {
+    max-width: 1660px;
+  }
+}
+
+/* 快速导航残留绿色统一为棕金 */
+.set-nav .nav-title {
+  color: #8a6a2e;
+}
+.set-nav .nav-title::before {
+  background: linear-gradient(180deg, #c79a55 0%, #a5763c 100%);
+}
+.set-nav .nav-divider {
+  background: linear-gradient(90deg, transparent 0%, rgba(176, 138, 74, 0.5) 50%, transparent 100%);
+}
+.set-nav .nav-item {
+  border: 1px solid rgba(176, 138, 74, 0.18);
+  background: rgba(251, 247, 238, 0.86);
+}
+.set-nav .nav-item:hover {
+  background: rgba(176, 138, 74, 0.1);
+}
+
+@media (max-width: 768px) {
+  .set-header {
+    flex-wrap: wrap;
+  }
+  .set-save-top {
+    margin-left: auto;
   }
 }

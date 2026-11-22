@@ -1,6 +1,18 @@
 <template>
   <div class="set-page">
     <el-backtop :right="100" :bottom="100" />
+    <header class="set-header">
+      <button class="set-back" title="返回主页" @click="goBack">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>返回</span>
+      </button>
+      <div class="set-title">设置</div>
+      <div class="set-ver">v{{ pkg.version }}</div>
+      <button class="set-save-top" @click="handleSave">
+        <i class="fa-solid fa-save"></i>
+        <span>保存设置</span>
+      </button>
+    </header>
     <div class="set-body">
       <!-- 左侧：设置导航（固钉固定） -->
       <aside class="set-nav">
@@ -19,10 +31,6 @@
               <span>{{ item.label }}</span>
             </div>
           </div>
-          <button class="save-btn" @click="handleSave">
-            <i class="fa-solid fa-save"></i>
-            <span>保存设置</span>
-          </button>
         </el-affix>
       </aside>
 
@@ -130,6 +138,17 @@
             <button class="btn-gold" @click="handleSwitchSlot">
               <i class="fa-solid fa-arrows-rotate"></i>
               切换角色
+            </button>
+          </div>
+
+          <div class="form-row">
+            <div class="form-info">
+              <div class="form-label">退出时自动保存</div>
+              <div class="form-sub">{{ autoSaveHint }}</div>
+            </div>
+            <button class="btn-gold" @click="toggleExitSave">
+              <i class="fa-solid" :class="exitSaveOn ? 'fa-toggle-on' : 'fa-toggle-off'"></i>
+              {{ exitSaveOn ? '已开启' : '已关闭' }}
             </button>
           </div>
 
@@ -418,8 +437,9 @@
             <div class="about-logo">
               <i class="fa-solid fa-cube"></i>
             </div>
-            <div class="about-name">萤光纪游</div>
-            <div class="about-ver">版本 v1.1.0</div>
+            <div class="about-name">萤养日记</div>
+            <div class="about-name-en">Firefly Care Diary</div>
+            <div class="about-ver">版本 v{{ pkg.version }}</div>
           </div>
 
           <div class="info-grid">
@@ -662,8 +682,12 @@ import { loadAIConfig, saveAIConfig, AI_MODELS } from '@/services/ai'
 import AgreementModal from '@/components/AgreementModal.vue'
 import { AGREEMENT_ACCEPTED_KEY } from '@/config/agreement'
 import { isTouchDevice } from '@/utils/device'
+import { goBackOrHome } from '@/utils/nav'
+import { isExitAutoSaveEnabled, setExitAutoSaveEnabled, getLastAutoSaveAt } from '@/services/autoSave'
+import pkg from '../../package.json'
 
 const router = useRouter()
+const goBack = () => goBackOrHome(router)
 const userStore = useUserStore()
 const bgStore = useBackgroundStore()
 const audioStore = useAudioSettingsStore()
@@ -716,7 +740,6 @@ const isDark = useDark({ storageKey: 'theme_dark', initialValue: 'light' })
 
 const activeNav = ref('account')
 const navItems = [
-  { key: 'back', label: '返回', icon: 'fa-solid fa-arrow-left' },
   { key: 'home', label: '主页', icon: 'fa-solid fa-house' },
   { key: 'account', label: '账户设置', icon: 'fa-solid fa-user' },
   { key: 'game', label: '游戏设置', icon: 'fa-solid fa-gamepad' },
@@ -1455,12 +1478,8 @@ const showCustomAlert = (message, type = 'info') => {
 // 暂未开放的功能：点击统一提示
 const notAvailable = () => showCustomAlert('功能暂不开放', 'error')
 
-// 点击导航：返回或滚动到对应区域
+// 点击导航：跳转主页或滚动到对应区域
 const handleNavClick = (item) => {
-  if (item.key === 'back') {
-    handleBack()
-    return
-  }
   if (item.key === 'home') {
     router.push('/')
     return
@@ -1481,7 +1500,7 @@ const handleScroll = () => {
   for (const key of sectionKeys) {
     const el = document.getElementById(key)
     if (el) {
-      const top = el.offsetTop - 80
+      const top = el.getBoundingClientRect().top + window.scrollY - 80
       if (scrollY >= top) {
         current = key
       }
@@ -1518,6 +1537,38 @@ const handleSave = () => {
 // 切换角色：打开存档槽选择界面
 const handleSwitchSlot = () => {
   saveSlotsStore.openSelector()
+}
+
+// ===== 自动保存（桌面端）=====
+// 运行期间每 30 分钟无条件备份一次（常开）；这里只控制「退出游戏时是否再存一份」
+const isElectronEnv = typeof window !== 'undefined' && window.electronAPI?.isElectron === true
+const exitSaveOn = ref(isExitAutoSaveEnabled())
+const lastAutoSaveAt = ref(getLastAutoSaveAt())
+
+const fmtAutoSaveTime = (ts) => {
+  if (!ts) return ''
+  const d = new Date(ts)
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`
+}
+
+const autoSaveHint = computed(() => {
+  if (!isElectronEnv) return '仅桌面客户端支持（浏览器 / 移动端没有本地文件系统）'
+  const lastPart = lastAutoSaveAt.value
+    ? ` · 上次备份：${fmtAutoSaveTime(lastAutoSaveAt.value)}`
+    : ' · 尚未执行首次备份'
+  // 不显示任何本机路径：绝对路径会带当前电脑的用户名，发给别人既泄露隐私也很怪。
+  const base = '运行期间每 30 分钟自动备份一次（常开，不覆盖旧文件）；退出时的保存见右侧开关'
+  return `${base}${lastPart}`
+})
+
+const toggleExitSave = () => {
+  exitSaveOn.value = !exitSaveOn.value
+  setExitAutoSaveEnabled(exitSaveOn.value)
+  showCustomAlert(
+    exitSaveOn.value ? '已开启：退出游戏时会再保存一份' : '已关闭：退出游戏时不再保存',
+    'success'
+  )
 }
 
 function handleSaveAIConfig() {
@@ -1740,14 +1791,6 @@ watch(() => game.value.fullscreen, (val) => {
   toggleFullscreen(val)
 })
 
-const handleBack = () => {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/')
-  }
-}
-
 //官方游戏
 const GAME_PATH_KEY = 'official_game_path'
 const gamePath = ref('')
@@ -1797,6 +1840,8 @@ onMounted(() => {
   aiConfig.value = loadAIConfig()
   bgStore.loadData()
   initBgLocalState()
+  // 自动保存：刷新最近一次执行时间
+  lastAutoSaveAt.value = getLastAutoSaveAt()
 })
 
 onUnmounted(() => {

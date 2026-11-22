@@ -22,10 +22,6 @@ export const GOLD_TIERS = [
   { min: 16000, max: 20000, rate: 1 },
 ]
 
-// 金币上下限（由分段表推导，避免两处维护）
-export const GOLD_MIN = GOLD_TIERS[0].min
-export const GOLD_MAX = GOLD_TIERS[GOLD_TIERS.length - 1].max
-
 // 分段概率合计（应恒为 100，供自测断言）
 export const GOLD_TIER_RATE_TOTAL = GOLD_TIERS.reduce((s, t) => s + t.rate, 0)
 
@@ -53,10 +49,6 @@ const CHESTS = [
     price: 3000,
   },
 ]
-
-export function getChestById(id) {
-  return CHESTS.find((c) => c.id === id) || null
-}
 
 export function getAllChests() {
   return CHESTS.slice()
@@ -145,18 +137,6 @@ export function addChest(chestId, quantity = 1) {
 }
 
 // 消耗箱子（开箱）
-export function consumeChest(chestId, quantity = 1) {
-  const inv = loadChestInventory()
-  const qty = Math.max(0, Math.floor(Number(quantity) || 0))
-  const have = inv[chestId] || 0
-  if (qty <= 0 || have < qty) return { ok: false, inv }
-  const left = have - qty
-  if (left > 0) inv[chestId] = left
-  else delete inv[chestId]
-  saveChestInventory(inv)
-  return { ok: true, inv }
-}
-
 //  抽取 
 function randInt(min, max) {
   const lo = Math.ceil(min)
@@ -265,15 +245,4 @@ export function summarizeDraws(draws = []) {
   }
 
   return { list, totalGold, goldCount, totalDraws: draws.length }
-}
-
-// 期望值估算（供定价参考，不改动即可用于自测）
-// pools 传价格数组，便于算出平均价值
-export function estimateValue(rates, avgClothing, avgDecoration, avgItem, goldAvg) {
-  return (
-    rates.clothing / 100 * avgClothing +
-    rates.decoration / 100 * avgDecoration +
-    rates.item / 100 * avgItem +
-    rates.gold / 100 * goldAvg
-  )
 }

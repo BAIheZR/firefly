@@ -126,6 +126,3 @@ export function playSfx(name) {
     /* 忽略 */
   }
 }
-
-// 供设置页「试听」用：列出了所有可用音效名
-export const SFX_NAMES = Object.keys(RECIPES)

@@ -51,11 +51,3 @@ export function installDisableCopy() {
   document.addEventListener('selectstart', onSelectStart, true)
   document.addEventListener('keydown', onKeyDown, true)
 }
-
-export function uninstallDisableCopy() {
-  document.removeEventListener('copy', onCopyCut, true)
-  document.removeEventListener('cut', onCopyCut, true)
-  document.removeEventListener('contextmenu', onContextMenu, true)
-  document.removeEventListener('selectstart', onSelectStart, true)
-  document.removeEventListener('keydown', onKeyDown, true)
-}

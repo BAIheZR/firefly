@@ -16,7 +16,6 @@ import suled from "@/images/item/suled.png";
 import xy from "@/images/item/xy.png";
 import concert_tickets from "@/images/item/concert_tickets.jpg";
 // 新增一般商品图片
-import item_icon from "@/images/item/icon.png";
 import suledp from "@/images/item/suledp.png";
 // 装饰品（model_ 前缀，含手误 medel_）
 import model_1 from "@/images/item/model_1.png";

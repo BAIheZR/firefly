@@ -23,7 +23,7 @@ import {
   submitSpeak, skipSpeak, submitNightAction, resolveNight, submitVote, resolveVote,
   applyExile, evaluateWin,
   submitWolfBlast, canWolfBlast, aiWolfBlast, setBond, convertToAI, restoreHuman,
-  pendingNightAction, actorsPending, aiNightAction, aiVote, aiSpeak, aiSpeakPlan, aiLastWords,
+  pendingNightAction, actorsPending, aiNightAction, aiVote, aiSpeakPlan, aiLastWords,
   recordClaim,
   pushChat, pushFeed,
   getSnapshot, playerOf, computeRewards, passGracePeriod, finish, aliveWolves,

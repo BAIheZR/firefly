@@ -76,9 +76,6 @@ const HOVER_GREETINGS = {
   launchGame: ['想开始玩崩铁了吗，可以哦，我在游戏里面很期待和你的见面呢'],
 }
 
-//  点击人物反馈（连续点击≥10次触发） 
-const CLICK_GREETINGS = ['别点了宝宝，有点痒']
-
 //  五子棋场景对话（Chess 页面左图右气泡） 
 const CHESS_GREETINGS = {
   hello:      ['宝宝，想要和我下五子棋吗', '准备好了吗宝宝，我要开始啦', '陪你下棋真好，我们开始吧'],
@@ -178,11 +175,6 @@ export function getAffectionStage(affection) {
 // 悬浮入口反馈：type = 'gameEntry' | 'idle' | 'launchGame'
 export function getHoverGreeting(type) {
   return pickRandom(HOVER_GREETINGS[type])
-}
-
-// 点击人物反馈
-export function getClickGreeting() {
-  return pickRandom(CLICK_GREETINGS)
 }
 
 // 五子棋场景对话

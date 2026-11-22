@@ -2,7 +2,7 @@
   "name": "yingguangjiyou",
   "private": true,
   "version": "1.4.1",
-  "description": "萤光纪游 - 养成类小游戏",
+  "description": "萤养日记（Firefly Care Diary）- 养成类小游戏",
   "author": "BAIheZR",
   "license": "MIT",
   "main": "dist-electron/main.js",
@@ -23,10 +23,8 @@
     "dist:unsafe": "npm run build && set NODE_TLS_REJECT_UNAUTHORIZED=0&& set ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/&& set ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/&& electron-builder --win --x64"
   },
   "dependencies": {
-    "@element-plus/icons-vue": "^2.3.2",
     "@jannchie/pixi-live2d-display": "^1.4.0",
     "@vueuse/core": "^14.4.0",
-    "axios": "^1.19.0",
     "element-plus": "^2.14.3",
     "lucide": "^1.47.0",
     "morphicons": "^1.7.1",
@@ -43,7 +41,6 @@
     "electron": "^41.10.4",
     "electron-builder": "^26.0.12",
     "vite": "^5.4.0",
-    "vite-plugin-electron": "^1.1.1",
-    "vite-plugin-electron-renderer": "^1.0.0"
+    "vite-plugin-electron": "^1.1.1"
   }
 }

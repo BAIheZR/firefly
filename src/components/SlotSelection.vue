@@ -4,7 +4,7 @@
       <div class="slot-select-header">
         
         <h1>选择存档切换角色</h1>
-        <p>萤光纪游 · 共 5 个存档位，可分别保存「大号」「小号」互不干扰</p>
+        <p>萤养日记 · 共 5 个存档位，可分别保存「大号」「小号」互不干扰</p>
       </div>
 
       <div class="slot-grid">

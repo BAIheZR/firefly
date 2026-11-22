@@ -336,13 +336,30 @@ audio {
   transform: translate(-50%, -50%) scale(1.2);
 }
 
-/* 控制按钮 */
+/* 控制按钮：主操作和辅助操作分成两行，避免自动换行导致高低不齐 */
 .ctrl-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.28);
+  border: 1px solid rgba(63, 169, 138, 0.16);
+}
+.ctrl-line {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+.ctrl-line-main {
+  gap: 18px;
+}
+.ctrl-line-sub {
+  gap: 8px;
 }
 .ctrl-btn {
   width: 40px;
@@ -373,6 +390,11 @@ audio {
   width: 44px;
   height: 44px;
   font-size: 16px;
+}
+.ctrl-btn-sm {
+  width: 34px;
+  height: 34px;
+  font-size: 12px;
 }
 .ctrl-play {
   width: 58px;

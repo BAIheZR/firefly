@@ -1151,37 +1151,6 @@
   box-shadow: 0 4px 10px rgba(63, 169, 138, 0.18);
 }
 
-/* 侧边统计卡片 */
-.sidebar-stats {
-  display: flex;
-  gap: 10px;
-}
-.sidebar-stat {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 14px 8px;
-  background: var(--c-cream);
-  border: 1px solid rgba(63, 169, 138, 0.15);
-  border-radius: 8px;
-  transition: all 0.3s;
-}
-.sidebar-stat:hover {
-  border-color: var(--c-primary-mid);
-  background: rgba(63, 169, 138, 0.1);
-}
-.sidebar-stat .num {
-  font-size: 22px;
-  font-weight: bold;
-  color: var(--c-primary);
-}
-.sidebar-stat .label {
-  font-size: 11px;
-  color: var(--c-text-sub);
-}
-
 /* = 主内容区 = */
 .main-content {
   display: flex;
@@ -2020,15 +1989,6 @@
     padding: 3px 1px;
   }
 
-  /* 侧栏里的统计卡在单列布局下不需要再均分宽度 */
-  .sidebar-stats {
-    gap: 8px;
-  }
-
-  .sidebar-stat {
-    padding: 10px 6px;
-  }
-
   /* 单列布局下 1fr 轨道的下限仍是子项的 min-content：
      .char-name 的 white-space:nowrap 会把整列顶到 344px（视口仅 305px）。
      把 grid/flex 子项的 min-width 归零，让轨道回到可用宽度，
@@ -2098,5 +2058,237 @@
   .chest-count-row {
     flex-wrap: wrap;
     gap: 8px;
+  }
+}
+
+/* 方案 A 纸感：主色由绿改为棕金（只覆盖主色变量，危险色/成功色不动） */
+.notify-page {
+  --c-primary: #b08a4a;
+  --c-primary-mid: #a5763c;
+  --c-primary-light: #c79a55;
+  --c-primary-dark: #8a6a2e;
+}
+
+/* ===== 方案 A：签到与任务并排，其余区块通栏 ===== */
+.main-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+.main-content > .signin-section { grid-column: 1; }
+.main-content > .task-section { grid-column: 2; }
+.main-content > *:not(.signin-section):not(.task-section) { grid-column: 1 / -1; }
+
+.signin-section,
+.task-section {
+  border-color: rgba(176, 138, 74, 0.2);
+  border-radius: 16px;
+  box-shadow: 0 8px 22px rgba(90, 70, 40, 0.1);
+}
+
+@media (max-width: 1000px) {
+  .main-content { grid-template-columns: 1fr; }
+  .main-content > * { grid-column: auto !important; }
+}
+
+/* ===== 任务页纸感统一：去掉残留绿色/蓝色，按钮改成一行可滑动 ===== */
+.task-section .cat-tabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.task-section .cat-tabs::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+.task-section .cat-tab {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  border-color: rgba(176, 138, 74, 0.24);
+  background: rgba(255, 252, 244, 0.72);
+  color: #7a6338;
+}
+.task-section .cat-tab:hover {
+  border-color: #b08a4a;
+  color: #8a6a2e;
+  background: rgba(176, 138, 74, 0.1);
+}
+.task-section .cat-tab.active {
+  background: linear-gradient(135deg, #a5763c, #c79a55);
+  border-color: transparent;
+  box-shadow: 0 4px 10px rgba(140, 105, 48, 0.22);
+}
+
+.task-section .adv-task-item {
+  background: rgba(176, 138, 74, 0.05);
+  border-color: rgba(176, 138, 74, 0.14);
+}
+.task-section .adv-task-item:hover {
+  background: rgba(176, 138, 74, 0.09);
+  border-color: rgba(176, 138, 74, 0.3);
+}
+.task-section .task-icon {
+  box-shadow: 0 4px 10px rgba(140, 105, 48, 0.22);
+}
+.task-section .task-icon.sign {
+  background: linear-gradient(135deg, #b08a4a, #c79a55);
+}
+.task-section .task-icon.shop {
+  background: linear-gradient(135deg, #9c7841, #c8a460);
+}
+.task-section .task-icon.collect {
+  background: linear-gradient(135deg, #a7884d, #d1b56d);
+}
+.task-section .task-icon.chest {
+  background: linear-gradient(135deg, #c08a30, #e0b760);
+}
+.task-section .task-progress-fill {
+  background: linear-gradient(90deg, #a5763c, #d7b36a);
+}
+.task-section .done-badge {
+  background: rgba(176, 138, 74, 0.14);
+  color: #8a6a2e;
+}
+.task-section .btn-gold:hover:not(:disabled) {
+  box-shadow: 0 4px 12px rgba(140, 105, 48, 0.28);
+}
+.task-section .btn-gold:disabled {
+  background: rgba(176, 138, 74, 0.35);
+}
+
+@media (max-width: 768px) {
+  .task-section .section-header {
+    align-items: flex-start;
+  }
+  .task-section .signin-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .task-section .btn-gold {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+}
+
+/* ===== 大屏铺开：日常页全屏时不再只占中间一小块 ===== */
+@media (min-width: 1200px) {
+  .notify-body {
+    max-width: 1480px;
+  }
+  .layout {
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 22px;
+  }
+  .main-content {
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+    gap: 20px;
+  }
+  .signin-section,
+  .task-section {
+    padding: 22px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .notify-body {
+    max-width: 1660px;
+  }
+}
+
+/* ===== 方案 A 仪表盘：顶部页面条 ===== */
+.notify-topbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.notify-topbar .back-btn {
+  position: static;
+  flex-shrink: 0;
+}
+.notify-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.notify-topbar .notify-title {
+  text-align: left;
+  font-size: 24px;
+  letter-spacing: 3px;
+  margin: 0;
+}
+.notify-subtitle {
+  font-size: 12px;
+  color: var(--c-text-hint);
+  letter-spacing: 1px;
+}
+.notify-quick-stats {
+  margin-left: auto;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.quick-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: var(--c-cream);
+  border: 1px solid rgba(176, 138, 74, 0.18);
+  color: var(--c-text-sub);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.quick-stat b {
+  color: var(--c-primary-dark);
+}
+.notify-quick-stats .claim-num {
+  color: #c26a3a;
+}
+
+@media (max-width: 768px) {
+  .notify-topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .notify-topbar .back-btn {
+    margin-bottom: 0;
+  }
+  .notify-heading {
+    flex: 1;
+  }
+  .notify-topbar .notify-title {
+    font-size: 21px;
+  }
+  .notify-quick-stats {
+    width: 100%;
+    margin-left: 0;
+    justify-content: space-between;
+  }
+  .quick-stat {
+    flex: 1;
+    justify-content: center;
+    padding: 7px 6px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .sidebar {
+    position: sticky;
+    top: 20px;
+    align-self: start;
+  }
+  .signin-section,
+  .task-section {
+    height: 100%;
+  }
+  .adv-task-list {
+    max-height: 420px;
   }
 }

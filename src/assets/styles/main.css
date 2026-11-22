@@ -251,28 +251,12 @@ body {
   -webkit-touch-callout: none;
 }
 
-/* 滚动容器统一开启惯性滚动，并限制在容器内不回弹到整页 */
-.scroll-y {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
 /* ---- 3. 视口高度替换 ---- */
 #app {
   min-height: var(--app-vh);
 }
 
-/* ---- 4. 布局辅助类 ---- */
-/* 只在移动端 / 只在桌面端显示。用 !important 是为了不被页面自身的 display 覆盖 */
-.mobile-only { display: none !important; }
-
-@media (max-width: 768px) {
-  .mobile-only { display: revert !important; }
-  .desktop-only { display: none !important; }
-}
-
-/* ---- 5. 移动端通用尺寸与交互 ---- */
+/* ---- 4. 移动端通用尺寸与交互 ---- */
 
 @media (max-width: 768px) {
   /* 触控目标兜底：纯图标按钮太小会点不中。
@@ -333,8 +317,7 @@ body {
   .item-card:hover:not(:active),
   .clothing-card:hover:not(:active),
   .game-menu-item:hover:not(:active),
-  .nav-item:hover:not(:active),
-  .song-item:hover:not(:active) {
+  .nav-item:hover:not(:active) {
     transform: none !important;
   }
 }

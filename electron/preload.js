@@ -26,6 +26,18 @@ const electronAPI = {
   loadSaveSlot: (slotId) => ipcRenderer.invoke('game:load-slot', slotId),
   deleteSaveSlot: (slotId) => ipcRenderer.invoke('game:delete-slot', slotId),
 
+  // 自动保存（写入 <userData>/data，不覆盖旧文件）
+  autoSave: (slotId, payload) => ipcRenderer.invoke('game:auto-save', { slotId, payload }),
+  getAutoSaveDir: () => ipcRenderer.invoke('game:auto-save-dir'),
+
+  // 退出前保存握手：主进程会在关闭窗口前发这个事件，渲染进程写完再回调
+  onPrepareExitSave: (cb) => {
+    const listener = () => { try { cb() } catch (_) { /* 忽略 */ } }
+    ipcRenderer.on('app:prepare-exit-save', listener)
+    return () => ipcRenderer.removeListener('app:prepare-exit-save', listener)
+  },
+  notifyExitSaveFinished: () => ipcRenderer.send('app:exit-save-finished'),
+
   // 音乐
   musicPickFolder: () => ipcRenderer.invoke('music:pick-folder'),
   musicScanFolder: (folderPath) => ipcRenderer.invoke('music:scan-folder', { folderPath }),

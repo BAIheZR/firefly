@@ -9,9 +9,90 @@ import { dirname, join, extname, basename } from 'path'
 import { exec } from 'node:child_process'
 import { initErrorReporter, log as reportLog, watchMainWindow, flushPendingCritical } from './errorReporter.js'
 import { createRoom, closeRoom, stopServer } from './multiplayer/wsServer.js'
+// 地址解析与渲染进程共用同一份纯函数（src/utils/netAddr.js），避免两套实现漂移
+import { parseHostPort } from '../src/utils/netAddr.js'
 
 // 主窗口引用（模块级，供单实例 second-instance 回调聚焦使用）
 let mainWindow = null
+
+// ===== 用户数据目录（必须在单实例锁之前确定）=====
+// 目录名就是「数据身份」：localStorage（等级/好感/物品/AI 记忆）和 save_slot_*.cns 全在里面，
+// 换目录必须配套迁移，否则等于给所有老玩家开一套空号。
+// 选英文目录名：中文路径在个别压缩/备份/杀软工具里容易出问题。
+const preferredUserData = join(app.getPath('appData'), 'firefly-care-diary')
+
+// 目录里是否真的存有游戏数据（Electron 自动建的壳目录、只有 Logs 的空目录不算）
+function dirHasGameData(dir) {
+  try {
+    if (!fs.existsSync(dir)) return false
+    const names = fs.readdirSync(dir)
+    if (names.some((n) => /^save_slot_\d+\.cns$/.test(n))) return true
+    if (names.includes('Local Storage')) return true // localStorage 主库
+    if (names.includes('Preferences')) return true
+    return false
+  } catch (_) {
+    return false
+  }
+}
+
+// 迁移时只搬「游戏数据」，不搬 Chromium 缓存。
+// 实测旧目录 281MB，其中 Cache / Code Cache / GPUCache 占 275MB 且可再生成；
+// 真实数据（localStorage + 槽位 + 图片 + 备份）不到 1MB。整包拷贝会让首次启动卡很久。
+const MIGRATE_ENTRIES = [
+  'Local Storage',   // 等级 / 好感 / 物品 / AI 记忆等全部游戏进度
+  'Session Storage',
+  'Network',         // 联机相关 cookie（很小）
+  'Preferences',
+  'images',          // 头像 / 自定义背景
+  'data',            // 自动保存快照
+  'Logs',            // 错误日志（售后排查用）
+]
+
+// 白名单迁移：目录条目 + 根目录下的 save_slot_*.cns
+function migrateGameData(srcDir, destDir) {
+  fs.mkdirSync(destDir, { recursive: true })
+  for (const name of MIGRATE_ENTRIES) {
+    const src = join(srcDir, name)
+    if (!fs.existsSync(src)) continue
+    const dest = join(destDir, name)
+    if (fs.statSync(src).isDirectory()) copyDirMerge(src, dest)
+    else fs.copyFileSync(src, dest)
+  }
+  for (const name of fs.readdirSync(srcDir)) {
+    if (/^save_slot_\d+\.cns$/.test(name)) {
+      fs.copyFileSync(join(srcDir, name), join(destDir, name))
+    }
+  }
+}
+
+try {
+  if (path.resolve(app.getPath('userData')) !== path.resolve(preferredUserData)) {
+    if (!dirHasGameData(preferredUserData)) {
+      fs.mkdirSync(preferredUserData, { recursive: true })
+      // 迁移优先级：上一版目录 → 更早的两个旧目录。
+      // 只搬第一个「确实有数据」的，源目录原样保留作备份（不删除、不改名）。
+      const legacyDirs = [
+        join(app.getPath('appData'), 'yingguangjiyou'),
+        join(app.getPath('appData'), '萤光纪游'),
+        join(app.getPath('appData'), 'cas_nodeItem'),
+      ]
+      for (const legacyDir of legacyDirs) {
+        if (!dirHasGameData(legacyDir)) continue
+        // 先复制到临时目录，成功后再整体替换目标：
+        // 万一迁移途中进程被杀，不会留下「有 Local Storage 但内容是半套」的假完整目录
+        // （那种目录会让下次启动误判为"已有数据"而跳过迁移，等于丢档）。
+        const tmpDir = preferredUserData + '.migrating'
+        try { fs.rmSync(tmpDir, { recursive: true, force: true }) } catch (_) { /* 忽略 */ }
+        fs.mkdirSync(tmpDir, { recursive: true })
+        migrateGameData(legacyDir, tmpDir)
+        try { fs.rmSync(preferredUserData, { recursive: true, force: true }) } catch (_) { /* 忽略 */ }
+        fs.renameSync(tmpDir, preferredUserData)
+        break
+      }
+    }
+    app.setPath('userData', preferredUserData)
+  }
+} catch (_) { /* 迁移失败不阻塞启动，原目录仍然可用 */ }
 
 // 单实例锁：防止玩家多开游戏导致存档互相覆盖。
 // GPU 崩溃降级后的恢复实例由旧实例 relaunch 唤起，无需再抢锁，否则会被静默退出
@@ -58,25 +139,8 @@ function isDevToolsShortcut(input) {
   )
 }
 
-// 固定用户数据目录为 %APPDATA%\yingguangjiyou（卸载重装不丢档）
-// 打包版默认目录是 %APPDATA%\萤光纪游，这里统一固定并做一次迁移，老玩家数据自动搬过来
-const preferredUserData = join(app.getPath('appData'), 'yingguangjiyou')
-try {
-  if (path.resolve(app.getPath('userData')) !== path.resolve(preferredUserData)) {
-    const targetHasData = fs.existsSync(preferredUserData) && fs.readdirSync(preferredUserData).length > 0
-    if (!targetHasData) {
-      fs.mkdirSync(preferredUserData, { recursive: true })
-      const legacyDirs = [join(app.getPath('appData'), '萤光纪游'), join(app.getPath('appData'), 'cas_nodeItem')]
-      for (const legacyDir of legacyDirs) {
-        if (fs.existsSync(legacyDir)) {
-          copyDirMerge(legacyDir, preferredUserData)
-          break // 只迁移找到的第一个旧目录，旧目录保留作为备份
-        }
-      }
-    }
-    app.setPath('userData', preferredUserData)
-  }
-} catch (_) { /* 迁移失败不阻塞启动 */ }
+// 用户数据目录（preferredUserData）与老目录迁移已提前到「单实例锁」之前定义，
+// 这样单实例锁和 Chromium 的 localStorage 都用同一个目录，避免新旧进程各锁各的。
 
 // 递归合并复制目录（目标已存在的文件会被覆盖）
 function copyDirMerge(srcDir, destDir) {
@@ -119,7 +183,7 @@ function createWindow() {
     height: 800,
     minWidth: 900,
     minHeight: 600,
-    title: '萤光纪游',
+    title: '萤养日记',
     icon: iconPath,
     webPreferences: {
       preload: join(__dirname, 'preload.js'),
@@ -171,6 +235,30 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     try { mainWindow.webContents.closeDevTools() } catch (_) { /* ignore */ }
+  })
+
+  // 退出前保存：先把关闭拦下来，通知渲染进程写一份「退出快照」，
+  // 写完（或 2.5s 超时兜底）再真正关闭 —— 否则进程先退，文件还没落盘，等于没存。
+  let allowClose = false
+  mainWindow.on('close', (e) => {
+    if (allowClose) return
+    const win = mainWindow
+    if (!win || win.webContents.isDestroyed()) return
+    e.preventDefault()
+    let finished = false
+    const finish = () => {
+      if (finished) return
+      finished = true
+      allowClose = true
+      try { win.close() } catch (_) { /* 已销毁则忽略 */ }
+    }
+    ipcMain.once('app:exit-save-finished', finish)
+    setTimeout(finish, 1500) // 兜底：渲染进程卡死/未注册时不能把窗口永远卡住
+    try {
+      win.webContents.send('app:prepare-exit-save')
+    } catch (_) {
+      finish()
+    }
   })
 
   if (VITE_DEV_SERVER_URL) {
@@ -451,6 +539,58 @@ ipcMain.handle('game:delete-slot', async (_event, slotId) => {
   }
 })
 
+// ===== 自动保存 =====
+// 落盘目录：<userData>/data（不存在则自动创建）。
+// 每次生成一份独立文件，文件名带时间戳；同一秒重复触发时追加序号，**绝不覆盖已有文件**。
+const getAutoSaveDir = () => {
+  const dir = join(userDataPath, 'data')
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+  return dir
+}
+
+const pad2 = (n) => String(n).padStart(2, '0')
+const autoSaveStamp = (d = new Date()) =>
+  `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}_` +
+  `${pad2(d.getHours())}-${pad2(d.getMinutes())}-${pad2(d.getSeconds())}`
+
+// 仅返回目录路径（设置页用来展示「保存到哪」）
+ipcMain.handle('game:auto-save-dir', async () => {
+  try {
+    return { success: true, dir: getAutoSaveDir() }
+  } catch (err) {
+    return { success: false, error: err.message }
+  }
+})
+
+// 统一写入一份自动保存快照（时间戳命名，绝不覆盖已有文件）
+function writeAutoSave(slotId, payload) {
+  if (!slotId) throw new Error('没有激活的存档槽')
+  const dir = getAutoSaveDir()
+  const base = `autosave_slot${slotId}_${autoSaveStamp()}`
+  let filePath = join(dir, `${base}.json`)
+  let n = 2
+  while (fs.existsSync(filePath)) {
+    filePath = join(dir, `${base}-${n}.json`)
+    n += 1
+  }
+  const body = {
+    ...(payload || {}),
+    // __ 前缀：保证「导入存档」按白名单读 key 时会自动忽略这些元信息
+    __autoSave: { slotId, savedAt: Date.now(), appVersion: app.getVersion() },
+  }
+  fs.writeFileSync(filePath, JSON.stringify(body), 'utf-8')
+  return { success: true, filePath, fileName: basename(filePath) }
+}
+
+ipcMain.handle('game:auto-save', async (_event, { slotId, payload } = {}) => {
+  try {
+    return writeAutoSave(slotId, payload)
+  } catch (err) {
+    reportLog('ERROR', '自动保存', '自动保存写入失败', err?.stack || err?.message)
+    return { success: false, error: err.message }
+  }
+})
+
 
 // IPC: 音乐功能
 ipcMain.handle('music:pick-folder', async () => {
@@ -693,23 +833,8 @@ function ipRank(ip) {
 ipcMain.handle('mp:list-ips', async () => ({ success: true, lanIps: listLocalIps() }))
 
 // 联机：探测穿透地址可用哪种协议  
+// 地址解析用 src/utils/netAddr.js 的共享实现（默认端口由环境变量决定）
 const PROBE_DEFAULT_PORT = Number(process.env.MP_PORT) || 8765
-function parseHostPort(input) {
-  let s = String(input || '').trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
-  if (!s) return null
-  const slash = s.indexOf('/')
-  if (slash !== -1) s = s.slice(0, slash)
-  const q = s.indexOf('?')
-  if (q !== -1) s = s.slice(0, q)
-  const m6 = s.match(/^\[([^\]]+)\](?::(\d+))?$/)
-  if (m6) return { host: m6[1], port: Number(m6[2]) || PROBE_DEFAULT_PORT, explicitPort: !!m6[2] }
-  const idx = s.lastIndexOf(':')
-  if (idx === -1) return { host: s, port: PROBE_DEFAULT_PORT, explicitPort: false }
-  const host = s.slice(0, idx)
-  const port = Number(s.slice(idx + 1))
-  if (!host || !Number.isInteger(port) || port <= 0 || port > 65535) return null
-  return { host, port, explicitPort: true }
-}
 
 // 只测 TCP 能否连上（用来区分「端口不通」与「端口通但协议不对」）
 function probeTcp(host, port, timeout = 4000) {
@@ -792,7 +917,7 @@ function probePlainHttp(host, port, timeout = 5000) {
 }
 
 ipcMain.handle('mp:probe-tunnel', async (_event, addr) => {
-  const target = parseHostPort(addr)
+  const target = parseHostPort(addr, PROBE_DEFAULT_PORT)
   if (!target) return { success: false, error: '地址无法解析，请按「域名:端口」填写（如 frp-bus.com:37515）' }
   const { host, port, explicitPort } = target
   // 穿透隧道的远程端口是随机分配的，漏写时默认 8765 必然连不上 —— 直接说清楚，别报含糊的失败

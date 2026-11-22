@@ -57,9 +57,10 @@
           {{ bubbleDisplayText }}<span v-if="typing" class="typing-cursor">|</span>
         </div>
       </Transition>
-      <!-- 好感度与行动点（按住鼠标右键时显示，位于人物图片右上角） -->
+      <!-- 好感度与行动点：常驻左下角纸感状态卡；右键/长按时轻微抬起高亮 -->
       <Transition name="stats-pop">
-        <div v-show="statsVisible" class="character-stats">
+        <div class="character-stats" :class="{ 'is-active': statsVisible }">
+          <div class="stats-title">今日</div>
           <div class="stats-row">
             <span class="stats-label">好感度</span>
             <div class="stats-bar">
@@ -78,9 +79,10 @@
       </Transition>
     </div>
 
-    <!-- 左下角按钮组：挂机时间 + AI 聊天 -->
+    <!-- 右侧竖排操作：挂机 / 聊天 / 调整（Live2D 切换已收进调整面板） -->
     <div class="home-fab-group">
       <button type="button" class="idle-fab" title="挂机时间" @click="goIdle" @mouseenter="onHoverIdle">
+        <i class="fa-solid fa-clock"></i>
         <span>挂机时间</span>
       </button>
       <button type="button" class="chat-fab" title="和流萤聊天" @click="showChat = true">
@@ -90,18 +92,6 @@
       <button type="button" class="adjust-fab" :class="{ active: adjustMode }" title="调整人物大小与位置" @click="toggleAdjust">
         <i class="fa-solid fa-up-down-left-right"></i>
         <span>调整</span>
-      </button>
-      <!-- Live2D / 2D 立绘 一键切换（仅当当前服装有 Live2D 模型时出现） -->
-      <button
-        v-if="canUseLive2D"
-        type="button"
-        class="adjust-fab"
-        :class="{ active: isLive2DMode }"
-        :title="isLive2DMode ? '当前为 Live2D，点击切回立绘' : '当前为立绘，点击切换 Live2D'"
-        @click="toggleRenderMode"
-      >
-        <i class="fa-solid fa-wand-magic-sparkles"></i>
-        <span>{{ isLive2DMode ? 'Live2D' : '立绘' }}</span>
       </button>
     </div>
 
@@ -119,6 +109,12 @@
       <el-slider v-model="modelRy" :min="-180" :max="180" :step="1" class="adjust-slider" @input="onRyInput" />
       <span class="adjust-value">{{ modelRy }}°</span>
     </div>
+        <div v-if="canUseLive2D" class="adjust-row">
+          <span class="adjust-label">形象</span>
+          <button type="button" class="adjust-btn" @click="toggleRenderMode">
+            {{ isLive2DMode ? '切换到立绘' : '切换到 Live2D' }}
+          </button>
+        </div>
         <div class="adjust-actions">
           <button type="button" class="adjust-btn" @click="resetAdjust">重置</button>
           <button type="button" class="adjust-btn primary" @click="finishAdjust">完成</button>
@@ -166,7 +162,7 @@ import fireflyYuan from '@/images/game/firefly_yuan.png'
 import { useInventoryStore, BASE_ACTION_POINT, ACTION_POINT_PER_LEVEL } from '@/config/inventory'
 import { AFFECTION_MAX } from '@/config/affectionStages'
 import { useBackgroundStore } from '@/config/background'
-import { getLoginGreeting, getSignGreeting, getAffectionStage, getAffectionGreeting, getHoverGreeting, getClickGreeting } from '@/config/greetings'
+import { getLoginGreeting, getSignGreeting, getAffectionStage, getAffectionGreeting, getHoverGreeting } from '@/config/greetings'
 import { isTouchDevice } from '@/utils/device'
 import iconImg from '@/images/item/icon.png'
 

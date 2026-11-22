@@ -2,7 +2,7 @@
 # 文档：https://www.electron.build/configuration/configuration
 
 appId: com.cas.nodeitem
-productName: 萤光纪游
+productName: 萤养日记
 copyright: Copyright © 2026
 
 directories:
@@ -46,7 +46,7 @@ nsis:
   allowToChangeInstallationDirectory: true
   createDesktopShortcut: true
   createStartMenuShortcut: true
-  shortcutName: 萤光纪游
+  shortcutName: 萤养日记
   installerIcon: favicon.ico
   uninstallerIcon: favicon.ico
   installerHeaderIcon: favicon.ico

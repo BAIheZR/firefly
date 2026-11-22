@@ -5,7 +5,7 @@
         <div class="agree-header">
           <div class="agree-title">
             <i class="fa-solid fa-file-contract"></i>
-            <span>「萤光纪游」软件使用同意条款</span>
+            <span>「萤养日记」软件使用同意条款</span>
           </div>
           <button v-if="mode === 'view'" class="agree-close" title="关闭" @click="close">
             <i class="fa-solid fa-xmark"></i>
@@ -21,7 +21,7 @@
           </button>
           <ul v-show="summaryOpen" class="agree-summary-list">
             <li><b>存什么</b>：用户名与头像、游戏进度（等级 / 好感度 / 行动点 / 金币 / 背包 / 签到）、AI 对话的长期记忆卡片、AI 服务配置（含 API Key）、多存档槽。</li>
-            <li><b>存在哪</b>：只存在您的本机设备（桌面端为 %APPDATA%\Roaming\yingguangjiyou，浏览器端为浏览器本地存储），不上传开发者。</li>
+            <li><b>存在哪</b>：只存在您的本机设备（桌面端为 %APPDATA%\firefly-care-diary，浏览器端为浏览器本地存储），不上传开发者。</li>
             <li><b>做什么用</b>：仅用于实现软件的各项本地功能、维持您的游戏进度与对话连续性。</li>
             <li><b>怎么删</b>：设置页「清空所有数据」可一次性清除全部本地数据（含存档文件与图片）；也可直接删除上述数据目录。</li>
           </ul>

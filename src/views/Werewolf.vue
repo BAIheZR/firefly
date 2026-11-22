@@ -428,7 +428,7 @@ import { computed } from 'vue'
 import { useMultiplayerStore } from '@/config/multiplayer'
 import { useGoldStore } from '@/config/gold'
 import {
-  ROLES, ROLE, PHASE, PHASE_MS, SPEAK_MS, TERMS, BASE_TOTAL, SUPPORTED_SIZES, isWolfRole, PM_AVATAR,
+  ROLES, ROLE, PHASE, PHASE_MS, SPEAK_MS, TERMS, SUPPORTED_SIZES, isWolfRole, PM_AVATAR,
   NIGHT_STEPS, NIGHT_STEP_LABEL, NIGHT_STEP_MS,
 } from '@/config/werewolf'
 import { useWerewolfMatch } from '@/composables/useWerewolfMatch'

@@ -73,38 +73,48 @@
             </div>
 
             <div class="ctrl-row">
-              <button class="ctrl-btn" @click="goBack" title="返回">
-                <i class="fa-solid fa-arrow-left"></i>
-              </button>
-              <button
-                class="ctrl-btn"
-                :class="{ active: loopMode !== 'off' }"
-                @click="toggleLoopMode"
-                :title="loopModeLabel"
-              >
-                <MorphIcon :icon="loopMode === 'one' ? Repeat1 : Repeat" class="morph-icon" />
-              </button>
-              <button
-                class="ctrl-btn"
-                :class="{ active: playMode === 'random' }"
-                @click="togglePlayMode"
-                :title="playModeLabel"
-              >
-                <i v-if="playMode === 'random'" class="fa-solid fa-shuffle"></i>
-                <i v-else class="fa-solid fa-arrow-right-arrow-left"></i>
-              </button>
-              <button class="ctrl-btn ctrl-btn-lg" @click="playPrev" title="上一首">
-                <i class="fa-solid fa-backward-step"></i>
-              </button>
-              <button class="ctrl-btn ctrl-play" @click="togglePlay" :title="isPlaying ? '暂停' : '播放'">
-                <MorphIcon :icon="isPlaying ? Pause : Play" class="morph-icon" />
-              </button>
-              <button class="ctrl-btn ctrl-btn-lg" @click="playNext" title="下一首">
-                <i class="fa-solid fa-forward-step"></i>
-              </button>
-              <button class="ctrl-btn" :class="{ active: showList }" @click="toggleList" title="播放列表">
-                <i class="fa-solid fa-list"></i>
-              </button>
+              <div class="ctrl-line ctrl-line-main">
+                <button class="ctrl-btn ctrl-btn-lg" @click="playPrev" title="上一首">
+                  <i class="fa-solid fa-backward-step"></i>
+                </button>
+                <button class="ctrl-btn ctrl-play" @click="togglePlay" :title="isPlaying ? '暂停' : '播放'">
+                  <MorphIcon :icon="isPlaying ? Pause : Play" class="morph-icon" />
+                </button>
+                <button class="ctrl-btn ctrl-btn-lg" @click="playNext" title="下一首">
+                  <i class="fa-solid fa-forward-step"></i>
+                </button>
+              </div>
+
+              <div class="ctrl-line ctrl-line-sub">
+                <button class="ctrl-btn ctrl-btn-sm" @click="goBack" title="返回">
+                  <i class="fa-solid fa-arrow-left"></i>
+                </button>
+                <button
+                  class="ctrl-btn ctrl-btn-sm"
+                  :class="{ active: loopMode !== 'off' }"
+                  @click="toggleLoopMode"
+                  :title="loopModeLabel"
+                >
+                  <MorphIcon :icon="loopMode === 'one' ? Repeat1 : Repeat" class="morph-icon" />
+                </button>
+                <button
+                  class="ctrl-btn ctrl-btn-sm"
+                  :class="{ active: playMode === 'random' }"
+                  @click="togglePlayMode"
+                  :title="playModeLabel"
+                >
+                  <i v-if="playMode === 'random'" class="fa-solid fa-shuffle"></i>
+                  <i v-else class="fa-solid fa-arrow-right-arrow-left"></i>
+                </button>
+                <button
+                  class="ctrl-btn ctrl-btn-sm"
+                  :class="{ active: showList }"
+                  @click="toggleList"
+                  title="播放列表"
+                >
+                  <i class="fa-solid fa-list"></i>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -210,6 +220,7 @@ import { ElMessage } from 'element-plus'
 import { useTasksStore } from '@/config/tasks'
 import { useMusicStore, useAudioSettingsStore } from '@/config/music'
 import { MorphIcon } from 'morphicons/vue'
+import { goBackOrHome } from '@/utils/nav'
 import { Play, Pause, Repeat, Repeat1 } from 'lucide'
 
 const router = useRouter()
@@ -566,24 +577,6 @@ async function startPlay() {
   }
 }
 
-function stopAndReset() {
-  if (!audioEl.value) return
-  const req = ++playReqId
-  try {
-    audioEl.value.pause()
-  } catch (_) {}
-  audioEl.value.removeAttribute('src')
-  audioEl.value.load()
-  isPlaying.value = false
-  stopVisualizer()
-  stopListenTimer()
-  if (req === playReqId) {
-    currentTime.value = 0
-    duration.value = 0
-    progressPercent.value = 0
-  }
-}
-
 async function togglePlay() {
   if (!track.value) {
     if (tracks.value.length > 0) {
@@ -659,11 +652,7 @@ function toggleList() {
 }
 
 function goBack() {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/')
-  }
+  goBackOrHome(router)
 }
 
 function refreshCover() {

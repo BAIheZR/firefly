@@ -3,6 +3,8 @@ import { defineStore } from 'pinia'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/config/user'
 import { shrinkAvatar } from '@/utils/avatar'
+// 地址解析与主进程共用同一份实现，避免两边各写一套（默认端口曾经不一致）
+import { extractHost } from '@/utils/netAddr'
 
 // （原 SESSION_GRACE_MS「桌号宽限期」常量已删：它只被 staleSession 用，而后者全项目零调用 —— 2026-10-09）
 
@@ -1001,17 +1003,8 @@ export function guessScheme(input) {
 }
 
 // 从任意写法里取出主机名（去掉协议头、路径、查询串、端口）
-export function extractHost(input) {
-  let s = String(input || '').trim().replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
-  if (!s) return ''
-  s = s.split('/')[0].split('?')[0]
-  if (s.startsWith('[')) {
-    const end = s.indexOf(']')
-    return end === -1 ? s.slice(1) : s.slice(1, end)
-  }
-  const idx = s.lastIndexOf(':')
-  return idx === -1 ? s : s.slice(0, idx)
-}
+// 具体实现见 @/utils/netAddr.js，主进程探测隧道地址时用的是同一份逻辑
+export { extractHost }
 
 export function isIpLiteral(host) {
   const h = String(host || '')

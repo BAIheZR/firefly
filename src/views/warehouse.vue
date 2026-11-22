@@ -1,14 +1,14 @@
 <template>
   <div class="warehouse">
     <div class="warehouse-body">
-      <button class="back-btn" title="返回主页" @click="goBack">
+      <button v-if="!embedded" class="back-btn" title="返回主页" @click="goBack">
         <i class="fa-solid fa-arrow-left"></i>
         <span>返回</span>
       </button>
-      <div class="shop-title">仓库</div>
+      <div v-if="!embedded" class="shop-title">仓库</div>
 
-      <!-- 金币 -->
-      <div class="top-actions">
+      <!-- 金币（嵌进背包时由外壳统一显示，这里不再重复） -->
+      <div v-if="!embedded" class="top-actions">
         <div class="gold-display" title="金币">
           <i class="fa-solid fa-coins"></i>
           <span>{{ goldStore.currentGold }}</span>
@@ -17,7 +17,7 @@
 
       <!-- 标签页 -->
       <div class="nav">
-        <el-tabs v-model="activeName" class="demo-tabs" @tab-click="handleClick">
+        <el-tabs v-model="activeName" class="demo-tabs">
           <el-tab-pane label="全部" name="all">
             <ViewSwitcher v-model="allView" :options="viewOptions">
               <template #default="{ current }">
@@ -199,15 +199,19 @@
 </template>
 
 <script setup>
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import ViewSwitcher from '@/components/ViewSwitcher.vue'
 import ConfirmDialog from '@/components/ConfirmDialog.vue'
 import { useInventoryStore } from '@/config/inventory'
 import { useGoldStore } from '@/config/gold'
+import { goBackOrHome } from '@/utils/nav'
 
 const router = useRouter()
+const route = useRoute()
+// 作为「背包」的子页嵌入时，隐藏自己的返回键与标题（由 Bag.vue 提供外壳）
+const embedded = computed(() => route.path.startsWith('/bag'))
 const store = useInventoryStore()
 const goldStore = useGoldStore()
 // 判断 icon 是否为图片（非字体图标）
@@ -229,17 +233,7 @@ const allData = computed(() => store.allWarehouseItems)
 const itemData = computed(() => store.warehouseItems('item'))
 const clothingData = computed(() => store.warehouseItems('clothing'))
 
-const goBack = () => {
-  if (window.history.length > 1) {
-    router.back()
-  } else {
-    router.push('/')
-  }
-}
-
-const handleClick = (tab) => {
-  console.log('切换标签:', tab)
-}
+const goBack = () => goBackOrHome(router)
 
 const showConfirm = ref(false)
 const confirmItem = ref(null)

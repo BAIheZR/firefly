@@ -71,9 +71,9 @@
   flex-shrink: 0;
 }
 .btn-home:hover {
-  background: #3FA98A;
+  background: #B08A4A;
   color: #fff;
-  border-color: #3FA98A;
+  border-color: #B08A4A;
   transform: translateY(-1px);
   box-shadow: 0 4px 10px rgba(63,169,138,0.35);
 }
@@ -142,7 +142,7 @@
   flex-shrink: 0;
   width: 26px; height: 26px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #3FA98A, #5BC9A0);
+  background: linear-gradient(135deg, #B08A4A, #C79A55);
   color: #fff;
   font-size: 12px;
   font-weight: 700;
@@ -181,7 +181,7 @@
   transition: border-color 0.25s, box-shadow 0.25s;
 }
 .guess-input:focus {
-  border-color: #3FA98A;
+  border-color: #B08A4A;
   box-shadow: 0 0 0 3px rgba(63,169,138,0.18);
 }
 .guess-input:disabled {
@@ -293,7 +293,7 @@
   font-weight: 700;
   color: #4a3a10;
 }
-.history-head i { color: #3FA98A; }
+.history-head i { color: #B08A4A; }
 .history-count {
   margin-left: 4px;
   padding: 2px 8px;
@@ -374,7 +374,7 @@
   align-items: center;
   gap: 4px;
 }
-.hi-row i { color: #3FA98A; font-size: 11px; }
+.hi-row i { color: #B08A4A; font-size: 11px; }
 .hi-row .ok { color: #2e8b57; font-weight: 700; }
 .hi-row .bad { color: #c0392b; font-weight: 700; }
 .hi-result {
